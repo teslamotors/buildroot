@@ -11,6 +11,7 @@ ELFUTILS_INSTALL_STAGING = YES
 ELFUTILS_LICENSE = GPLv3, GPLv2, LGPLv3
 ELFUTILS_LICENSE_FILES = COPYING COPYING-GPLV2 COPYING-LGPLV3
 ELFUTILS_PATCH = elfutils-portability-0.161.patch
+ELFUTILS_DEPENDENCIES += host-gettext host-bison host-flex
 
 # The tarball does not have a generated configure script
 ELFUTILS_AUTORECONF = YES

@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PERL_EXTUTILS_INSTALLPATHS
+	bool "perl-extutils-installpaths"
+	select BR2_PACKAGE_PERL_EXTUTILS_CONFIG
+	help
+	  Build.PL install path logic made easy
+
+	  https://metacpan.org/release/ExtUtils-InstallPaths

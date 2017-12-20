@@ -1,0 +1,9 @@
+config BR2_PACKAGE_UREADAHEAD
+	bool "ureadhead"
+	depends on BR2_PACKAGE_LIBNIH
+	help
+         über-readahead is used during boot to read files in advance of when
+         they are needed such that they are already in the page cache,
+         improving boot performance.
+
+         https://launchpad.net/ureadahead/

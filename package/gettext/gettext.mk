@@ -46,22 +46,22 @@ HOST_GETTEXT_SUBDIR = gettext-tools
 # Disable the build of documentation and examples of gettext-tools,
 # and the build of documentation and tests of gettext-runtime.
 define HOST_GETTEXT_DISABLE_UNNEEDED
-	$(SED) '/^SUBDIRS/s/ doc //;/^SUBDIRS/s/examples$$//' $(@D)/gettext-tools/Makefile.in
-	$(SED) '/^SUBDIRS/s/ doc //;/^SUBDIRS/s/tests$$//' $(@D)/gettext-runtime/Makefile.in
+	$(Q)$(SED) '/^SUBDIRS/s/ doc //;/^SUBDIRS/s/examples$$//' $(@D)/gettext-tools/Makefile.in
+	$(Q)$(SED) '/^SUBDIRS/s/ doc //;/^SUBDIRS/s/tests$$//' $(@D)/gettext-runtime/Makefile.in
 endef
 
 GETTEXT_POST_PATCH_HOOKS += HOST_GETTEXT_DISABLE_UNNEEDED
 HOST_GETTEXT_POST_PATCH_HOOKS += HOST_GETTEXT_DISABLE_UNNEEDED
 
 define GETTEXT_REMOVE_UNNEEDED
-	$(RM) -rf $(TARGET_DIR)/usr/share/gettext/ABOUT-NLS
-	rmdir --ignore-fail-on-non-empty $(TARGET_DIR)/usr/share/gettext
+	$(Q)$(RM) -rf $(TARGET_DIR)/usr/share/gettext/ABOUT-NLS
+	$(Q)rmdir --ignore-fail-on-non-empty $(TARGET_DIR)/usr/share/gettext
 endef
 
 GETTEXT_POST_INSTALL_TARGET_HOOKS += GETTEXT_REMOVE_UNNEEDED
 
 define GETTEXT_GETTEXTIZE_EYE_CANDY
-	$(SED) '/Press Return\|read dummy/d' $(HOST_DIR)/usr/bin/gettextize
+	$(Q)$(SED) '/Press Return\|read dummy/d' $(HOST_DIR)/usr/bin/gettextize
 endef
 
 HOST_GETTEXT_POST_INSTALL_HOOKS += GETTEXT_GETTEXTIZE_EYE_CANDY
@@ -77,11 +77,11 @@ endif
 
 # Disable interactive confirmation in host gettextize for package fixups
 define HOST_GETTEXT_GETTEXTIZE_CONFIRMATION
-	$(SED) '/read dummy/d' $(HOST_DIR)/usr/bin/gettextize
+	$(Q)$(SED) '/read dummy/d' $(HOST_DIR)/usr/bin/gettextize
 endef
 HOST_GETTEXT_POST_INSTALL_HOOKS += HOST_GETTEXT_GETTEXTIZE_CONFIRMATION
 
-GETTEXTIZE = $(HOST_CONFIGURE_OPTS) AUTOM4TE=$(HOST_DIR)/usr/bin/autom4te $(HOST_DIR)/usr/bin/gettextize -f
+GETTEXTIZE = $(HOST_CONFIGURE_OPTS) AUTOM4TE=$(HOST_DIR)/usr/bin/autom4te $(LOGLINEAR) $(HOST_DIR)/usr/bin/gettextize -f
 
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))

@@ -22,7 +22,6 @@ PERF_MAKE_FLAGS = \
 	prefix=/usr \
 	WERROR=0 \
 	NO_LIBAUDIT=1 \
-	NO_NEWT=1 \
 	NO_GTK2=1 \
 	NO_LIBPERL=1 \
 	NO_LIBPYTHON=1 \

@@ -1,0 +1,4 @@
+config BR2_HOST_TESLA_BINUTILS
+       bool "tesla binutils"
+       help
+         The buildroot host-binutils actually builds a cross-binutils.  This is binutils for the host system.

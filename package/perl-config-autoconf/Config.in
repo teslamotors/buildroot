@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PERL_CONFIG_AUTOCONF
+	bool "perl-config-autoconf"
+	select BR2_PACKAGE_PERL_CAPTURE_TINY
+	help
+	  A module to implement some of AutoConf macros in pure perl.
+
+	  https://metacpan.org/release/Config-AutoConf

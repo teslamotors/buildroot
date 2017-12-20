@@ -1,0 +1,24 @@
+--- a/progs/capsh.c	2016-11-22 10:35:50.351485921 -0800
++++ b/progs/capsh.c	2016-11-22 10:35:33.259556219 -0800
+@@ -557,10 +557,10 @@
+ 	    }
+ 	    printf("\n");
+ 	} else if ((!strcmp("--", argv[i])) || (!strcmp("==", argv[i]))) {
+-	    argv[i] = strdup(argv[i][0] == '-' ? "/bin/bash" : argv[0]);
++	    argv[i] = strdup(argv[i][0] == '-' ? "/bin/sh" : argv[0]);
+ 	    argv[argc] = NULL;
+ 	    execve(argv[i], argv+i, envp);
+-	    fprintf(stderr, "execve /bin/bash failed!\n");
++	    fprintf(stderr, "execve /bin/sh failed!\n");
+ 	    exit(1);
+ 	} else {
+ 	usage:
+@@ -582,7 +582,7 @@
+ 		   "  --killit=<n>   send signal(n) to child\n"
+ 		   "  --forkfor=<n>  fork and make child sleep for <n> sec\n"
+ 		   "  ==             re-exec(capsh) with args as for --\n"
+-		   "  --             remaing arguments are for /bin/bash\n"
++		   "  --             remaing arguments are for /bin/sh\n"
+ 		   "                 (without -- [%s] will simply exit(0))\n",
+ 		   argv[0], argv[0]);
+ 

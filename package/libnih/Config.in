@@ -1,0 +1,9 @@
+config BR2_PACKAGE_LIBNIH
+	bool "libnih"
+	depends on BR2_PACKAGE_DBUS
+	help
+         Small library for C application development containing functions that,
+         despite its name, are not implemented elsewhere in the standard
+         library set.
+
+         https://launchpad.net/libnih

@@ -1,0 +1,28 @@
+mksquashfs: Fix queue_put race in frag_deflator
+
+Under very parallel conditions it's possible for an unlocked queue_put
+to race with the corresponding queue_get in frag_deflator.  The
+symptoms are a failing lseek that indicates the device is out of
+space.  Move the pthread_mutex_unlock to after the queue_put to fix
+the race.
+---
+ squashfs-tools/mksquashfs.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/squashfs-tools/mksquashfs.c b/squashfs-tools/mksquashfs.c
+index 681c70a..9eba75a 100644
+--- a/squashfs-tools/mksquashfs.c
++++ b/squashfs-tools/mksquashfs.c
+@@ -2449,8 +2449,8 @@ void *frag_deflator(void *arg)
+ 			write_buffer->block = bytes;
+ 			bytes += compressed_size;
+ 			fragments_outstanding --;
+-			pthread_mutex_unlock(&fragment_mutex);
+ 			queue_put(to_writer, write_buffer);
++			pthread_mutex_unlock(&fragment_mutex);
+ 			TRACE("Writing fragment %lld, uncompressed size %d, "
+ 				"compressed size %d\n", file_buffer->block,
+ 				file_buffer->size, compressed_size);
+-- 
+2.10.1
+

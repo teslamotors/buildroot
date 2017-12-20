@@ -1,0 +1,6 @@
+config BR2_PACKAGE_TESLA_PYTHON_PYTZ
+        bool "tesla-python-pytz"
+        help
+          pytz - World Timezone Definitions for Python
+
+          https://pypi.python.org/pypi/pytz/

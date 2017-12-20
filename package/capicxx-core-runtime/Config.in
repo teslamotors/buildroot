@@ -1,0 +1,8 @@
+config BR2_PACKAGE_CAPICXX_CORE_RUNTIME
+       bool "Common API Core Runtime"
+       help
+         CommonAPI C++ is a C++ framework for interprocess and network communication.
+
+         It is used as part of the tuner control stack.
+
+         https://genivi.github.io/capicxx-core-tools/

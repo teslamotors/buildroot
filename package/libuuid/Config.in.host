@@ -1,0 +1,4 @@
+config BR2_HOST_LIBUUID
+       bool "host-libuuid"
+       help
+         Library to generate UUID

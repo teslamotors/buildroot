@@ -1,0 +1,5 @@
+config BR2_PACKAGE_PYTHON_FASTCACHE
+	bool "python-fastcache"
+	help
+	  C implementation of Python 3 functools.lru_cache.
+	  http://pypi.python.org/pypi/fastcache/

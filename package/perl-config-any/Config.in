@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PERL_CONFIG_ANY
+	bool "perl-config-any"
+	select BR2_PACKAGE_PERL_MODULE_PLUGGABLE
+	help
+	  Load configuration from different file formats, transparently
+
+	  https://metacpan.org/release/Config-Any

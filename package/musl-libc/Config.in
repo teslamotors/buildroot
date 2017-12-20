@@ -1,0 +1,4 @@
+config BR2_PACKAGE_MUSL_LIBC
+       bool "musl-libc"
+       help
+         The musl-libc toolchain

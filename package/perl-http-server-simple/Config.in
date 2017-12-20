@@ -1,0 +1,11 @@
+config BR2_PACKAGE_PERL_HTTP_SERVER_SIMPLE
+	bool "perl-http-server-simple"
+	depends on !BR2_STATIC_LIBS
+	select BR2_PACKAGE_PERL_CGI
+	help
+	  Lightweight HTTP server
+
+	  https://metacpan.org/release/HTTP-Server-Simple
+
+comment "perl-http-server-simple needs a toolchain w/ dynamic library"
+	depends on BR2_STATIC_LIBS

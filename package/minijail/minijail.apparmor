@@ -1,0 +1,10 @@
+#
+# Minijail requires setuid, setgid, and setpcap capabilities
+# unless "-T static" option is given
+#
+# Note: Only minijailed application needs to include this profile
+#
+
+  capability setuid,
+  capability setgid,
+  capability setpcap,

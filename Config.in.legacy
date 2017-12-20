@@ -143,6 +143,16 @@ comment "----------------------------------------------------"
 endif
 
 ###############################################################################
+comment "Legacy options removed in 2017.05"
+
+config BR2_PACKAGE_GMOCK
+	bool "gmock merged into gtest package"
+	select BR2_LEGACY
+	select BR2_PACKAGE_GTEST
+	select BR2_PACKAGE_GTEST_GMOCK
+	help
+	  GMock is now a suboption of the GTest package.
+
 comment "Legacy options removed in 2016.05"
 
 config BR2_PACKAGE_OPENVPN_CRYPTO_POLARSSL

@@ -1,0 +1,48 @@
+TESLA-Remove glog time info from log prefix
+
+Tesla currently has a separate logging process that adds timestamps
+to the logs.
+
+The google raw log is only able to obtain this info if timestamp
+updates are provided to it, because asking the system for this info
+can block and isn't appropriate in a real-time critical code path.
+
+Since we don't give glog these updates, it spams junk information into
+our logs. This patch removes that info from the log prefix format
+string.
+
+We leave the severity character, the Thread ID, the filename,
+and the line number
+---
+ src/raw_logging.cc | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/src/raw_logging.cc b/src/raw_logging.cc
+index 819707c..8c574c6 100644
+--- a/src/raw_logging.cc
++++ b/src/raw_logging.cc
+@@ -167,16 +167,16 @@ void RawLog__(LogSeverity severity, const char* file, int line,
+   // ^^ END TESLA-ADDED CODE ^^
+ 
+   // can't call localtime_r here: it can allocate
+-  struct ::tm& t = last_tm_time_for_raw_log;
++  // TESLA: Time info no longer used:
++  // struct ::tm& t = last_tm_time_for_raw_log;
+   char buffer[kLogBufSize];
+   char* buf = buffer;
+   int size = sizeof(buffer);
+ 
+-  // NOTE: this format should match the specification in base/logging.h
+-  DoRawLog(&buf, &size, "%c%02d%02d %02d:%02d:%02d.%06d %5u %s:%d] RAW: ",
++  // TESLA NOTE: Removed time information since we don't give glog time updates,
++  // and have a separate logging process that tracks the time.
++  DoRawLog(&buf, &size, "%c %5u %s:%d] ",
+            LogSeverityNames[severity][0],
+-           1 + t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec,
+-           last_usecs_for_raw_log,
+            static_cast<unsigned int>(GetTID()),
+            const_basename(const_cast<char *>(file)), line);
+ 
+-- 
+2.7.4
+

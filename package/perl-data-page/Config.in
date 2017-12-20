@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PERL_DATA_PAGE
+	bool "perl-data-page"
+	select BR2_PACKAGE_PERL_CLASS_ACCESSOR_CHAINED
+	help
+	  help when paging through sets of results
+
+	  https://metacpan.org/release/Data-Page

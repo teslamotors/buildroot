@@ -4,13 +4,14 @@
 #
 ################################################################################
 
-PCRE_VERSION = 8.38
-PCRE_SITE = ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre
+PCRE_VERSION = 8.41
+PCRE_SITE = https://ftp.pcre.org/pub/pcre
 PCRE_SOURCE = pcre-$(PCRE_VERSION).tar.bz2
 PCRE_LICENSE = BSD-3c
 PCRE_LICENSE_FILES = LICENCE
 PCRE_INSTALL_STAGING = YES
 PCRE_CONFIG_SCRIPTS = pcre-config
+PCRE_DEPENDENCIES = $(if $(BR2_PACKAGE_BZIP2),bzip2) $(if $(BR2_PACKAGE_ZLIB),zlib)
 
 # They're required for host-libglib2
 HOST_PCRE_CONF_OPTS = --enable-unicode-properties

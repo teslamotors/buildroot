@@ -1,0 +1,10 @@
+config BR2_PACKAGE_PERL_IO_TTY
+	bool "perl-io-tty"
+	depends on !BR2_STATIC_LIBS
+	help
+	  Pseudo ttys and constants
+
+	  https://metacpan.org/release/IO-Tty
+
+comment "perl-io-tty needs a toolchain w/ dynamic library"
+	depends on BR2_STATIC_LIBS

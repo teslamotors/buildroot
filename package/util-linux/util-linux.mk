@@ -15,7 +15,7 @@ UTIL_LINUX_LICENSE_FILES = README.licensing Documentation/licenses/COPYING.GPLv2
 # For 0001-Fix-libmount-build-under-uClibc.patch
 UTIL_LINUX_AUTORECONF = YES
 UTIL_LINUX_INSTALL_STAGING = YES
-UTIL_LINUX_DEPENDENCIES = host-pkgconf
+UTIL_LINUX_DEPENDENCIES = host-pkgconf host-gettext $(if $(BR2_PACKAGE_EUDEV),eudev)
 # uClibc needs NTP_LEGACY for sys/timex.h -> ntp_gettime() support
 # (used in logger.c), and the common default is N.
 UTIL_LINUX_CONF_ENV = scanf_cv_type_modifier=no \
@@ -62,6 +62,8 @@ UTIL_LINUX_DEPENDENCIES += $(if $(BR2_PACKAGE_ZLIB),zlib)
 
 # Used by login-utils
 UTIL_LINUX_DEPENDENCIES += $(if $(BR2_PACKAGE_LINUX_PAM),linux-pam)
+
+UTIL_LINUX_DEPENDENCIES += $(if $(BR2_PACKAGE_READLINE),readline)
 
 # Disable/Enable utilities
 UTIL_LINUX_CONF_OPTS += \

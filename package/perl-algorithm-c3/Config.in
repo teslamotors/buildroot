@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PERL_ALGORITHM_C3
+	bool "perl-algorithm-c3"
+	help
+	  A module for merging hierarchies using the C3 algorithm
+
+	  https://metacpan.org/release/Algorithm-C3

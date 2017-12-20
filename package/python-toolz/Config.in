@@ -1,0 +1,5 @@
+config BR2_PACKAGE_PYTHON_TOOLZ
+        bool "python-toolz"
+        help
+          A set of utility functions for iterators, functions, and dictionaries.
+          http://pypi.python.org/pypi/toolz/

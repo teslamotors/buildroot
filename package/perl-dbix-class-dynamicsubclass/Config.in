@@ -1,0 +1,11 @@
+config BR2_PACKAGE_PERL_DBIX_CLASS_DYNAMICSUBCLASS
+	bool "perl-dbix-class-dynamicsubclass"
+	depends on !BR2_STATIC_LIBS
+	select BR2_PACKAGE_PERL_DBIX_CLASS
+	help
+	  Convenient way to use dynamic subclassing.
+
+	  https://metacpan.org/release/DBIx-Class-DynamicSubclass
+
+comment "perl-dbix-class-dynamicsubclass needs a toolchain w/ dynamic library"
+	depends on BR2_STATIC_LIBS

@@ -1,0 +1,9 @@
+config BR2_PACKAGE_PYTHON_SCIPY
+	bool "python-scipy"
+        select BR2_PACKAGE_PYTHON_NUMPY
+        select BR2_PACKAGE_OPENBLAS
+        select BR2_PACKAGE_CLAPACK
+	help
+	  SciPy -- Scientific Library for Python
+
+	  https://www.scipy.org

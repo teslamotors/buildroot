@@ -19,4 +19,5 @@ ifneq ($(BR2_PACKAGE_CLAPACK_ARITH_H),)
 CLAPACK_CONF_OPTS += -DARITH_H=$(BR2_PACKAGE_CLAPACK_ARITH_H)
 endif
 
+$(eval $(host-cmake-package))
 $(eval $(cmake-package))

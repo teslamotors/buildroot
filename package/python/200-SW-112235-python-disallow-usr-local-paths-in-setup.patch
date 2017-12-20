@@ -1,0 +1,32 @@
+python: disallow /usr/local paths in setup.py
+
+When building host-python, setup.py assumes that since host and target
+architectures are the same that it should use host libraries for
+compilation and adds -I/usr/local/include and  -L/usr/local/bin to
+its paths.
+
+Just remove those from setup.py; they will never be correct.
+
+---
+ setup.py | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index 6fe7f78..04f65f9 100644
+--- a/setup.py
++++ b/setup.py
+@@ -442,11 +442,6 @@ class PyBuildExt(build_ext):
+             os.unlink(tmpfile)
+ 
+     def detect_modules(self):
+-        # Ensure that /usr/local is always used
+-        if not cross_compiling:
+-            add_dir_to_list(self.compiler.library_dirs, '/usr/local/lib')
+-            add_dir_to_list(self.compiler.include_dirs, '/usr/local/include')
+-            self.add_multiarch_paths()
+         if cross_compiling:
+             self.add_gcc_paths()
+ 
+-- 
+2.10.2
+

@@ -10,7 +10,7 @@ PROCPS_NG_SITE = http://downloads.sourceforge.net/project/procps-ng/Production
 PROCPS_NG_LICENSE = GPLv2+, libproc and libps LGPLv2+
 PROCPS_NG_LICENSE_FILES = COPYING COPYING.LIB
 PROCPS_NG_INSTALL_STAGING = YES
-PROCPS_NG_DEPENDENCIES = ncurses host-pkgconf
+PROCPS_NG_DEPENDENCIES = ncurses host-pkgconf host-gettext
 # For 0002-use-pkgconfig-for-ncursesw-cflags.patch
 PROCPS_NG_AUTORECONF = YES
 PROCPS_NG_GETTEXTIZE = YES

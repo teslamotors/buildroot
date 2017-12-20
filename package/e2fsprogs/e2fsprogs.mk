@@ -40,7 +40,7 @@ ifeq ($(BR2_NEEDS_GETTEXT_IF_LOCALE),y)
 E2FSPROGS_CONF_ENV += LIBS=-lintl
 endif
 
-E2FSPROGS_DEPENDENCIES = host-pkgconf util-linux
+E2FSPROGS_DEPENDENCIES = host-pkgconf util-linux host-gettext host-bison
 
 E2FSPROGS_MAKE_OPTS = \
 	LDCONFIG=true
@@ -49,7 +49,7 @@ define HOST_E2FSPROGS_INSTALL_CMDS
 	$(HOST_MAKE_ENV) $(MAKE) -C $(@D) install install-libs
 endef
 # we don't have a host-util-linux
-HOST_E2FSPROGS_DEPENDENCIES = host-pkgconf
+HOST_E2FSPROGS_DEPENDENCIES = host-pkgconf host-gettext host-bison
 
 # binaries to keep or remove
 E2FSPROGS_BINTARGETS_$(BR2_PACKAGE_E2FSPROGS_BADBLOCKS) += usr/sbin/badblocks

@@ -1,0 +1,10 @@
+config BR2_PACKAGE_PERL_PARSE_RECDESCENT
+	bool "perl-parse-recdescent"
+	depends on !BR2_STATIC_LIBS
+	help
+	  Generate Recursive-Descent Parsers
+
+	  https://metacpan.org/release/Parse-RecDescent
+
+comment "perl-parse-recdescent needs a toolchain w/ dynamic library"
+	depends on BR2_STATIC_LIBS

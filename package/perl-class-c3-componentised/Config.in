@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PERL_CLASS_C3_COMPONENTISED
+	bool "perl-class-c3-componentised"
+	select BR2_PACKAGE_PERL_CLASS_C3
+	select BR2_PACKAGE_PERL_CLASS_INSPECTOR
+	select BR2_PACKAGE_PERL_MRO_COMPAT
+	help
+	  https://metacpan.org/release/Class-C3-Componentised

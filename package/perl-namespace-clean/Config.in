@@ -1,0 +1,8 @@
+config BR2_PACKAGE_PERL_NAMESPACE_CLEAN
+	bool "perl-namespace-clean"
+	select BR2_PACKAGE_PERL_B_HOOKS_ENDOFSCOPE
+	select BR2_PACKAGE_PERL_PACKAGE_STASH
+	help
+	  Keep imports and functions out of your namespace
+
+	  http://search.cpan.org/dist/namespace-clean

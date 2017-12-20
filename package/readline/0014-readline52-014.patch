@@ -1,0 +1,49 @@
+			   READLINE PATCH REPORT
+			   =====================
+
+Readline-Release: 5.2
+Patch-ID: readline52-014
+
+Bug-Reported-by:	Len Lattanzi <llattanzi@apple.com>
+Bug-Reference-ID:	<52B1297F-6675-45CC-B63E-24745337D006@apple.com>
+Bug-Reference-URL:
+
+Bug-Description:
+
+On systems where mbrtowc() returns -2 when passed a length argument with
+value 0, when using a multibyte locale, Readline's emacs-mode forward-char
+at the end of a line will leave the point beyond the end of the line.
+
+Patch:
+
+*** a/mbutil.c	2009-05-29 23:09:26.000000000 -0400
+--- b/mbutil.c	2009-05-29 23:10:12.000000000 -0400
+***************
+*** 78,82 ****
+       int seed, count, find_non_zero;
+  {
+!   size_t tmp;
+    mbstate_t ps;
+    int point;
+--- 78,82 ----
+       int seed, count, find_non_zero;
+  {
+!   size_t tmp, len;
+    mbstate_t ps;
+    int point;
+***************
+*** 99,103 ****
+    while (count > 0)  
+      {
+!       tmp = mbrtowc (&wc, string+point, strlen(string + point), &ps);
+        if (MB_INVALIDCH ((size_t)tmp))
+  	{
+--- 99,106 ----
+    while (count > 0)  
+      {
+!       len = strlen (string + point);
+!       if (len == 0)
+! 	break;
+!       tmp = mbrtowc (&wc, string+point, len, &ps);
+        if (MB_INVALIDCH ((size_t)tmp))
+  	{

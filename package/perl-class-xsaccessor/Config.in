@@ -1,0 +1,10 @@
+config BR2_PACKAGE_PERL_CLASS_XSACCESSOR
+	bool "perl-class-xsaccessor"
+	depends on !BR2_STATIC_LIBS
+	help
+	  Generate fast XS accessors without runtime compilation
+
+	  https://metacpan.org/release/Class-XSAccessor
+
+comment "perl-class-xsaccessor needs a toolchain w/ dynamic library"
+	depends on BR2_STATIC_LIBS

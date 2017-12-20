@@ -1,0 +1,9 @@
+# md5 sums published by pypi
+md5     6b90de7880507c0583d5e789ca4ad193                                    cvxpy-0.4.5.tar.gz
+md5     b28b08077e53066a582ad4464663fb08                                    cvxpy-0.3.3.tar.gz
+md5     1ba92bae4f3c7ff9ae86c30d3bdc32a5                                    cvxpy-0.4.10.tar.gz
+
+# Associated sha256 sums
+sha256  6b6d1ab203b009efc2b779a81675bbae4e374be45e314fffde9f2ae1db6bb86e    cvxpy-0.4.5.tar.gz
+sha256  c1fbd4c4f3fc0609af85e93047efeed1ba79ebfcd177d0f6de4fcd0ae59c16ec    cvxpy-0.3.3.tar.gz
+sha256  3f5112bd42855943298cf2d85d2a42832e7ebdaf55e053a9e3d2db52a46f001b    cvxpy-0.4.10.tar.gz

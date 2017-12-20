@@ -1,0 +1,6 @@
+config BR2_PACKAGE_NACL
+       bool "nacl"
+       help
+         NaCl -- Networking and Cryptography library
+
+         https://nacl.cr.yp.to

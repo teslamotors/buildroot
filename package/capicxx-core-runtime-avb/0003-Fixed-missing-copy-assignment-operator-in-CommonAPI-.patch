@@ -1,0 +1,52 @@
+From a311250e96137cecf8f828ed9b7fd45d7b6707f2 Mon Sep 17 00:00:00 2001
+From: Klaus Uhl <klaus.uhl@intel.com>
+Date: Fri, 16 Oct 2015 16:32:17 +0200
+Subject: [PATCH 3/6] Fixed missing copy assignment operator in
+ CommonAPI::Address
+
+Change-Id: I107ca7ff619513128f60d49c4719f4d506cf55c3
+---
+ include/CommonAPI/Address.hpp |  2 ++
+ src/CommonAPI/Address.cpp     | 13 ++++++++++++-
+ 2 files changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/include/CommonAPI/Address.hpp b/include/CommonAPI/Address.hpp
+index 74a13d4..2e62bd4 100644
+--- a/include/CommonAPI/Address.hpp
++++ b/include/CommonAPI/Address.hpp
+@@ -23,6 +23,8 @@ public:
+     COMMONAPI_EXPORT Address(const Address &_source);
+     COMMONAPI_EXPORT virtual ~Address();
+ 
++    COMMONAPI_EXPORT Address & operator=(const Address &_other);
++
+     COMMONAPI_EXPORT bool operator==(const Address &_other) const;
+     COMMONAPI_EXPORT bool operator!=(const Address &_other) const;
+     COMMONAPI_EXPORT bool operator<(const Address &_other) const;
+diff --git a/src/CommonAPI/Address.cpp b/src/CommonAPI/Address.cpp
+index 0a7344a..20c86cb 100644
+--- a/src/CommonAPI/Address.cpp
++++ b/src/CommonAPI/Address.cpp
+@@ -28,7 +28,18 @@ Address::Address(const Address &_source)
+       instance_(_source.instance_) {
+ }
+ 
+-Address::~Address() {
++Address::~Address()
++{
++}
++
++Address & Address::operator = (const Address &_source)
++{
++	if ((&_source) != this) {
++		domain_ = _source.domain_;
++		interface_ = _source.interface_;
++		instance_ = _source.instance_;
++	}
++	return *this;
+ }
+ 
+ bool
+-- 
+2.1.0
+

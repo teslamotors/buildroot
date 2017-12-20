@@ -10,4 +10,5 @@ PERL_TRY_TINY_SITE = $(BR2_CPAN_MIRROR)/authors/id/D/DO/DOY
 PERL_TRY_TINY_LICENSE = MIT
 PERL_TRY_TINY_LICENSE_FILES = LICENSE
 
+$(eval $(host-perl-package))
 $(eval $(perl-package))

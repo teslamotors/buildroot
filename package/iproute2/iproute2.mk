@@ -55,7 +55,7 @@ endif
 
 define IPROUTE2_CONFIGURE_CMDS
 	$(SED) 's/gcc/$$CC $$CFLAGS/g' $(@D)/configure
-	cd $(@D) && $(TARGET_CONFIGURE_OPTS) ./configure
+	cd $(@D) && $(TARGET_CONFIGURE_OPTS) $(LOGLINEAR) ./configure
 	$(IPROUTE2_DISABLE_ARPD)
 	$(IPROUTE2_WITH_IPTABLES)
 endef
@@ -69,6 +69,7 @@ define IPROUTE2_BUILD_CMDS
 endef
 
 define IPROUTE2_INSTALL_TARGET_CMDS
+	mkdir -p $(TARGET_DIR)/sbin
 	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) DESTDIR="$(TARGET_DIR)" \
 		SBINDIR=/sbin \
 		DOCDIR=/usr/share/doc/iproute2-$(IPROUTE2_VERSION) \

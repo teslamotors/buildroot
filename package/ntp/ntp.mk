@@ -5,26 +5,45 @@
 ################################################################################
 
 NTP_VERSION_MAJOR = 4.2
-NTP_VERSION = $(NTP_VERSION_MAJOR).8p7
-NTP_SITE = http://www.eecis.udel.edu/~ntp/ntp_spool/ntp4/ntp-$(NTP_VERSION_MAJOR)
-NTP_DEPENDENCIES = host-pkgconf libevent $(if $(BR2_PACKAGE_BUSYBOX),busybox)
-NTP_LICENSE = ntp license
+NTP_VERSION = $(NTP_VERSION_MAJOR).8p10
+NTP_SITE = https://www.eecis.udel.edu/~ntp/ntp_spool/ntp4/ntp-$(NTP_VERSION_MAJOR)
+NTP_DEPENDENCIES = host-pkgconf libevent openssl $(if $(BR2_PACKAGE_BUSYBOX),busybox) \
+	host-bison $(if $(BR2_PACKAGE_NCURSES),ncurses) \
+	$(if $(BR2_PACKAGE_LIBCAP),libcap)
+NTP_LICENSE = NTP
 NTP_LICENSE_FILES = COPYRIGHT
 NTP_CONF_ENV = ac_cv_lib_md5_MD5Init=no
 NTP_CONF_OPTS = \
 	--with-shared \
 	--program-transform-name=s,,, \
 	--disable-tickadj \
+	--disable-debugging \
 	--with-yielding-select=yes \
-	--disable-local-libevent
+	--disable-local-libevent \
+	--with-crypto
+
 # 0002-ntp-syscalls-fallback.patch
+# 0003-ntpq-fpic.patch
 NTP_AUTORECONF = YES
 
-ifeq ($(BR2_PACKAGE_OPENSSL),y)
-NTP_CONF_OPTS += --with-crypto
-NTP_DEPENDENCIES += openssl
+ifeq ($(BR2_TOOLCHAIN_HAS_SSP),y)
+NTP_CONF_OPTS += --with-locfile=linux
 else
-NTP_CONF_OPTS += --without-crypto --disable-openssl-random
+NTP_CONF_OPTS += --with-locfile=default
+endif
+
+ifeq ($(BR2_PACKAGE_LIBCAP),y)
+NTP_CONF_OPTS += --enable-linuxcaps
+NTP_DEPENDENCIES += libcap
+else
+NTP_CONF_OPTS += --disable-linuxcaps
+endif
+
+ifeq ($(BR2_PACKAGE_LIBEDIT),y)
+NTP_CONF_OPTS += --with-lineeditlibs=edit
+NTP_DEPENDENCIES += libedit
+else
+NTP_CONF_OPTS += --without-lineeditlibs
 endif
 
 ifeq ($(BR2_PACKAGE_NTP_NTPSNMPD),y)
@@ -40,6 +59,18 @@ NTP_CONF_OPTS += --enable-ATOM
 NTP_DEPENDENCIES += pps-tools
 else
 NTP_CONF_OPTS += --disable-ATOM
+endif
+
+ifeq ($(BR2_PACKAGE_NTP_NTP_SHM_CLK),y)
+NTP_CONF_OPTS += --enable-SHM
+else
+NTP_CONF_OPTS += --disable-SHM
+endif
+
+ifeq ($(BR2_PACKAGE_NTP_SNTP),y)
+NTP_CONF_OPTS += --with-sntp
+else
+NTP_CONF_OPTS += --without-sntp
 endif
 
 NTP_INSTALL_FILES_$(BR2_PACKAGE_NTP_NTP_KEYGEN) += util/ntp-keygen

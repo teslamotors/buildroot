@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PERL_INC_LATEST
+	bool "perl-inc-latest"
+	help
+	  use modules bundled in inc/ if they are newer than installed ones
+
+	  https://github.com/dagolden/inc-latest

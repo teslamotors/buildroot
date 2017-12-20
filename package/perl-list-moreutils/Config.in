@@ -1,0 +1,11 @@
+config BR2_PACKAGE_PERL_LIST_MOREUTILS
+	bool "perl-list-moreutils"
+	depends on !BR2_STATIC_LIBS
+	select BR2_PACKAGE_PERL_EXPORTER_TINY
+	help
+	  Provide the stuff missing in List::Util
+
+	  https://metacpan.org/release/List-MoreUtils
+
+comment "perl-list-moreutils needs a toolchain w/ dynamic library"
+	depends on BR2_STATIC_LIBS

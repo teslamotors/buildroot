@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PERL_DATA_DUMPER_CONCISE
+	bool "perl-data-dumper-concise"
+	help
+	  Less indentation and newlines plus sub deparsing
+
+	  http://git.shadowcat.co.uk/gitweb/gitweb.cgi?p=p5sagit/Data-Dumper-Concise.git;a=summary

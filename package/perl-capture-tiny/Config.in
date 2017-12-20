@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PERL_CAPTURE_TINY
+	bool "perl-capture-tiny"
+	help
+	  Capture STDOUT and STDERR from Perl, XS or external programs
+
+	  https://github.com/dagolden/Capture-Tiny

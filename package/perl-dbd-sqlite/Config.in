@@ -1,0 +1,11 @@
+config BR2_PACKAGE_PERL_DBD_SQLITE
+	bool "perl-dbd-sqlite"
+	depends on !BR2_STATIC_LIBS
+	select BR2_PACKAGE_PERL_DBI
+	help
+	  Self Contained SQLite RDBMS in a DBI Driver
+
+	  https://metacpan.org/release/DBD-SQLite
+
+comment "perl-dbd-sqlite needs a toolchain w/ dynamic library"
+	depends on BR2_STATIC_LIBS

@@ -28,10 +28,10 @@ HOST_LIBTOOL_LIBTOOL_PATCH = NO
 # fails on libltdl/Makefile.inc. Rather than trying to fix that failure,
 # just use the same hack as on the host.
 define LIBTOOL_AVOID_AUTORECONF_HOOK
-	find $(@D) -name aclocal.m4 -exec touch '{}' \;
-	find $(@D) -name config-h.in -exec touch '{}' \;
-	find $(@D) -name configure -exec touch '{}' \;
-	find $(@D) -name Makefile.in -exec touch '{}' \;
+	$(Q)find $(@D) -name aclocal.m4 -exec touch '{}' \;
+	$(Q)find $(@D) -name config-h.in -exec touch '{}' \;
+	$(Q)find $(@D) -name configure -exec touch '{}' \;
+	$(Q)find $(@D) -name Makefile.in -exec touch '{}' \;
 endef
 LIBTOOL_PRE_CONFIGURE_HOOKS += LIBTOOL_AVOID_AUTORECONF_HOOK
 HOST_LIBTOOL_PRE_CONFIGURE_HOOKS += LIBTOOL_AVOID_AUTORECONF_HOOK

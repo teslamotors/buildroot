@@ -1,0 +1,9 @@
+config BR2_PACKAGE_PERL_PACKAGE_VARIANT
+	bool "perl-package-variant"
+	select BR2_PACKAGE_PERL_IMPORT_INTO
+	select BR2_PACKAGE_PERL_MODULE_RUNTIME
+	select BR2_PACKAGE_PERL_STRICTURES
+	help
+	  Parameterizable packages
+
+	  https://metacpan.org/release/Package-Variant

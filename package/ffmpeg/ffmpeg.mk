@@ -4,8 +4,15 @@
 #
 ################################################################################
 
+ifeq ($(BR2_PACKAGE_FFMPEG_1_2_12),y)
+FFMPEG_VERSION = 1.2.12
+FFMPEG_SOURCE = ffmpeg-$(FFMPEG_VERSION).tar.bz2
+else
 FFMPEG_VERSION = 2.8.7
 FFMPEG_SOURCE = ffmpeg-$(FFMPEG_VERSION).tar.xz
+endif
+
+
 FFMPEG_SITE = http://ffmpeg.org/releases
 FFMPEG_INSTALL_STAGING = YES
 
@@ -43,7 +50,6 @@ FFMPEG_CONF_OPTS = \
 	--disable-memalign-hack \
 	--disable-mipsdspr1 \
 	--disable-mipsdspr2 \
-	--disable-msa \
 	--enable-hwaccels \
 	--disable-avisynth \
 	--disable-frei0r \
@@ -62,6 +68,10 @@ FFMPEG_CONF_OPTS = \
 	--disable-libvo-amrwbenc \
 	--disable-symver \
 	--disable-doc
+
+ifeq ($(BR2_PACKAGE_FFMPEG_1_2_12),n)
+FFMPEG_CONF_OPTS += --disable-msa
+endif
 
 FFMPEG_DEPENDENCIES += $(if $(BR2_PACKAGE_LIBICONV),libiconv) host-pkgconf
 
@@ -218,6 +228,7 @@ FFMPEG_CONF_OPTS += --disable-openssl
 endif
 endif
 
+ifeq ($(BR2_PACKAGE_FFMPEG_1_2_12),n)
 ifeq ($(BR2_PACKAGE_LIBDCADEC),y)
 FFMPEG_CONF_OPTS += --enable-libdcadec
 FFMPEG_DEPENDENCIES += libdcadec
@@ -230,6 +241,7 @@ FFMPEG_CONF_OPTS += --enable-libopenh264
 FFMPEG_DEPENDENCIES += libopenh264
 else
 FFMPEG_CONF_OPTS += --disable-libopenh264
+endif
 endif
 
 ifeq ($(BR2_PACKAGE_LIBVORBIS),y)
@@ -310,11 +322,13 @@ else
 FFMPEG_CONF_OPTS += --disable-libtheora
 endif
 
+ifeq ($(BR2_PACKAGE_FFMPEG_1_2_12),n)
 ifeq ($(BR2_PACKAGE_WAVPACK),y)
 FFMPEG_CONF_OPTS += --enable-libwavpack
 FFMPEG_DEPENDENCIES += wavpack
 else
 FFMPEG_CONF_OPTS += --disable-libwavpack
+endif
 endif
 
 # ffmpeg freetype support require fenv.h which is only
@@ -341,11 +355,13 @@ else
 FFMPEG_CONF_OPTS += --disable-libx264
 endif
 
+ifeq ($(BR2_PACKAGE_FFMPEG_1_2_12),n)
 ifeq ($(BR2_PACKAGE_X265)$(BR2_PACKAGE_FFMPEG_GPL),yy)
 FFMPEG_CONF_OPTS += --enable-libx265
 FFMPEG_DEPENDENCIES += x265
 else
 FFMPEG_CONF_OPTS += --disable-libx265
+endif
 endif
 
 ifeq ($(BR2_X86_CPU_HAS_MMX),y)
@@ -403,10 +419,12 @@ else
 FFMPEG_CONF_OPTS += --disable-avx
 endif
 
+ifeq ($(BR2_PACKAGE_FFMPEG_1_2_12),n)
 ifeq ($(BR2_X86_CPU_HAS_AVX2),y)
 FFMPEG_CONF_OPTS += --enable-avx2
 else
 FFMPEG_CONF_OPTS += --disable-avx2
+endif
 endif
 
 # Explicitly disable everything that doesn't match for ARM

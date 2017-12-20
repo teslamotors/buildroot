@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-BOOST_VERSION = 1.60.0
+BOOST_VERSION = 1.61.0
 BOOST_SOURCE = boost_$(subst .,_,$(BOOST_VERSION)).tar.bz2
 BOOST_SITE = http://downloads.sourceforge.net/project/boost/boost/$(BOOST_VERSION)
 BOOST_INSTALL_STAGING = YES
@@ -88,7 +88,7 @@ endif
 BOOST_OPTS += toolset=gcc \
 	     threading=multi \
 	     abi=$(BOOST_ABI) \
-	     variant=$(if $(BR2_ENABLE_DEBUG),debug,release)
+	     variant=release
 
 ifeq ($(BR2_sparc64),y)
 BOOST_OPTS += architecture=sparc instruction-set=ultrasparc
@@ -124,13 +124,13 @@ BOOST_OPTS += $(if $(QUIET),-d,-d+1)
 HOST_BOOST_OPTS += $(if $(QUIET),-d,-d+1)
 
 define BOOST_CONFIGURE_CMDS
-	(cd $(@D) && ./bootstrap.sh $(BOOST_FLAGS))
+	(cd $(@D) && $(LOGLINEAR) ./bootstrap.sh $(BOOST_FLAGS))
 	echo "using gcc : `$(TARGET_CC) -dumpversion` : $(TARGET_CXX) : <cxxflags>\"$(BOOST_TARGET_CXXFLAGS)\" <linkflags>\"$(TARGET_LDFLAGS)\" ;" > $(@D)/user-config.jam
 	echo "" >> $(@D)/user-config.jam
 endef
 
 define BOOST_BUILD_CMDS
-	(cd $(@D) && ./bjam -j$(PARALLEL_JOBS) -q \
+	(cd $(@D) && $(LOGLINEAR) ./bjam -j$(PARALLEL_JOBS) -q \
 	--user-config=$(@D)/user-config.jam \
 	$(BOOST_OPTS) \
 	--ignore-site-config \
@@ -138,7 +138,7 @@ define BOOST_BUILD_CMDS
 endef
 
 define BOOST_INSTALL_TARGET_CMDS
-	(cd $(@D) && ./b2 -j$(PARALLEL_JOBS) -q \
+	(cd $(@D) && $(LOGLINEAR) ./b2 -j$(PARALLEL_JOBS) -q \
 	--user-config=$(@D)/user-config.jam \
 	$(BOOST_OPTS) \
 	--prefix=$(TARGET_DIR)/usr \
@@ -147,7 +147,7 @@ define BOOST_INSTALL_TARGET_CMDS
 endef
 
 define BOOST_INSTALL_STAGING_CMDS
-	(cd $(@D) && ./bjam -j$(PARALLEL_JOBS) -q \
+	(cd $(@D) && $(LOGLINEAR) ./bjam -j$(PARALLEL_JOBS) -q \
 	--user-config=$(@D)/user-config.jam \
 	$(BOOST_OPTS) \
 	--prefix=$(STAGING_DIR)/usr \
@@ -156,13 +156,13 @@ define BOOST_INSTALL_STAGING_CMDS
 endef
 
 define HOST_BOOST_CONFIGURE_CMDS
-	(cd $(@D) && ./bootstrap.sh $(HOST_BOOST_FLAGS))
+	(cd $(@D) && $(LOGLINEAR) ./bootstrap.sh $(HOST_BOOST_FLAGS))
 	echo "using gcc : `$(HOST_CC) -dumpversion` : $(HOSTCXX) : <cxxflags>\"$(HOST_CXXFLAGS)\" <linkflags>\"$(HOST_LDFLAGS)\" ;" > $(@D)/user-config.jam
 	echo "" >> $(@D)/user-config.jam
 endef
 
 define HOST_BOOST_BUILD_CMDS
-	(cd $(@D) && ./b2 -j$(PARALLEL_JOBS) -q \
+	(cd $(@D) && $(LOGLINEAR) ./b2 -j$(PARALLEL_JOBS) -q \
 	--user-config=$(@D)/user-config.jam \
 	$(HOST_BOOST_OPTS) \
 	--ignore-site-config \
@@ -170,7 +170,7 @@ define HOST_BOOST_BUILD_CMDS
 endef
 
 define HOST_BOOST_INSTALL_CMDS
-	(cd $(@D) && ./b2 -j$(PARALLEL_JOBS) -q \
+	(cd $(@D) && $(LOGLINEAR) ./b2 -j$(PARALLEL_JOBS) -q \
 	--user-config=$(@D)/user-config.jam \
 	$(HOST_BOOST_OPTS) \
 	--prefix=$(HOST_DIR)/usr \

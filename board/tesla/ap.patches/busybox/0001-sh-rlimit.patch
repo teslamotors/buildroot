@@ -1,0 +1,22 @@
+--- a/shell/shell_common.c	2016-11-20 09:46:42.732066186 -0800
++++ b/shell/shell_common.c	2016-11-20 09:50:20.919331049 -0800
+@@ -320,6 +320,9 @@
+ #ifdef RLIMIT_RTPRIO
+ 	{ RLIMIT_RTPRIO,	0,	'r',	"real-time priority" },
+ #endif
++#ifdef RLIMIT_MSGQUEUE
++	{ RLIMIT_MSGQUEUE,	0,	'q',	"POSIX message queue bytes" },
++#endif
+ };
+ 
+ enum {
+@@ -368,6 +371,9 @@
+ #ifdef RLIMIT_RTPRIO
+ 			"r::"
+ #endif
++#ifdef RLIMIT_MSGQUEUE
++			"q::"
++#endif
+ 			;
+ 
+ static void printlim(unsigned opts, const struct rlimit *limit,

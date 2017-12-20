@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PERL_JSON
+	bool "perl-json"
+	help
+	  JSON (JavaScript Object Notation) encoder/decoder
+
+	  https://metacpan.org/release/JSON

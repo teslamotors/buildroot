@@ -1,0 +1,18 @@
+config BR2_PACKAGE_PERL_SQL_TRANSLATOR
+	bool "perl-sql-translator"
+	depends on !BR2_STATIC_LIBS
+	select BR2_PACKAGE_PERL_CARP_CLAN
+	select BR2_PACKAGE_PERL_DBI
+	select BR2_PACKAGE_PERL_FILE_SHAREDIR
+	select BR2_PACKAGE_PERL_LIST_MOREUTILS
+	select BR2_PACKAGE_PERL_MOO
+	select BR2_PACKAGE_PERL_PACKAGE_VARIANT
+	select BR2_PACKAGE_PERL_PARSE_RECDESCENT
+	select BR2_PACKAGE_PERL_TRY_TINY
+	help
+	  SQL DDL transformations and more
+
+	  https://metacpan.org/release/SQL-Translator
+
+comment "perl-sql-translator needs a toolchain w/ dynamic library"
+	depends on BR2_STATIC_LIBS

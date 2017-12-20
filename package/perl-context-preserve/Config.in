@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PERL_CONTEXT_PRESERVE
+	bool "perl-context-preserve"
+	help
+	  run code after a subroutine call, preserving the context the subroutine would have seen if it were the last statement in the caller
+
+	  https://metacpan.org/release/Context-Preserve

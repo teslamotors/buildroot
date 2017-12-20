@@ -1,0 +1,10 @@
+config BR2_PACKAGE_PERL_SUB_NAME
+	bool "perl-sub-name"
+	depends on !BR2_STATIC_LIBS
+	help
+	  (Re)name a sub
+
+	  https://github.com/p5sagit/Sub-Name
+
+comment "perl-sub-name needs a toolchain w/ dynamic library"
+	depends on BR2_STATIC_LIBS

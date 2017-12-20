@@ -27,13 +27,17 @@ MAKEARGS := -C $1
 MAKEARGS += O=\$(if \$(patsubst /%,,\$(makedir)),\$(CURDIR)/)\$(patsubst %/,%,\$(makedir))
 
 MAKEFLAGS += --no-print-directory
+LOGLINEAR ?= $1/support/scripts/loglinear
 
 .PHONY: _all \$(MAKECMDGOALS)
-
-all	:= \$(filter-out Makefile,\$(MAKECMDGOALS))
+all	:= \$(filter-out oldconfig menuconfig Makefile,\$(MAKECMDGOALS))
 
 _all:
-	umask 0022 && \$(MAKE) \$(MAKEARGS) \$(all)
+	\$(LOGLINEAR) \$(MAKE) \$(MAKEARGS) LOGLINEAR=\$(LOGLINEAR) \$(all)
+
+# Don't wrap interactive *config in loglinear (menuconfig/oldconfig)
+oldconfig menuconfig:
+	\$(MAKE) \$(MAKEARGS) \$@
 
 Makefile:;
 

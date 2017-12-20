@@ -1,0 +1,5 @@
+config BR2_PACKAGE_TESLA_PYTHON_DATEUTIL
+        bool "tesla-python-dateutil"
+        help
+          The dateutil module provides powerful extensions to the datetime module available in the Python standard library.
+          https://pypi.python.org/pypi/python-dateutil

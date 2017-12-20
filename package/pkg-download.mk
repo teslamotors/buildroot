@@ -74,7 +74,7 @@ export BR_NO_CHECK_HASH_FOR =
 ################################################################################
 
 define DOWNLOAD_GIT
-	$(EXTRA_ENV) $(DL_WRAPPER) -b git \
+	$(EXTRA_ENV) $(LOGLINEAR) $(DL_WRAPPER) -b git \
 		-o $(DL_DIR)/$($(PKG)_SOURCE) \
 		$(QUIET) \
 		-- \
@@ -90,7 +90,7 @@ define SOURCE_CHECK_GIT
 endef
 
 define DOWNLOAD_BZR
-	$(EXTRA_ENV) $(DL_WRAPPER) -b bzr \
+	$(EXTRA_ENV) $(LOGLINEAR) $(DL_WRAPPER) -b bzr \
 		-o $(DL_DIR)/$($(PKG)_SOURCE) \
 		$(QUIET) \
 		-- \
@@ -104,7 +104,7 @@ define SOURCE_CHECK_BZR
 endef
 
 define DOWNLOAD_CVS
-	$(EXTRA_ENV) $(DL_WRAPPER) -b cvs \
+	$(EXTRA_ENV) $(LOGLINEAR) $(DL_WRAPPER) -b cvs \
 		-o $(DL_DIR)/$($(PKG)_SOURCE) \
 		$(QUIET) \
 		-- \
@@ -120,7 +120,7 @@ define SOURCE_CHECK_CVS
 endef
 
 define DOWNLOAD_SVN
-	$(EXTRA_ENV) $(DL_WRAPPER) -b svn \
+	$(EXTRA_ENV) $(LOGLINEAR) $(DL_WRAPPER) -b svn \
 		-o $(DL_DIR)/$($(PKG)_SOURCE) \
 		$(QUIET) \
 		-- \
@@ -137,7 +137,7 @@ endef
 # Note that filepath is relative to the user's home directory, so you may want
 # to prepend the path with a slash: scp://[user@]host:/absolutepath
 define DOWNLOAD_SCP
-	$(EXTRA_ENV) $(DL_WRAPPER) -b scp \
+	$(EXTRA_ENV) $(LOGLINEAR) $(DL_WRAPPER) -b scp \
 		-o $(DL_DIR)/$(2) \
 		-H $(PKGDIR)/$($(PKG)_RAWNAME).hash \
 		$(QUIET) \
@@ -150,7 +150,7 @@ define SOURCE_CHECK_SCP
 endef
 
 define DOWNLOAD_HG
-	$(EXTRA_ENV) $(DL_WRAPPER) -b hg \
+	$(EXTRA_ENV) $(LOGLINEAR) $(DL_WRAPPER) -b hg \
 		-o $(DL_DIR)/$($(PKG)_SOURCE) \
 		$(QUIET) \
 		-- \
@@ -166,7 +166,7 @@ define SOURCE_CHECK_HG
 endef
 
 define DOWNLOAD_WGET
-	$(EXTRA_ENV) $(DL_WRAPPER) -b wget \
+	$(EXTRA_ENV) $(LOGLINEAR) $(DL_WRAPPER) -b wget \
 		-o $(DL_DIR)/$(2) \
 		-H $(PKGDIR)/$($(PKG)_RAWNAME).hash \
 		$(QUIET) \
@@ -179,7 +179,7 @@ define SOURCE_CHECK_WGET
 endef
 
 define DOWNLOAD_LOCALFILES
-	$(EXTRA_ENV) $(DL_WRAPPER) -b cp \
+	$(EXTRA_ENV) $(LOGLINEAR) $(DL_WRAPPER) -b cp \
 		-o $(DL_DIR)/$(2) \
 		-H $(PKGDIR)/$($(PKG)_RAWNAME).hash \
 		$(QUIET) \

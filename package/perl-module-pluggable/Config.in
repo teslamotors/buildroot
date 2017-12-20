@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PERL_MODULE_PLUGGABLE
+	bool "perl-module-pluggable"
+	help
+	  automatically give your module the ability to have plugins
+
+	  https://metacpan.org/release/Module-Pluggable

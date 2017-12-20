@@ -50,18 +50,41 @@ BUSYBOX_KCONFIG_FRAGMENT_FILES = $(call qstrip,$(BR2_PACKAGE_BUSYBOX_CONFIG_FRAG
 BUSYBOX_KCONFIG_EDITORS = menuconfig xconfig gconfig
 BUSYBOX_KCONFIG_OPTS = $(BUSYBOX_MAKE_OPTS)
 
+ifeq ($(BR2_PACKAGE_BUSYBOX_INDIVIDUAL_BINARIES),y)
+define BUSYBOX_PERMISSIONS
+# Set permissions on all applets with BB_SUID_REQUIRE and BB_SUID_MAYBE.
+# 12 Applets are pulled from applets.h using grep command :
+#  grep -r -e "APPLET.*BB_SUID_REQUIRE\|APPLET.*BB_SUID_MAYBE" \
+#  $(@D)/include/applets.h 
+# These applets are added to the device table and the makedev file
+# ignores the files with type 'F' ( optional files).
+	/usr/bin/wall 			 F 4755 0  0 - - - - -
+	/bin/ping 			 F 4755 0  0 - - - - -
+	/bin/ping6 			 F 4755 0  0 - - - - -
+	/usr/bin/crontab 		 F 4755 0  0 - - - - -
+	/sbin/findfs 			 F 4755 0  0 - - - - -
+	/bin/login 			 F 4755 0  0 - - - - -
+	/bin/mount 			 F 4755 0  0 - - - - -
+	/usr/bin/passwd 		 F 4755 0  0 - - - - -
+	/bin/su 			 F 4755 0  0 - - - - -
+	/usr/bin/traceroute 		 F 4755 0  0 - - - - -
+	/usr/bin/traceroute6 		 F 4755 0  0 - - - - -
+	/usr/bin/vlock 			 F 4755 0  0 - - - - -
+endef
+else
 define BUSYBOX_PERMISSIONS
 	/bin/busybox                     f 4755 0  0 - - - - -
 endef
+endif
 
 # If mdev will be used for device creation enable it and copy S10mdev to /etc/init.d
 ifeq ($(BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_MDEV),y)
 define BUSYBOX_INSTALL_MDEV_SCRIPT
-	$(INSTALL) -D -m 0755 package/busybox/S10mdev \
+	$(Q)$(INSTALL) -D -m 0755 package/busybox/S10mdev \
 		$(TARGET_DIR)/etc/init.d/S10mdev
 endef
 define BUSYBOX_INSTALL_MDEV_CONF
-	$(INSTALL) -D -m 0644 package/busybox/mdev.conf \
+	$(Q)$(INSTALL) -D -m 0644 package/busybox/mdev.conf \
 		$(TARGET_DIR)/etc/mdev.conf
 endef
 define BUSYBOX_SET_MDEV
@@ -137,8 +160,19 @@ define BUSYBOX_MUSL_TWEAKS
 endef
 endif
 
+ifeq ($(BR2_PACKAGE_NCURSES_TARGET_PROGS),y)
+# Ncurses package overlaps:
+#     /usr/bin/clear
+#     /usr/bin/reset -> /usr/bin/tset (symlink)
+#
+define BUSYBOX_DISABLE_NCURSES_PROGS
+	$(call KCONFIG_DISABLE_OPT,CONFIG_CLEAR,$(BUSYBOX_BUILD_CONFIG))
+	$(call KCONFIG_DISABLE_OPT,CONFIG_RESET,$(BUSYBOX_BUILD_CONFIG))
+endef
+endif
+
 define BUSYBOX_INSTALL_UDHCPC_SCRIPT
-	if grep -q CONFIG_UDHCPC=y $(@D)/.config; then \
+	$(Q)if grep -q CONFIG_UDHCPC=y $(@D)/.config; then \
 		$(INSTALL) -m 0755 -D package/busybox/udhcpc.script \
 			$(TARGET_DIR)/usr/share/udhcpc/default.script; \
 		$(INSTALL) -m 0755 -d \
@@ -160,8 +194,19 @@ define BUSYBOX_SET_SELINUX
 endef
 endif
 
+ifeq ($(BR2_PACKAGE_BUSYBOX_INDIVIDUAL_BINARIES),y)
+define BUSYBOX_SET_INDIVIDUAL_BINARIES
+	$(call KCONFIG_ENABLE_OPT,CONFIG_BUILD_LIBBUSYBOX,$(BUSYBOX_BUILD_CONFIG))
+	$(call KCONFIG_ENABLE_OPT,CONFIG_FEATURE_INDIVIDUAL,$(BUSYBOX_BUILD_CONFIG))
+endef
+
+define BUSYBOX_INSTALL_INDIVIDUAL_BINARIES
+	rm -f $(TARGET_DIR)/bin/busybox
+endef
+endif
+
 define BUSYBOX_INSTALL_LOGGING_SCRIPT
-	if grep -q CONFIG_SYSLOGD=y $(@D)/.config; then \
+	$(Q)if grep -q CONFIG_SYSLOGD=y $(@D)/.config; then \
 		$(INSTALL) -m 0755 -D package/busybox/S01logging \
 			$(TARGET_DIR)/etc/init.d/S01logging; \
 	else rm -f $(TARGET_DIR)/etc/init.d/S01logging; fi
@@ -169,7 +214,7 @@ endef
 
 ifeq ($(BR2_INIT_BUSYBOX),y)
 define BUSYBOX_INSTALL_INITTAB
-	$(INSTALL) -D -m 0644 package/busybox/inittab $(TARGET_DIR)/etc/inittab
+	$(Q)$(INSTALL) -D -m 0644 package/busybox/inittab $(TARGET_DIR)/etc/inittab
 endef
 endif
 
@@ -178,9 +223,9 @@ define BUSYBOX_SET_WATCHDOG
 	$(call KCONFIG_ENABLE_OPT,CONFIG_WATCHDOG,$(BUSYBOX_BUILD_CONFIG))
 endef
 define BUSYBOX_INSTALL_WATCHDOG_SCRIPT
-	$(INSTALL) -D -m 0755 package/busybox/S15watchdog \
+	$(Q)$(INSTALL) -D -m 0755 package/busybox/S15watchdog \
 		$(TARGET_DIR)/etc/init.d/S15watchdog
-	$(SED) s/PERIOD/$(call qstrip,$(BR2_PACKAGE_BUSYBOX_WATCHDOG_PERIOD))/ \
+	$(Q)$(SED) s/PERIOD/$(call qstrip,$(BR2_PACKAGE_BUSYBOX_WATCHDOG_PERIOD))/ \
 		$(TARGET_DIR)/etc/init.d/S15watchdog
 endef
 endif
@@ -195,7 +240,7 @@ endif
 
 # Telnet support
 define BUSYBOX_INSTALL_TELNET_SCRIPT
-	if grep -q CONFIG_FEATURE_TELNETD_STANDALONE=y $(@D)/.config; then \
+	$(Q)if grep -q CONFIG_FEATURE_TELNETD_STANDALONE=y $(@D)/.config; then \
 		$(INSTALL) -m 0755 -D package/busybox/S50telnet \
 			$(TARGET_DIR)/etc/init.d/S50telnet ; \
 	fi
@@ -204,7 +249,7 @@ endef
 # Enable "noclobber" in install.sh, to prevent BusyBox from overwriting any
 # full-blown versions of apps installed by other packages with sym/hard links.
 define BUSYBOX_NOCLOBBER_INSTALL
-	$(SED) 's/^noclobber="0"$$/noclobber="1"/' $(@D)/applets/install.sh
+	$(Q)$(SED) 's/^noclobber="0"$$/noclobber="1"/' $(@D)/applets/install.sh
 endef
 
 define BUSYBOX_KCONFIG_FIXUP_CMDS
@@ -217,7 +262,9 @@ define BUSYBOX_KCONFIG_FIXUP_CMDS
 	$(BUSYBOX_SET_INIT)
 	$(BUSYBOX_SET_WATCHDOG)
 	$(BUSYBOX_SET_SELINUX)
+	$(BUSYBOX_SET_INDIVIDUAL_BINARIES)
 	$(BUSYBOX_MUSL_TWEAKS)
+	$(BUSYBOX_DISABLE_NCURSES_PROGS)
 endef
 
 define BUSYBOX_CONFIGURE_CMDS
@@ -240,6 +287,7 @@ define BUSYBOX_INSTALL_INIT_SYSV
 	$(BUSYBOX_INSTALL_LOGGING_SCRIPT)
 	$(BUSYBOX_INSTALL_WATCHDOG_SCRIPT)
 	$(BUSYBOX_INSTALL_TELNET_SCRIPT)
+	$(BUSYBOX_INSTALL_INDIVIDUAL_BINARIES)
 endef
 
 # Checks to give errors that the user can understand

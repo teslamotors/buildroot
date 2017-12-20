@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PERL_EXTUTILS_HELPERS
+	bool "perl-extutils-helpers"
+	help
+	  Various portability utilities for module builders
+
+	  https://metacpan.org/release/ExtUtils-Helpers

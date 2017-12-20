@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PERL_CLASS_C3
+	bool "perl-class-c3"
+	select BR2_PACKAGE_PERL_ALGORITHM_C3
+	help
+	  A pragma to use the C3 method resolution order algorithm
+
+	  https://metacpan.org/release/Class-C3

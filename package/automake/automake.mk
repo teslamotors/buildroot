@@ -15,13 +15,13 @@ HOST_AUTOMAKE_DEPENDENCIES = host-autoconf
 ACLOCAL_HOST_DIR = $(HOST_DIR)/usr/share/aclocal
 
 define GTK_DOC_M4_INSTALL
-	$(INSTALL) -D -m 0644 package/automake/gtk-doc.m4 \
+	$(Q)$(INSTALL) -D -m 0644 package/automake/gtk-doc.m4 \
 		$(ACLOCAL_HOST_DIR)/gtk-doc.m4
 endef
 
 # ensure staging aclocal dir exists
 define HOST_AUTOMAKE_MAKE_ACLOCAL
-	mkdir -p $(ACLOCAL_DIR)
+	$(Q)mkdir -p $(ACLOCAL_DIR)
 endef
 
 HOST_AUTOMAKE_POST_INSTALL_HOOKS += GTK_DOC_M4_INSTALL

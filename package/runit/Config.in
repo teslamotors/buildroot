@@ -1,0 +1,7 @@
+config BR2_PACKAGE_RUNIT
+       bool "runit"
+       select BR2_INIT_NONE
+       help
+         Runit - a UNIX init scheme with service supervision
+
+         http://smarden.org/runit/

@@ -1,0 +1,9 @@
+config BR2_PACKAGE_PERL_MODULE_BUILD_TINY
+	bool "perl-module-build-tiny"
+	select BR2_PACKAGE_PERL_EXTUTILS_CONFIG
+	select BR2_PACKAGE_PERL_EXTUTILS_HELPERS
+	select BR2_PACKAGE_PERL_EXTUTILS_INSTALLPATHS
+	help
+	  A tiny replacement for Module::Build
+
+	  https://metacpan.org/release/Module-Build-Tiny

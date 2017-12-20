@@ -1,0 +1,24 @@
+--- a/script/hypnotoad	Wed Sep 14 11:27:31 2016
++++ b/script/hypnotoad	Wed Sep 14 11:27:38 2016
+@@ -1,4 +1,4 @@
+-#!perl
++#!/usr/bin/perl
+ 
+ use strict;
+ use warnings;
+--- a/script/mojo	Wed Sep 14 11:27:31 2016
++++ b/script/mojo	Wed Sep 14 11:27:38 2016
+@@ -1,4 +1,4 @@
+-#!perl
++#!/usr/bin/perl
+ 
+ use strict;
+ use warnings;
+--- a/script/morbo	Wed Sep 14 11:27:31 2016
++++ b/script/morbo	Wed Sep 14 11:27:38 2016
+@@ -1,4 +1,4 @@
+-#!perl
++#!/usr/bin/perl
+ 
+ use strict;
+ use warnings;

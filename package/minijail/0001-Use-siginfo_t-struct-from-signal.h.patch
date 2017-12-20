@@ -1,0 +1,54 @@
+Use siginfo_t struct from signal.h
+
+log_sigsys_handler jumps through several unnecessary hoops to access
+the signal number of SIGSYS.  Stop reaching into the Linux header
+files and doing an unnecessary memcpy in favor of directly accessing
+si_syscall as defined in signal.h.
+---
+ signal_handler.c | 19 +------------------
+ 1 file changed, 1 insertion(+), 18 deletions(-)
+
+diff --git a/signal_handler.c b/signal_handler.c
+index 5a5ae9c..99b1ef8 100644
+--- a/signal_handler.c
++++ b/signal_handler.c
+@@ -3,16 +3,8 @@
+  * found in the LICENSE file.
+  */
+ 
+-/* These header files need to be included before asm/siginfo.h such that
+- * pid_t, timer_t, and clock_t are defined. */
+ #include <stdlib.h>
+ #include <unistd.h>
+-
+-#include <asm/siginfo.h>
+-#define __have_siginfo_t 1
+-#define __have_sigval_t 1
+-#define __have_sigevent_t 1
+-
+ #include <signal.h>
+ #include <string.h>
+ 
+@@ -20,18 +12,9 @@
+ 
+ #include "util.h"
+ 
+-struct local_sigsys {
+-	void		*ip;
+-	int		nr;
+-	unsigned int	arch;
+-};
+-
+ void log_sigsys_handler(int nr, siginfo_t *info, void *void_context)
+ {
+-	struct local_sigsys sigsys;
+-	const char *syscall_name;
+-	memcpy(&sigsys, &info->_sifields, sizeof(sigsys));
+-	syscall_name = lookup_syscall_name(sigsys.nr);
++	const char *syscall_name = lookup_syscall_name(info->si_syscall);
+ 
+ 	(void) void_context;
+ 
+-- 
+2.10.1
+

@@ -1,0 +1,4 @@
+config BR2_PACKAGE_TESLA_NANOMSG
+       bool "tesla-nanomsg"
+       help
+          Nanomsg socket library providing several common communication patterns and transport

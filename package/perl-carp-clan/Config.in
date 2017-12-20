@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PERL_CARP_CLAN
+	bool "perl-carp-clan"
+	help
+	  Report errors from perspective of caller of a "clan" of modules
+
+	  https://metacpan.org/release/Carp-Clan

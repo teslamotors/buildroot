@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PERL_YAML
+	bool "perl-yaml"
+	help
+	  YAML Ain't Markup Language™
+
+	  https://github.com/ingydotnet/yaml-pm

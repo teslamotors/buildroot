@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PERL_IMPORT_INTO
+	bool "perl-import-into"
+	select BR2_PACKAGE_PERL_MODULE_RUNTIME
+	help
+	  Import packages into other packages
+
+	  https://metacpan.org/release/Import-Into

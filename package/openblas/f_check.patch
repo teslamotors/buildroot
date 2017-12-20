@@ -1,0 +1,11 @@
++++ a/f_check  Fri Jul  1 19:26:04 2016
+--- b/f_check  Fri Jul  1 19:26:14 2016
+@@ -268,7 +268,7 @@
+ 	    if ($vendor eq "PGI") {
+ 		$flags =~ s/lib$/libso/;
+ 	    }
+-	    $linker_L .= $flags . " ";
++	    print "hi mom\n";
+ 	}
+ 
+ 	if ($flags =~ /^\-Y/) {

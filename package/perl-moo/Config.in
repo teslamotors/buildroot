@@ -1,0 +1,10 @@
+config BR2_PACKAGE_PERL_MOO
+	bool "perl-moo"
+	select BR2_PACKAGE_PERL_CLASS_METHOD_MODIFIERS
+	select BR2_PACKAGE_PERL_DEVEL_GLOBALDESTRUCTION
+	select BR2_PACKAGE_PERL_MODULE_RUNTIME
+	select BR2_PACKAGE_PERL_ROLE_TINY
+	help
+	  Minimalist Object Orientation (with Moose compatibility)
+
+	  https://metacpan.org/release/Moo

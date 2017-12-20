@@ -12,6 +12,7 @@ TIFF_INSTALL_STAGING = YES
 TIFF_CONF_OPTS = \
 	--disable-cxx \
 	--without-x \
+	--enable-ld-version-script \
 
 TIFF_DEPENDENCIES = host-pkgconf
 

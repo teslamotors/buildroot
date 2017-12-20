@@ -30,7 +30,7 @@ define HOST_CMAKE_CONFIGURE_CMDS
 	(cd $(@D); \
 		LDFLAGS="$(HOST_LDFLAGS)" \
 		CFLAGS="$(HOST_CMAKE_CFLAGS)" \
-		./bootstrap --prefix=$(HOST_DIR)/usr \
+		$(LOGLINEAR) ./bootstrap --prefix=$(HOST_DIR)/usr \
 			--parallel=$(PARALLEL_JOBS) -- \
 			-DCMAKE_C_FLAGS="$(HOST_CMAKE_CFLAGS)" \
 			-DCMAKE_CXX_FLAGS="$(HOST_CMAKE_CXXFLAGS)" \
@@ -64,7 +64,7 @@ CMAKE_POST_INSTALL_TARGET_HOOKS += CMAKE_INSTALL_CTEST_CFG_FILE
 define CMAKE_INSTALL_TARGET_CMDS
 	(cd $(@D); \
 		$(HOST_MAKE_ENV) DESTDIR=$(TARGET_DIR) \
-		cmake -P cmake_install.cmake \
+		$(LOGLINEAR) cmake -P cmake_install.cmake \
 	)
 endef
 

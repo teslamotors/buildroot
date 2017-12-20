@@ -1,0 +1,28 @@
+From 51cec569bc4b902c0ef5883d7a389266ac3e3727 Mon Sep 17 00:00:00 2001
+Subject: [PATCH] kafel: Add missing define for aarch64
+
+In case your kernel headers are outdated for your
+aarch64 toolchain, this change simply defines
+AUDIT_ARCH_AARCH64 in the event that it is undefined.
+---
+ src/common.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/common.h b/src/common.h
+index 67d12d0..f1026e8 100644
+--- a/src/common.h
++++ b/src/common.h
+@@ -37,6 +37,10 @@
+ 
+ #define KAFEL_API __attribute__((visibility("default")))
+ 
++#ifndef AUDIT_ARCH_AARCH64
++#define AUDIT_ARCH_AARCH64 (EM_AARCH64|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)
++#endif
++
+ #ifndef KAFEL_DEFAULT_TARGET_ARCH
+ 
+ #if defined(__x86_64__)
+-- 
+2.7.4
+

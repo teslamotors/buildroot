@@ -11,3 +11,4 @@ PERL_MODULE_BUILD_LICENSE = Artistic or GPLv1+
 PERL_MODULE_BUILD_LICENSE_FILES = LICENSE
 
 $(eval $(host-perl-package))
+$(eval $(perl-package))

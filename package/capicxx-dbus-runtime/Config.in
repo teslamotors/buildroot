@@ -1,0 +1,9 @@
+config BR2_PACKAGE_CAPICXX_DBUS_RUNTIME
+       bool "Common API DBus Runtime"
+       select BR2_PACKAGE_DBUS
+       help
+         CommonAPI C++ is a C++ framework for interprocess and network communication.
+
+         The DBus binding is used by the AVB transport.
+
+         https://github.com/GENIVI/capicxx-dbus-runtime

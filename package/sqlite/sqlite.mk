@@ -4,12 +4,24 @@
 #
 ################################################################################
 
-SQLITE_VERSION = 3120200
+SQLITE_VERSION = 3180000
 SQLITE_SOURCE = sqlite-autoconf-$(SQLITE_VERSION).tar.gz
-SQLITE_SITE = http://www.sqlite.org/2016
+SQLITE_SITE = http://www.sqlite.org/2017
 SQLITE_LICENSE = Public domain
 SQLITE_LICENSE_FILES = tea/license.terms
 SQLITE_INSTALL_STAGING = YES
+
+ifneq ($(BR2_PACKAGE_SQLITE_MAX_PAGE_COUNT),)
+SQLITE_CFLAGS += -DSQLITE_MAX_PAGE_COUNT=$(BR2_PACKAGE_SQLITE_MAX_PAGE_COUNT)
+endif
+
+ifeq ($(BR2_PACKAGE_SQLITE_RTREE),y)
+SQLITE_CFLAGS += -DSQLITE_ENABLE_RTREE=1
+endif
+
+ifeq ($(BR2_PACKAGE_SQLITE_MEMSYS5),y)
+SQLITE_CFLAGS += -DSQLITE_ENABLE_MEMSYS5
+endif
 
 ifeq ($(BR2_PACKAGE_SQLITE_STAT3),y)
 SQLITE_CFLAGS += -DSQLITE_ENABLE_STAT3

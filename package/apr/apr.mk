@@ -55,17 +55,17 @@ APR_DEPENDENCIES += util-linux
 endif
 
 define APR_CLEANUP_UNNEEDED_FILES
-	$(RM) -rf $(TARGET_DIR)/usr/build-1/
+	$(Q)$(RM) -rf $(TARGET_DIR)/usr/build-1/
 endef
 
 APR_POST_INSTALL_TARGET_HOOKS += APR_CLEANUP_UNNEEDED_FILES
 
 define APR_FIXUP_RULES_MK
-	$(SED) 's%apr_builddir=%apr_builddir=$(STAGING_DIR)%' \
+	$(Q)$(SED) 's%apr_builddir=%apr_builddir=$(STAGING_DIR)%' \
 		$(STAGING_DIR)/usr/build-1/apr_rules.mk
-	$(SED) 's%apr_builders=%apr_builders=$(STAGING_DIR)%' \
+	$(Q)$(SED) 's%apr_builders=%apr_builders=$(STAGING_DIR)%' \
 		$(STAGING_DIR)/usr/build-1/apr_rules.mk
-	$(SED) 's%top_builddir=%top_builddir=$(STAGING_DIR)%' \
+	$(Q)$(SED) 's%top_builddir=%top_builddir=$(STAGING_DIR)%' \
 		$(STAGING_DIR)/usr/build-1/apr_rules.mk
 endef
 

@@ -29,7 +29,7 @@
 # recursively in this directory.
 #
 define CONFIG_UPDATE
-	for file in config.guess config.sub; do \
+	$(Q)for file in config.guess config.sub; do \
 		for i in $$(find $(1) -name $$file); do \
 			cp support/gnuconfig/$$file $$i; \
 		done; \
@@ -183,7 +183,7 @@ define $(2)_CONFIGURE_CMDS
 	$$(TARGET_CONFIGURE_ARGS) \
 	$$($$(PKG)_CONF_ENV) \
 	CONFIG_SITE=/dev/null \
-	./configure \
+	$$(LOGLINEAR) ./configure \
 		--target=$$(GNU_TARGET_NAME) \
 		--host=$$(GNU_TARGET_NAME) \
 		--build=$$(GNU_HOST_NAME) \
@@ -219,7 +219,7 @@ define $(2)_CONFIGURE_CMDS
 	LDFLAGS="$$(HOST_LDFLAGS)" \
 	$$($$(PKG)_CONF_ENV) \
 	CONFIG_SITE=/dev/null \
-	./configure \
+	$$(LOGLINEAR) ./configure \
 		--prefix="$$(HOST_DIR)/usr" \
 		--sysconfdir="$$(HOST_DIR)/etc" \
 		--localstatedir="$$(HOST_DIR)/var" \

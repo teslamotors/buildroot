@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PERL_CLASS_ACCESSOR_GROUPED
+	bool "perl-class-accessor-grouped"
+	select BR2_PACKAGE_PERL_MODULE_RUNTIME
+	help
+	  Lets you build groups of accessors
+
+	  https://metacpan.org/release/Class-Accessor-Grouped

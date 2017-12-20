@@ -1,0 +1,136 @@
+TESLA: Enhance GLOG raw logging.
+
+Enhancements:
+  1) User may set primary file descriptor (instead of hardcoded
+     STDERR_FILENO). File descriptor of '-1' disables primary logging.
+  2) User may set secondary file descriptor (an 'echo' file descriptor)
+     to capture the log stream in another file. Intended to be used
+     with ftrace kernel ring buffers, but any old file descriptor works.
+     File descriptor of '-1' disables secondary logging.
+       NOTE: The echo file descriptor is per-thread, while the primary
+       file descriptor from #1 above is shared process-wide.
+  3) Ability to freeze primary and echo logging. User sets where
+     GLOG should look for the freeze flags (user sets a pointer).
+     Freezing of primary and echo logging may be controlled independently.
+     However, the pointers employed point to uint32_t values. Thus, both
+     logs types can be frozen atomically by one uint64_t atomic set
+     operation (set ~0U), if the two pointers point to adjacent 4-byte
+     addresses, with the first address aligned to an 8-byte address.
+       NOTE: All echo-logs of a process are controlled by the same flag.
+       That is, the user cannot selectively freeze the echo-logs of
+       individual threads. However, the user may opt to freeze the log
+       of an individual thread by setting the echo file descriptor
+       (temporarily) to -1.
+
+All of the above settings are set through global variables. GLOG
+uses weak symbols for its own default settings (logging to STDERR,
+no echo, and logging unfrozen). Users may provide their own symbols.
+The weak symbols allow the GLOG library to be used with libraries
+unaware of Tesla's modifications.
+---
+ src/raw_logging.cc | 59 +++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 58 insertions(+), 1 deletion(-)
+
+diff --git a/src/raw_logging.cc b/src/raw_logging.cc
+index 7a7409b..8e8a657 100644
+--- a/src/raw_logging.cc
++++ b/src/raw_logging.cc
+@@ -35,6 +35,7 @@
+ 
+ #include <stdarg.h>
+ #include <stdio.h>
++#include <stdint.h>                // for int32_t (added by Tesla)
+ #include <errno.h>
+ #ifdef HAVE_UNISTD_H
+ # include <unistd.h>               // for close() and write()
+@@ -66,6 +67,35 @@
+ # define safe_write(fd, s, len)  write(fd, s, len)
+ #endif
+ 
++// vv START TESLA-ADDED CODE vv
++extern "C" {
++// Tesla-added variables to modify GLOG's behavior. Symbols are
++// weak in order to allow the modified version of GLOG to be
++// shared with non-Telsa code. Below default values cause
++// modified GLOG to have same functionality as unmodified GLOG.
++
++// File descriptor for the normal log output. Not volatile because
++// value set by main thread during init.
++int32_t TESLA_GLOG_FD __attribute__((weak)) = STDERR_FILENO;
++
++// External pointer to value that freezes logging to TESLA_GLOG_FD.
++// Log is NOT frozen if TESLA_GLOG_FREEZE == NULL. This pointer could
++// point to a single value in shared memory, shared by all Tesla
++// applications. Hence, the use of volatile.
++const volatile uint32_t* TESLA_GLOG_FREEZE __attribute__((weak)) = NULL;
++
++// Tesla applications can set this variable to cause output to be
++// echoed to the provided file descriptor, in addition to the fd
++// specified by TESLA_GLOG_FD. Not volatile since this value is
++// set and read by the same thread.
++__thread int32_t TESLA_GLOG_FD_ECHO __attribute__((weak)) = -1;
++
++// Same functionality as TESLA_GLOG_FREEZE, but for TESLA_GLOG_FD_ECHO.
++// Allows independent control for the two log streams.
++const volatile uint32_t* TESLA_GLOG_FREEZE_ECHO __attribute__((weak)) = NULL;
++};
++// ^^ END TESLA-ADDED CODE ^^
++
+ _START_GOOGLE_NAMESPACE_
+ 
+ // Data for RawLog__ below. We simply pick up the latest
+@@ -119,6 +149,18 @@ void RawLog__(LogSeverity severity, const char* file, int line,
+         FLAGS_alsologtostderr || !IsGoogleLoggingInitialized())) {
+     return;  // this stderr log message is suppressed
+   }
++
++  // vv START TESLA-ADDED CODE vv
++  const bool freeze_glog = (TESLA_GLOG_FREEZE != NULL) && (*TESLA_GLOG_FREEZE != 0);
++  const bool freeze_glog_echo = (TESLA_GLOG_FREEZE_ECHO != NULL) && (*TESLA_GLOG_FREEZE_ECHO != 0);
++  const bool do_glog = (TESLA_GLOG_FD != -1) && !freeze_glog;
++  const bool do_glog_echo = (TESLA_GLOG_FD_ECHO != -1) && !freeze_glog_echo;
++
++  if (!do_glog && !do_glog_echo) {
++    return;  // invalid file descriptors set or log(s) is frozen
++  }
++  // ^^ END TESLA-ADDED CODE ^^
++
+   // can't call localtime_r here: it can allocate
+   struct ::tm& t = last_tm_time_for_raw_log;
+   char buffer[kLogBufSize];
+@@ -146,11 +188,25 @@ void RawLog__(LogSeverity severity, const char* file, int line,
+   } else {
+     DoRawLog(&buf, &size, "RAW_LOG ERROR: The Message was too long!\n");
+   }
++
++  // vv START TESLA-MODIFIED CODE vv
++  size_t buffer_len = strlen(buffer);
++
++  // Original GLOG comment:
+   // We make a raw syscall to write directly to the stderr file descriptor,
+   // avoiding FILE buffering (to avoid invoking malloc()), and bypassing
+   // libc (to side-step any libc interception).
+   // We write just once to avoid races with other invocations of RawLog__.
+-  safe_write(STDERR_FILENO, buffer, strlen(buffer));
++
++  // TESLA: write to echo fd first, in case it's something important like an
++  // ftrace ring buffer.
++  if (do_glog_echo) {
++      safe_write(TESLA_GLOG_FD_ECHO, buffer, buffer_len);
++  }
++  if (do_glog) {
++      safe_write(TESLA_GLOG_FD, buffer, buffer_len);
++  }
++  // ^^ END TESLA-MODIFIED CODE ^^
+   if (severity == GLOG_FATAL)  {
+     if (!sync_val_compare_and_swap(&crashed, false, true)) {
+       crash_reason.filename = file;
+@@ -169,4 +225,5 @@ void RawLog__(LogSeverity severity, const char* file, int line,
+   }
+ }
+ 
++
+ _END_GOOGLE_NAMESPACE_
+-- 
+1.9.1
+

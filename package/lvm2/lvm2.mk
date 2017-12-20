@@ -4,24 +4,29 @@
 #
 ################################################################################
 
-LVM2_VERSION = 2.02.153
+LVM2_VERSION = 2.02.173
 LVM2_SOURCE = LVM2.$(LVM2_VERSION).tgz
 LVM2_SITE = ftp://sources.redhat.com/pub/lvm2/releases
 LVM2_INSTALL_STAGING = YES
 LVM2_LICENSE = GPLv2, LGPLv2.1
 LVM2_LICENSE_FILES = COPYING COPYING.LIB
+LVM2_DEPENDENCIES = host-pkgconf $(if ($BR2_PACKAGE_UTIL_LINUX_LIBBLKID),util-linux)
 
 # Make sure that binaries and libraries are installed with write
-# permissions for the owner.
+# permissions for the owner. We disable NLS because it's broken, and
+# the package anyway doesn't provide any translation files.
 LVM2_CONF_OPTS += \
 	--enable-write_install \
 	--enable-pkgconfig \
 	--enable-cmdlib \
-	--enable-dmeventd
+	--enable-dmeventd \
+	--disable-nls
+
+LVM2_DEPENDENCIES += host-pkgconf
 
 # LVM2 uses autoconf, but not automake, and the build system does not
-# take into account the CC passed at configure time.
-LVM2_MAKE_ENV = CC="$(TARGET_CC)"
+# take into account the toolchain passed at configure time.
+LVM2_MAKE_ENV = $(TARGET_CONFIGURE_OPTS)
 
 ifeq ($(BR2_PACKAGE_READLINE),y)
 LVM2_DEPENDENCIES += readline
@@ -29,6 +34,13 @@ else
 # v2.02.44: disable readline usage, or binaries are linked against provider
 # of "tgetent" (=> ncurses) even if it's not used..
 LVM2_CONF_OPTS += --disable-readline
+endif
+
+ifeq ($(BR2_PACKAGE_LIBSELINUX),y)
+LVM2_CONF_OPTS += --enable-selinux
+LVM2_DEPENDENCIES += libselinux
+else
+LVM2_CONF_OPTS += --disable-selinux
 endif
 
 ifeq ($(BR2_PACKAGE_LVM2_STANDARD_INSTALL),)
@@ -47,4 +59,18 @@ ifeq ($(BR2_arc),y)
 LVM2_CONF_ENV += ac_cv_flag_HAVE_PIE=no
 endif
 
+HOST_LVM2_DEPENDENCIES = host-pkgconf
+HOST_LVM2_CONF_OPTS = \
+	--enable-write_install \
+	--enable-pkgconfig \
+	--disable-cmdlib \
+	--disable-dmeventd \
+	--disable-applib \
+	--disable-fsadm \
+	--disable-readline \
+	--disable-selinux
+HOST_LVM2_MAKE_OPTS = device-mapper
+HOST_LVM2_INSTALL_OPTS = install_device-mapper
+
 $(eval $(autotools-package))
+$(eval $(host-autotools-package))

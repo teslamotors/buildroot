@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PERL_CLASS_ACCESSOR
+	bool "perl-class-accessor"
+	help
+	  Automated accessor generation
+
+	  https://metacpan.org/release/Class-Accessor

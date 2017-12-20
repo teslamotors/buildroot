@@ -1,0 +1,10 @@
+config BR2_PACKAGE_PYTHON_CYLP
+	bool "python-cylp"
+        select BR2_PACKAGE_PYTHON_NUMPY
+        select BR2_PACKAGE_PYTHON_SCIPY
+	depends on BR2_PACKAGE_LIBCBC
+	help
+	  A Python interface to CLP, CBC, and CGL to solve LPs and MIPs.
+
+	  https://pypi.python.org/pypi/cylp
+

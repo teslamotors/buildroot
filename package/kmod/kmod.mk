@@ -54,7 +54,7 @@ KMOD_BIN_PATH = ../usr/bin/kmod
 endif
 
 define KMOD_INSTALL_TOOLS
-	for i in depmod insmod lsmod modinfo modprobe rmmod; do \
+	$(Q)for i in depmod insmod lsmod modinfo modprobe rmmod; do \
 		ln -sf $(KMOD_BIN_PATH) $(TARGET_DIR)/sbin/$$i; \
 	done
 endef
@@ -67,8 +67,8 @@ endif
 # We only install depmod, since that's the only tool used for the
 # host.
 define HOST_KMOD_INSTALL_TOOLS
-	mkdir -p $(HOST_DIR)/sbin/
-	ln -sf ../usr/bin/kmod $(HOST_DIR)/sbin/depmod
+	$(Q)mkdir -p $(HOST_DIR)/sbin/
+	$(Q)ln -sf ../usr/bin/kmod $(HOST_DIR)/sbin/depmod
 endef
 
 HOST_KMOD_POST_INSTALL_HOOKS += HOST_KMOD_INSTALL_TOOLS

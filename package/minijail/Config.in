@@ -1,0 +1,7 @@
+config BR2_PACKAGE_MINIJAIL
+       bool "Minijail"
+       select BR2_PACKAGE_LIBCAP
+       help
+         Minijail
+
+         https://android.googlesource.com/platform/external/minijail/+/master

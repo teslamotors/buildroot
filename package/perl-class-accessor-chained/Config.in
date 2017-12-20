@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PERL_CLASS_ACCESSOR_CHAINED
+	bool "perl-class-accessor-chained"
+	select BR2_PACKAGE_PERL_CLASS_ACCESSOR
+	help
+	  Faster, but less expandable, chained accessors
+
+	  https://metacpan.org/release/Class-Accessor-Chained

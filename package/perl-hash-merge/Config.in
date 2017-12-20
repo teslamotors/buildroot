@@ -1,0 +1,11 @@
+config BR2_PACKAGE_PERL_HASH_MERGE
+	bool "perl-hash-merge"
+	depends on !BR2_STATIC_LIBS
+	select BR2_PACKAGE_PERL_CLONE
+	help
+	  Merges arbitrarily deep hashes into a single hash
+
+	  https://metacpan.org/release/Hash-Merge
+
+comment "perl-hash-merge needs a toolchain w/ dynamic library"
+	depends on BR2_STATIC_LIBS

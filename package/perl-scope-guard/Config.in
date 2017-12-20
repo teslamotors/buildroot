@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PERL_SCOPE_GUARD
+	bool "perl-scope-guard"
+	help
+	  lexically-scoped resource management
+
+	  https://metacpan.org/release/Scope-Guard

@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PERL_EXPECT
+       bool "perl-expect"
+       select BR2_PACKAGE_PERL_IO_TTY
+        help
+          automate interactions with command line programs that expose a text terminal interface.
+
+          https://metacpan.org/release/Expect

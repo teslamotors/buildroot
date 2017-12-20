@@ -6,3 +6,12 @@ config BR2_PACKAGE_LIBPNG
 	  images.
 
 	  http://www.libpng.org/
+
+if BR2_PACKAGE_LIBPNG
+
+config BR2_PACKAGE_LIBPNG_VER12
+       bool "libpng-1.2.56"
+       help
+          Use version 1.2.56 of libpng instead of the default one
+
+endif

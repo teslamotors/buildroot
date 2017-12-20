@@ -1,0 +1,11 @@
+config BR2_PACKAGE_PERL_DBIX_CLASS_OPTIMISTICLOCKING
+	bool "perl-dbix-class-optimisticlocking"
+	depends on !BR2_STATIC_LIBS
+	select BR2_PACKAGE_PERL_DBIX_CLASS
+	help
+	  Optimistic locking support for DBIx::Class
+
+	  https://metacpan.org/release/DBIx-Class-OptimisticLocking
+
+comment "perl-dbix-class-optimisticlocking needs a toolchain w/ dynamic library"
+	depends on BR2_STATIC_LIBS

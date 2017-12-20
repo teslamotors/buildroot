@@ -1,0 +1,5 @@
+config BR2_PACKAGE_PYTHON_PYTEST
+        bool "python-pytest"
+        help
+          The pytest framework makes it easy to write small tests, yet scales to support complex functional testing for applications and libraries.
+          http://pypi.python.org/pypi/pytest

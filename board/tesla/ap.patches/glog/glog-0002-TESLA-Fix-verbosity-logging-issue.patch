@@ -1,0 +1,25 @@
+Fix verbosity logging issue with raw logging and stderr
+
+---
+ src/raw_logging.cc | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/src/raw_logging.cc b/src/raw_logging.cc
+index 8e8a657..819707c 100644
+--- a/src/raw_logging.cc
++++ b/src/raw_logging.cc
+@@ -159,6 +159,11 @@ void RawLog__(LogSeverity severity, const char* file, int line,
+   if (!do_glog && !do_glog_echo) {
+     return;  // invalid file descriptors set or log(s) is frozen
+   }
++
++  if (severity < FLAGS_stderrthreshold)
++  {
++    return; // only log severity above FLAGS_stderrthreshold
++  }
+   // ^^ END TESLA-ADDED CODE ^^
+ 
+   // can't call localtime_r here: it can allocate
+-- 
+1.9.1
+

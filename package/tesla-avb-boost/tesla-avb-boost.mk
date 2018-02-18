@@ -11,11 +11,6 @@ TESLA_AVB_BOOST_INSTALL_STAGING = NO
 TESLA_AVB_BOOST_LICENSE = Boost Software License 1.0
 TESLA_AVB_BOOST_LICENSE_FILES = LICENSE_1_0.txt
 
-# HACK: Add this dependency so that the real boost files get built
-# after this version, and therefore the shared library symbolic links
-# end up pointing to the real boost libraries, not these.
-BOOST_DEPENDENCIES += tesla-avb-boost
-
 HOST_TESLA_AVB_BOOST_DEPENDENCIES =
 
 # keep host variant as minimal as possible

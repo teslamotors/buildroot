@@ -1,0 +1,59 @@
+--- runit-2.1.2/src/sv.c	2018-01-23 10:50:23.881298835 -0800
++++ runit-2.1.2.new/src/sv.c	2018-01-23 10:58:18.437315153 -0800
+@@ -340,24 +340,54 @@ int main(int argc, char **argv) {
+   }
+ 
+   servicex =service;
++  int fail_flag =0;
++  int wait_for_control_flag =0;
++  switch (*acts) {
++  case 'u': case 'o':
++    /* wait for control directory(supervise/) to be populated by runsv */
++    wait_for_control_flag = 1;
++    break;
++  default:
++    /* do not wait for stop/shutdown/down etc.. */
++    break;
++  }
+   for (i =0; i < services; ++i) {
+     if ((**service != '/') && (**service != '.') && **service &&
+         ((*service)[str_len(*service) -1] != '/')) {
+       if ((chdir(varservice) == -1) || (chdir(*service) == -1)) {
+         fail("unable to change to service directory");
+-        *service =0;
++        fail_flag =1;
+       }
+     }
+     else
+       if (chdir(*service) == -1) {
+         fail("unable to change to service directory");
+-        *service =0;
++        fail_flag =1;
++      }
++    /*
++     * Wait for the control directory(supervise/) to get created by runsv.
++     * This might happen when runsvdir is initializing all services in a
++     * given directory and one of the service is starting some dependent services
++     * for which runsv may not have yet initialized its control directory.
++     */
++    taia_now(&tnow); tstart =tnow; taia_sub(&tdiff, &tnow, &tstart);
++    while (!fail_flag && wait_for_control_flag && svstatus_get() < 1) {
++      warnx("runsv has not initialized the control files. retrying");
++      usleep(420000);
++      taia_now(&tnow); taia_sub(&tdiff, &tnow, &tstart);
++      if (taia_approx(&tdiff) >= wait) {
++        failx("giving up");
++        fail_flag =1;
++        break;
+       }
++    }
++    if (fail_flag) { *service =0; }
+     if (*service) if (act && (act(acts) == -1)) *service =0;
+     if (fchdir(curdir) == -1) fatal("unable to change to original directory");
+     service++;
+   }
+ 
++  taia_now(&tnow); tstart =tnow;
+   if (*cbk)
+     for (;;) {
+       taia_sub(&tdiff, &tnow, &tstart);

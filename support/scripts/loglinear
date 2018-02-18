@@ -34,6 +34,7 @@ import signal
 import socket
 import sys
 import time
+import threading
 import traceback
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
@@ -70,6 +71,8 @@ class Session(object):
     self.got_init_line = False
     self.exitcode = None
     self.start_time = time.time()
+    self.progress = threading.Timer(30.0, self.Progress, [])
+    self.progress.start()
     sessions[self.id] = self
     _Write(self.fileno(), '%d\n' % self.id)
 
@@ -89,7 +92,7 @@ class Session(object):
       self.parent.live_children.append(self)
     else:
       self.fullname = self.nicename
-    self.PrintStatus()
+    sys.stderr.write('\033[0;33m%s starting [%d pending]\033[0;0m\n' % (self.fullname, len(sessions)))
 
   def Received(self, data):
     self.buf += data
@@ -107,11 +110,19 @@ class Session(object):
     if sessions:
       names = sorted(i.nicename for i in sessions.values())
       sys.stdout.flush()
+      if len(names) > 5:
+        names = names[:4]
+        names.append('...')
       sys.stderr.write('waiting(%d): %s\n'
                        % (len(sessions), ', '.join(names)))
 
   def PrintLn(self, s):
     sys.stdout.write('%s: %s\n' % (self.fullname, s))
+
+  def Progress(self):
+    sys.stderr.write('\033[0;33m%s still running: [%ds elapsed, %d pending]\033[0;0m\n' % (self.fullname, time.time() - self.start_time, len(sessions)))
+    self.progress = threading.Timer(30.0, self.Progress, [])
+    self.progress.start()
 
   def Flush(self):
     if self.exitcode is not None:
@@ -121,6 +132,7 @@ class Session(object):
       self.buf = ''
       if self.exitcode == 0:
         sys.stdout.write("\033[0;32m")
+        lines = lines[:0]
       else:
         sys.stdout.write("\033[1;31m")
       for line in lines:
@@ -131,12 +143,13 @@ class Session(object):
         while self.errored_children:
           i = self.errored_children.pop(0)
           i.Flush()
-      self.PrintLn('exit: %d [%ds elapsed]' % (self.exitcode, time.time() - self.start_time))
+      self.PrintLn('exit: %d [%ds elapsed, %d pending]' % (self.exitcode, time.time() - self.start_time, len(sessions)))
       sys.stdout.write("\033[0;0m")
 
   def Done(self, exitcode):
     assert self.exitcode is None
     self.exitcode = exitcode
+    self.progress.cancel()
     assert self.exitcode is not None
     del sessions[self.id]
     if self.parent:
@@ -146,7 +159,6 @@ class Session(object):
       self.parent.errored_children.append(self)
     else:
       self.Flush()
-    self.PrintStatus()
 
   def Run(self):
     data = os.read(self.fileno(), 4096)

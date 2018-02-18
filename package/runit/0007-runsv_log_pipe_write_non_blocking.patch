@@ -1,0 +1,10 @@
+--- runit-2.1.2/src/runsv.c.orig	2017-12-24 09:12:33.858936996 -0800
++++ runit-2.1.2/src/runsv.c	2017-12-24 09:15:37.377447433 -0800
+@@ -432,6 +432,7 @@ int main(int argc, char **argv) {
+         fatal("unable to create log pipe");
+       coe(logpipe[0]);
+       coe(logpipe[1]);
++      ndelay_on(logpipe[1]); /* pipe_writer to have no delay on */
+     }
+   }
+ 

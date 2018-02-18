@@ -1,2 +1,2 @@
 # From https://www.kernel.org/pub/linux/utils/kernel/kexec/sha256sums.asc
-sha256	b1097986ffdb928cf41a94e8a5dfddc981a8fa710cccf13298e7f8dd939a2ee3	kexec-tools-2.0.11.tar.xz
+sha256	899b7b861431eb51886d0c12866e91b036228244d35a5fb04762dd1a3c0194e7	kexec-tools-2.0.15.tar.xz

@@ -438,6 +438,20 @@ config BR2_PACKAGE_QT_WEBKIT
 	  Build the WebKit module.
 	  If unsure, say n.
 
+config BR2_PACKAGE_QT_WEBKIT_VIDEO
+	bool "Enable HTML5 video support in the WebKit Module"
+	depends on BR2_PACKAGE_QT_WEBKIT
+	help
+	  Build the WebKit module with HTML5 video support.
+	  If unsure, say Y.
+
+config BR2_PACKAGE_QT_WEBKIT_WEB_AUDIO
+	bool "Enable HTML5 web audio support in the WebKit Module"
+	depends on BR2_PACKAGE_QT_WEBKIT
+	help
+	  Build the WebKit module with HTML5 web audio support.
+	  If unsure, say Y.
+
 comment "WebKit needs shared library/NPTL toolchain/script/gui/network support"
 	depends on !(BR2_PACKAGE_QT_SCRIPT && BR2_PACKAGE_QT_SHARED && \
 		BR2_PACKAGE_QT_GUI_MODULE && BR2_PACKAGE_QT_NETWORK)

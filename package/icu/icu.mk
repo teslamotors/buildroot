@@ -18,6 +18,9 @@ ICU_CONF_OPTS = \
 	--disable-samples \
 	--disable-tests
 
+ICU_INSTALL_TARGET_OPTS = --jobs=1 DESTDIR=$(TARGET_DIR) install
+HOST_ICU_INSTALL_OPTS   = --jobs=1 install
+
 # When available, icu prefers to use C++11 atomics, which rely on the
 # __atomic builtins. On certain architectures, this requires linking
 # with libatomic starting from gcc 4.8.

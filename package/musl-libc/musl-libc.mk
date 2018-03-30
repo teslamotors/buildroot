@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-MUSL_LIBC_VERSION = 50d026f22e4adb94d35bed558de82d9f1c8473d8
+MUSL_LIBC_VERSION = 9ad768ae81ee79071ef291ce555f1bf30f8c3979
 MUSL_LIBC_SITE = ssh://internal-server/internal-repo
 MUSL_LIBC_SITE_METHOD = git
 MUSL_LIBC_LICENSE = MIT

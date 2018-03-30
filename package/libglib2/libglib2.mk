@@ -90,6 +90,12 @@ ifeq ($(BR2_ARM_INSTRUCTIONS_THUMB),y)
 LIBGLIB2_CONF_ENV += CFLAGS="$(TARGET_CFLAGS) -marm"
 endif
 
+#
+# We explicitly specify --with-python to point to host's python here
+# and in LIBGLIB2_CONF_OPTS to make sure that ./configure does not
+# pick up python from ${HOST_DIR} thus creating a dependency that
+# would have to be specified in _DEPENDENCIES
+#
 HOST_LIBGLIB2_CONF_OPTS = \
 	--disable-coverage \
 	--disable-dtrace \
@@ -98,7 +104,8 @@ HOST_LIBGLIB2_CONF_OPTS = \
 	--disable-selinux \
 	--disable-systemtap \
 	--disable-xattr \
-	--with-pcre=system
+	--with-pcre=system \
+	--with-python=`which python`
 
 LIBGLIB2_DEPENDENCIES = \
 	host-pkgconf host-libglib2 host-gettext \
@@ -108,7 +115,8 @@ HOST_LIBGLIB2_DEPENDENCIES = \
 	host-gettext host-libffi host-pcre host-pkgconf host-zlib
 
 LIBGLIB2_CONF_OPTS = \
-	--with-pcre=system
+	--with-pcre=system \
+	--with-python=`which python`
 
 ifneq ($(BR2_ENABLE_LOCALE),y)
 LIBGLIB2_DEPENDENCIES += libiconv

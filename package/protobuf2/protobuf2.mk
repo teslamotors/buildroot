@@ -5,8 +5,7 @@
 ################################################################################
 
 PROTOBUF2_VERSION = v2.6.1
-PROTOBUF2_SITE = https://internal-server/internal-repo
-PROTOBUF2_SITE_METHOD = git
+PROTOBUF2_SITE = $(call github,google,protobuf,$(PROTOBUF2_VERSION))
 
 PROTOBUF2_LICENSE = BSD-3c
 PROTOBUF2_LICENSE_FILES = LICENSE

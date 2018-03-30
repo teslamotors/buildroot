@@ -5,8 +5,8 @@
 ################################################################################
 
 PROTOBUF3_VERSION = v3.1.0
-PROTOBUF3_SITE = https://internal-server/internal-repo
-PROTOBUF3_SITE_METHOD = git
+PROTOBUF3_SITE = $(call github,google,protobuf,$(PROTOBUF3_VERSION))
+
 PROTOBUF3_LICENSE = BSD-3c
 PROTOBUF3_LICENSE_FILES = LICENSE
 PROTOBUF3_AUTORECONF = YES

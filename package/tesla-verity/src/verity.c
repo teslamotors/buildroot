@@ -104,9 +104,10 @@ out:
 
 #include "heci.h"
 
-static int eom_query(uint8_t *eom)
+static int soc_lock_query(uint8_t *soc_lock)
 {
         int ret = -1;
+        int err;
         struct heci_context ctx;
 
         if (heci_open(HECI_MKHI_CLIENT, &ctx)) {
@@ -114,9 +115,14 @@ static int eom_query(uint8_t *eom)
                 return -1;
         }
 
-        if (heci_mca_eom(&ctx, eom)) {
-                error("failed to read EoM value\n");
+        err = heci_mca_soc_lock(&ctx, soc_lock);
+        if (err && err != HECI_ERR_MCA_FILE_NOT_WRITTEN) {
+                error("failed to read soc lock value: %s\n", heci_mca_error(err));
                 goto out;
+        }
+
+        if (err == HECI_ERR_MCA_FILE_NOT_WRITTEN) {
+                *soc_lock = 0;
         }
 
         ret = 0;
@@ -129,22 +135,24 @@ out:
 #define RETRY_COUNT 10
 static int is_fused(void)
 {
-        uint8_t eom;
+        uint8_t soc_lock;
         int i;
 
-        /* There are known Intel issues that cause EOM query to sporadically fail.
-         * We account for this with a simple retry mechanism. */
+        /* There are known Intel issues that cause HECI connection to
+         * sporadically fail. We account for this with a simple retry
+         * mechanism.
+         */
         for (i = 0; i < RETRY_COUNT; i++) {
-                if (eom_query(&eom) != -1)
+                if (soc_lock_query(&soc_lock) == 0)
                         break;
         }
 
         if (i == RETRY_COUNT) {
-                error("failed to query eom bit");
+                error("failed to query soc lock bit");
                 return 1;
         }
 
-        return eom != 0;
+        return soc_lock != 0;
 }
 
 #else

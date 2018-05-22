@@ -1,0 +1,11 @@
+--- metis-5.1.0.orig/Makefile
++++ metis-5.1.0.cs/Makefile
+@@ -64,7 +64,7 @@
+ 	@if [ ! -f $(BUILDDIR)/Makefile ]; then \
+ 		more BUILD.txt; \
+ 	else \
+-	  	make -C $(BUILDDIR) $@ $(MAKEFLAGS); \
++	  	make -C $(BUILDDIR) $@ MAKEFLAGS=$(MAKEFLAGS); \
+ 	fi
+ 
+ uninstall:

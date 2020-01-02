@@ -1,0 +1,33 @@
+From 616b324d0e43526fd2336a8348d53d61168f32c4 Mon Sep 17 00:00:00 2001
+Date: Mon, 20 Mar 2017 22:58:42 -0700
+Subject: [PATCH] Added support for RGB565 and RGB888
+
+Port Intel's yocto patch for media-ctl to v1.1.10:
+
+	From 775f8f677ea1d004f0a47d8ba0089b7a2aae2c36 Mon Sep 17 00:00:00 2001
+	From: Mateusz Polrola <mateuszx.potrola@intel.com>
+	Date: Wed, 4 May 2016 09:33:26 +0200
+	Subject: [PATCH] Added support for RGB565 and RGB888
+
+	v4l-utils-Added-support-for-RGB565-and-RGB888.patch
+---
+ utils/media-ctl/libv4l2subdev.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/utils/media-ctl/libv4l2subdev.c b/utils/media-ctl/libv4l2subdev.c
+index 33c1ee6..9e44ed0 100644
+--- a/utils/media-ctl/libv4l2subdev.c
++++ b/utils/media-ctl/libv4l2subdev.c
+@@ -746,7 +746,9 @@ static struct {
+ 	{ "SGRBG12", MEDIA_BUS_FMT_SGRBG12_1X12 },
+ 	{ "SRGGB12", MEDIA_BUS_FMT_SRGGB12_1X12 },
+ 	{ "AYUV32", MEDIA_BUS_FMT_AYUV8_1X32 },
++	{ "RGB16", MEDIA_BUS_FMT_RGB565_1X16 },
+ 	{ "RBG24", MEDIA_BUS_FMT_RBG888_1X24 },
++	{ "RGB24", MEDIA_BUS_FMT_RGB888_1X24 },
+ 	{ "RGB32", MEDIA_BUS_FMT_RGB888_1X32_PADHI },
+ 	{ "ARGB32", MEDIA_BUS_FMT_ARGB8888_1X32 },
+ };
+-- 
+2.1.4
+

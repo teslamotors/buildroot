@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PYTHON_TELNETLIB3
+	bool "python-telnetlib3"
+	depends on BR2_PACKAGE_PYTHON3
+	help
+	  Python Package - Python 3 asyncio Telnet server and client Protocol library
+
+	  https://pypi.org/project/telnetlib3/

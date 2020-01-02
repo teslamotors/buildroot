@@ -1,0 +1,135 @@
+			   READLINE PATCH REPORT
+			   =====================
+
+Readline-Release: 5.2
+Patch-ID: readline52-013
+
+Bug-Reported-by:	slinkp <stuff@slinkp.com>
+Bug-Reference-ID:	<da52a26a-9f38-4861-a918-14d3482b539d@c65g2000hsa.googlegroups.com>
+Bug-Reference-URL:	http://lists.gnu.org/archive/html/bug-bash/2008-05/msg00085.html
+
+Bug-Description:
+
+The presence of invisible characters in a prompt longer than the screenwidth
+with invisible characters on the first and last prompt lines caused readline
+to place the cursor in the wrong physical location.
+
+Patch:
+
+*** a/display.c	2007-12-14 21:12:40.000000000 -0500
+--- b/display.c	2008-10-23 09:39:46.000000000 -0400
+***************
+*** 911,914 ****
+--- 944,951 ----
+  	     OFFSET (which has already been calculated above).  */
+  
++ #define INVIS_FIRST()	(prompt_physical_chars > _rl_screenwidth ? prompt_invis_chars_first_line : wrap_offset)
++ #define WRAP_OFFSET(line, offset)  ((line == 0) \
++ 					? (offset ? INVIS_FIRST() : 0) \
++ 					: ((line == prompt_last_screen_line) ? wrap_offset-prompt_invis_chars_first_line : 0))
+  #define W_OFFSET(line, offset) ((line) == 0 ? offset : 0)
+  #define VIS_LLEN(l)	((l) > _rl_vis_botlin ? 0 : (vis_lbreaks[l+1] - vis_lbreaks[l]))
+***************
+*** 945,949 ****
+  		  _rl_last_c_pos > wrap_offset &&
+  		  o_cpos < prompt_last_invisible)
+! 		_rl_last_c_pos -= wrap_offset;
+  		  
+  	      /* If this is the line with the prompt, we might need to
+--- 982,992 ----
+  		  _rl_last_c_pos > wrap_offset &&
+  		  o_cpos < prompt_last_invisible)
+! 		_rl_last_c_pos -= prompt_invis_chars_first_line;	/* XXX - was wrap_offset */
+! 	      else if (linenum == prompt_last_screen_line && prompt_physical_chars > _rl_screenwidth &&
+! 			(MB_CUR_MAX > 1 && rl_byte_oriented == 0) &&
+! 			cpos_adjusted == 0 &&
+! 			_rl_last_c_pos != o_cpos &&
+! 			_rl_last_c_pos > (prompt_last_invisible - _rl_screenwidth - prompt_invis_chars_first_line))
+! 		_rl_last_c_pos -= (wrap_offset-prompt_invis_chars_first_line);
+  		  
+  	      /* If this is the line with the prompt, we might need to
+***************
+*** 1205,1209 ****
+  {
+    register char *ofd, *ols, *oe, *nfd, *nls, *ne;
+!   int temp, lendiff, wsatend, od, nd, o_cpos;
+    int current_invis_chars;
+    int col_lendiff, col_temp;
+--- 1264,1268 ----
+  {
+    register char *ofd, *ols, *oe, *nfd, *nls, *ne;
+!   int temp, lendiff, wsatend, od, nd, twidth, o_cpos;
+    int current_invis_chars;
+    int col_lendiff, col_temp;
+***************
+*** 1221,1225 ****
+      temp = _rl_last_c_pos;
+    else
+!     temp = _rl_last_c_pos - W_OFFSET(_rl_last_v_pos, visible_wrap_offset);
+    if (temp == _rl_screenwidth && _rl_term_autowrap && !_rl_horizontal_scroll_mode
+  	&& _rl_last_v_pos == current_line - 1)
+--- 1280,1284 ----
+      temp = _rl_last_c_pos;
+    else
+!     temp = _rl_last_c_pos - WRAP_OFFSET (_rl_last_v_pos, visible_wrap_offset);
+    if (temp == _rl_screenwidth && _rl_term_autowrap && !_rl_horizontal_scroll_mode
+  	&& _rl_last_v_pos == current_line - 1)
+***************
+*** 1587,1599 ****
+  	    {
+  	      _rl_output_some_chars (nfd + lendiff, temp - lendiff);
+- #if 1
+  	     /* XXX -- this bears closer inspection.  Fixes a redisplay bug
+  		reported against bash-3.0-alpha by Andreas Schwab involving
+  		multibyte characters and prompt strings with invisible
+  		characters, but was previously disabled. */
+! 	      _rl_last_c_pos += _rl_col_width (nfd+lendiff, 0, temp-col_lendiff);
+! #else
+! 	      _rl_last_c_pos += _rl_col_width (nfd+lendiff, 0, temp-lendiff);
+! #endif
+  	    }
+  	}
+--- 1648,1660 ----
+  	    {
+  	      _rl_output_some_chars (nfd + lendiff, temp - lendiff);
+  	     /* XXX -- this bears closer inspection.  Fixes a redisplay bug
+  		reported against bash-3.0-alpha by Andreas Schwab involving
+  		multibyte characters and prompt strings with invisible
+  		characters, but was previously disabled. */
+! 	      if (MB_CUR_MAX > 1 && rl_byte_oriented == 0)
+! 		twidth = _rl_col_width (nfd+lendiff, 0, temp-col_lendiff);
+! 	      else
+! 		twidth = temp - lendiff;
+! 	      _rl_last_c_pos += twidth;
+  	    }
+  	}
+***************
+*** 1789,1793 ****
+    int cpos, dpos;		/* current and desired cursor positions */
+  
+!   woff = W_OFFSET (_rl_last_v_pos, wrap_offset);
+    cpos = _rl_last_c_pos;
+  #if defined (HANDLE_MULTIBYTE)
+--- 1850,1854 ----
+    int cpos, dpos;		/* current and desired cursor positions */
+  
+!   woff = WRAP_OFFSET (_rl_last_v_pos, wrap_offset);
+    cpos = _rl_last_c_pos;
+  #if defined (HANDLE_MULTIBYTE)
+***************
+*** 1803,1807 ****
+  	 prompt string, since they're both buffer indices and DPOS is a
+  	 desired display position. */
+!       if (new > prompt_last_invisible)		/* XXX - don't use woff here */
+  	{
+  	  dpos -= woff;
+--- 1864,1872 ----
+  	 prompt string, since they're both buffer indices and DPOS is a
+  	 desired display position. */
+!       if ((new > prompt_last_invisible) ||		/* XXX - don't use woff here */
+! 	  (prompt_physical_chars > _rl_screenwidth &&
+! 	   _rl_last_v_pos == prompt_last_screen_line &&
+! 	   wrap_offset != woff &&
+! 	   new > (prompt_last_invisible-_rl_screenwidth-wrap_offset)))
+  	{
+  	  dpos -= woff;

@@ -1,0 +1,4 @@
+# md5, sha256 from https://pypi.python.org/pypi/aiofiles/json
+md5 cb33cf96c371fbd56fc27ab0bd81bd61 aiofiles-0.4.0.tar.gz
+sha256 021ea0ba314a86027c166ecc4b4c07f2d40fc0f4b3a950d1868a0f2571c2bbee aiofiles-0.4.0.tar.gz
+sha256 cb5e8e7e5f4a3988e1063c142c60dc2df75605f4c46515e776e3aca6df976e14 LICENSE

@@ -1,4 +1,2 @@
-# From https://pypi.python.org/pypi/Cheetah/2.4.4
-md5	853917116e731afbc8c8a43c37e6ddba	Cheetah-2.4.4.tar.gz
-# Calculated based on the hash above
-sha256	be308229f0c1e5e5af4f27d7ee06d90bb19e6af3059794e5fd536a6f29a9b550	Cheetah-2.4.4.tar.gz
+# From https://pypi.org/project/Cheetah3/3.2.3/#files
+sha256 7c450bce04a82d34cf6d48992c736c2048246cbc00f7b4903a39cf9a8ea3990c Cheetah3-3.2.3.tar.gz 

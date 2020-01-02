@@ -1,0 +1,123 @@
+From 618bb5283a5f4499ac5410c5b591ab0ed55a2695 Mon Sep 17 00:00:00 2001
+Date: Thu, 27 Jun 2019 22:02:18 -0700
+Subject: [PATCH] Add support for changing current working directory
+
+---
+ libminijail.c   | 26 ++++++++++++++++++++++++--
+ libminijail.h   |  1 +
+ minijail0_cli.c |  8 ++++++++
+ 3 files changed, 33 insertions(+), 2 deletions(-)
+
+diff --git a/libminijail.c b/libminijail.c
+index 12e9ae3..9b878d0 100644
+--- a/libminijail.c
++++ b/libminijail.c
+@@ -146,6 +146,7 @@ struct minijail {
+ 		int remount_proc_ro : 1;
+ 		int no_new_privs : 1;
+ 		int use_kafel : 1;
++		int use_cwd : 1;
+ 		int seccomp_filter : 1;
+ 		int seccomp_filter_tsync : 1;
+ 		int seccomp_filter_logging : 1;
+@@ -180,6 +181,7 @@ struct minijail {
+ 	char *uidmap;
+ 	char *gidmap;
+ 	char *hostname;
++	char *cwd;
+ 	size_t filter_len;
+ 	struct sock_fprog *filter_prog;
+ 	char *alt_syscall_table;
+@@ -366,6 +368,19 @@ void API minijail_use_kafel(struct minijail *j)
+ 	j->flags.use_kafel = 1;
+ }
+ 
++int API minijail_use_cwd(struct minijail *j, const char *dir)
++{
++	if (j->cwd) {
++		free(j->cwd);
++		j->cwd = NULL;
++	}
++	j->cwd = strdup(dir);
++	if (!j->cwd)
++		return -ENOMEM;
++	j->flags.use_cwd = 1;
++	return 0;
++}
++
+ void API minijail_set_seccomp_filter_tsync(struct minijail *j)
+ {
+ 	if (j->filter_len > 0 && j->filter_prog != NULL) {
+@@ -1552,8 +1567,13 @@ static int enter_pivot_root(const struct minijail *j)
+ 	if (chroot("/"))
+ 		return -errno;
+ 	/* Set correct CWD for getcwd(3). */
+-	if (chdir("/"))
+-		return -errno;
++	if (j->flags.use_cwd) {
++		if (chdir(j->cwd))
++			return -errno;
++	} else {
++		if (chdir("/"))
++			return -errno;
++	}
+ 
+ 	return 0;
+ }
+@@ -2955,6 +2975,8 @@ void API minijail_destroy(struct minijail *j)
+ 		free(j->hostname);
+ 	if (j->alt_syscall_table)
+ 		free(j->alt_syscall_table);
++	if (j->cwd)
++		free(j->cwd);
+ 	for (i = 0; i < j->cgroup_count; ++i)
+ 		free(j->cgroups[i]);
+ 	free(j);
+diff --git a/libminijail.h b/libminijail.h
+index b515476..ee710c7 100644
+--- a/libminijail.h
++++ b/libminijail.h
+@@ -82,6 +82,7 @@ void minijail_no_new_privs(struct minijail *j);
+ void minijail_use_seccomp_filter(struct minijail *j);
+ void minijail_set_seccomp_filter_tsync(struct minijail *j);
+ void minijail_use_kafel(struct minijail *j);
++int minijail_use_cwd(struct minijail *j, const char *name);
+ void minijail_parse_seccomp_filters(struct minijail *j, const char *path);
+ void minijail_parse_seccomp_filters_from_fd(struct minijail *j, int fd);
+ void minijail_log_seccomp_filter_failures(struct minijail *j);
+diff --git a/minijail0_cli.c b/minijail0_cli.c
+index e4c697f..95cd06d 100644
+--- a/minijail0_cli.c
++++ b/minijail0_cli.c
+@@ -457,6 +457,7 @@ static void usage(const char *progn)
+ 	       "  -z:           Don't forward signals to jailed process.\n"
+ 	       "  --ambient:    Raise ambient capabilities. Requires -c.\n"
+ 	       "  --kafel:      Use kafel seccomp language.\n"
++	       "  --cwd=dir:	Change to cwd after changing mount namespaces.\n"
+ 	       "  --uts[=name]: Enter a new UTS namespace (and set hostname).\n"
+ 	       "  --logging=<s>:Use <s> as the logging system.\n"
+ 	       "                <s> must be 'syslog' (default) or 'stderr'.\n"
+@@ -510,6 +511,7 @@ int parse_args(struct minijail *j, int argc, char * const argv[],
+ 		{"logging", required_argument, 0, 130},
+ 		{"profile", required_argument, 0, 131},
+ 		{"kafel", optional_argument, 0, 132},
++		{"cwd", required_argument, 0, 133},
+ 		{0, 0, 0, 0},
+ 	};
+ 	/* clang-format on */
+@@ -743,6 +745,12 @@ int parse_args(struct minijail *j, int argc, char * const argv[],
+ 		case 132: /* Use kafel seccomp language */
+ 			minijail_use_kafel(j);
+ 			break;
++		case 133:
++			if (0 != minijail_use_cwd(j, optarg)) {
++				fprintf(stderr, "Could not use cwd.\n");
++				exit(1);
++			}
++			break;
+ 		default:
+ 			usage(argv[0]);
+ 			exit(opt == 'h' ? 0 : 1);
+-- 
+2.19.1
+

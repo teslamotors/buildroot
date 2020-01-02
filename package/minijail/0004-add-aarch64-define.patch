@@ -1,0 +1,42 @@
+From ed8e0f66d4fe25e37ab5c78415fef44eb3ed82c3 Mon Sep 17 00:00:00 2001
+Date: Wed, 8 Nov 2017 15:47:46 -0800
+Subject: [PATCH] minijail: Add AArch64 macros
+
+When building for arm64, some necessary macros are missing.
+This change adds SYS_seccomp and AUDIT_ARCH_AARCH64.
+---
+ arch.h            | 3 +++
+ syscall_wrapper.c | 4 ++++
+ 2 files changed, 7 insertions(+)
+
+diff --git a/arch.h b/arch.h
+index 652f072..7c4457a 100644
+--- a/arch.h
++++ b/arch.h
+@@ -25,6 +25,9 @@
+ #  endif
+ #  define ARCH_NR AUDIT_ARCH_ARM
+ #elif defined(__aarch64__)
++#  ifndef AUDIT_ARCH_AARCH64
++#    define AUDIT_ARCH_AARCH64      (EM_AARCH64|__AUDIT_ARCH_64BIT|__AUDIT_ARCH_LE)
++#  endif
+ #  define ARCH_NR AUDIT_ARCH_AARCH64
+ #elif defined(__hppa__)
+ #  define ARCH_NR AUDIT_ARCH_PARISC
+diff --git a/syscall_wrapper.c b/syscall_wrapper.c
+index 1a8aea6..9f96f99 100644
+--- a/syscall_wrapper.c
++++ b/syscall_wrapper.c
+@@ -19,6 +19,10 @@
+ #include <sys/syscall.h>
+ #include <unistd.h>
+ 
++#ifndef SYS_seccomp
++#  define SYS_seccomp 277
++#endif
++
+ int sys_seccomp(unsigned int operation, unsigned int flags, void *args)
+ {
+ 	return syscall(SYS_seccomp, operation, flags, args);
+-- 
+2.7.4

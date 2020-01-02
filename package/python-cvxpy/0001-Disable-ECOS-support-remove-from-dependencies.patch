@@ -1,0 +1,487 @@
+From 81841fdaaa18b106ef986920b5f1dad7789a5005 Mon Sep 17 00:00:00 2001
+Date: Thu, 1 Jun 2017 12:55:12 -0700
+Subject: [PATCH] Disable ECOS support, remove from dependencies
+
+---
+ cvxpy/problems/solvers/ecos_bb_intf.py |  13 +-
+ cvxpy/problems/solvers/ecos_intf.py    |  12 +-
+ cvxpy/tests/test_examples.py           |  37 -----
+ cvxpy/tests/test_problem.py            | 271 +--------------------------------
+ setup.py                               |   3 +-
+ 5 files changed, 7 insertions(+), 329 deletions(-)
+
+diff --git a/cvxpy/problems/solvers/ecos_bb_intf.py b/cvxpy/problems/solvers/ecos_bb_intf.py
+index 17f9d5e..3767496 100644
+--- a/cvxpy/problems/solvers/ecos_bb_intf.py
++++ b/cvxpy/problems/solvers/ecos_bb_intf.py
+@@ -74,15 +74,4 @@ class ECOS_BB(ECOS):
+         tuple
+             (status, optimal value, primal, equality dual, inequality dual)
+         """
+-        import ecos
+-        data = self.get_problem_data(objective, constraints, cached_data)
+-        # Default verbose to false for BB wrapper.
+-        mi_verbose = solver_opts.get('mi_verbose', False)
+-        results_dict = ecos.solve(data[s.C], data[s.G], data[s.H],
+-                                  data[s.DIMS], data[s.A], data[s.B],
+-                                  verbose=verbose,
+-                                  mi_verbose=mi_verbose,
+-                                  bool_vars_idx=data[s.BOOL_IDX],
+-                                  int_vars_idx=data[s.INT_IDX],
+-                                  **solver_opts)
+-        return self.format_results(results_dict, data, cached_data)
++        raise NotImplementedError("ECOS support disabled")
+diff --git a/cvxpy/problems/solvers/ecos_intf.py b/cvxpy/problems/solvers/ecos_intf.py
+index 34ffced..af839f9 100644
+--- a/cvxpy/problems/solvers/ecos_intf.py
++++ b/cvxpy/problems/solvers/ecos_intf.py
+@@ -57,8 +57,7 @@ class ECOS(Solver):
+     def import_solver(self):
+         """Imports the solver.
+         """
+-        import ecos
+-        ecos  # For flake8
++        pass
+ 
+     def name(self):
+         """The name of the solver.
+@@ -114,14 +113,7 @@ class ECOS(Solver):
+         tuple
+             (status, optimal value, primal, equality dual, inequality dual)
+         """
+-        import ecos
+-        data = self.get_problem_data(objective, constraints, cached_data)
+-        data[s.DIMS]['e'] = data[s.DIMS][s.EXP_DIM]
+-        results_dict = ecos.solve(data[s.C], data[s.G], data[s.H],
+-                                  data[s.DIMS], data[s.A], data[s.B],
+-                                  verbose=verbose,
+-                                  **solver_opts)
+-        return self.format_results(results_dict, data, cached_data)
++        raise NotImplementedError("ECOS support disabled")
+ 
+     def format_results(self, results_dict, data, cached_data):
+         """Converts the solver output into standard form.
+diff --git a/cvxpy/tests/test_examples.py b/cvxpy/tests/test_examples.py
+index 907e7bf..523eb2e 100644
+--- a/cvxpy/tests/test_examples.py
++++ b/cvxpy/tests/test_examples.py
+@@ -277,16 +277,6 @@ class TestExamples(BaseTest):
+         constraints = [x >= 2]
+         prob = Problem(obj, constraints)
+ 
+-        # Solve with ECOS.
+-        prob.solve(solver=ECOS)
+-        print("optimal value with ECOS:", prob.value)
+-        self.assertAlmostEqual(prob.value, 6)
+-
+-        # Solve with ECOS_BB.
+-        prob.solve(solver=ECOS_BB)
+-        print("optimal value with ECOS_BB:", prob.value)
+-        self.assertAlmostEqual(prob.value, 6)
+-
+         # Solve with CVXOPT.
+         if CVXOPT in installed_solvers():
+             prob.solve(solver=CVXOPT)
+@@ -604,33 +594,6 @@ class TestExamples(BaseTest):
+         prob = Problem(obj, constraints)
+         prob.solve(solver=SCS)
+ 
+-    def test_advanced(self):
+-        """Test code from the advanced section of the tutorial.
+-        """
+-        x = Variable()
+-        prob = Problem(Minimize(square(x)), [x == 2])
+-        # Get ECOS arguments.
+-        data = prob.get_problem_data(ECOS)
+-
+-        # Get ECOS_BB arguments.
+-        data = prob.get_problem_data(ECOS_BB)
+-
+-        # Get CVXOPT arguments.
+-        if CVXOPT in installed_solvers():
+-            data = prob.get_problem_data(CVXOPT)
+-
+-        # Get SCS arguments.
+-        data = prob.get_problem_data(SCS)
+-
+-        import ecos
+-        # Get ECOS arguments.
+-        data = prob.get_problem_data(ECOS)
+-        # Call ECOS solver.
+-        solver_output = ecos.solve(data["c"], data["G"], data["h"],
+-                                   data["dims"], data["A"], data["b"])
+-        # Unpack raw solver output.
+-        prob.unpack_results(ECOS, solver_output)
+-
+     def test_log_sum_exp(self):
+         """Test log_sum_exp function that failed in Github issue.
+         """
+diff --git a/cvxpy/tests/test_problem.py b/cvxpy/tests/test_problem.py
+index c4d57d3..33b64e5 100644
+--- a/cvxpy/tests/test_problem.py
++++ b/cvxpy/tests/test_problem.py
+@@ -32,7 +32,6 @@ import numpy
+ import sys
+ # Solvers.
+ import scs
+-import ecos
+ import warnings
+ PY2 = sys.version_info < (3, 0)
+ if sys.version_info < (3, 0):
+@@ -121,7 +120,7 @@ class TestProblem(BaseTest):
+         self.assertEqual(len(ref), len(constants_))
+         for c, r in zip(constants_, ref):
+             self.assertEqual(c.size, r.shape) and \
+-            self.assertTrue((c.value == r).all()) 
++            self.assertTrue((c.value == r).all())
+             # Allows comparison between numpy matrices and numpy arrays
+             # Necessary because of the way cvxpy handles numpy arrays and constants
+ 
+@@ -166,93 +165,6 @@ class TestProblem(BaseTest):
+         ref = max(p3.size)
+         self.assertEqual(max_data_dim, ref)
+ 
+-    def test_solver_stats(self):
+-        """Test the solver_stats method.
+-        """
+-        prob = Problem(Minimize(norm(self.x)), [self.x == 0])
+-        prob.solve(solver = s.ECOS)
+-        stats = prob.solver_stats
+-        self.assertGreater(stats.solve_time, 0)
+-        self.assertGreater(stats.setup_time, 0)
+-        self.assertGreater(stats.num_iters, 0)
+-
+-    def test_get_problem_data(self):
+-        """Test get_problem_data method.
+-        """
+-        with self.assertRaises(Exception) as cm:
+-            Problem(Maximize(Bool())).get_problem_data(s.ECOS)
+-
+-        expected = (
+-            "The solver ECOS cannot solve the problem because"
+-            " it cannot solve mixed-integer problems."
+-        )
+-        self.assertEqual(str(cm.exception), expected)
+-
+-        data = Problem(Maximize(exp(self.a) + 2)).get_problem_data(s.SCS)
+-        dims = data["dims"]
+-        self.assertEqual(dims['ep'], 1)
+-        self.assertEqual(data["c"].shape, (2,))
+-        self.assertEqual(data["A"].shape, (3, 2))
+-
+-        data = Problem(Minimize(norm(self.x) + 3)).get_problem_data(s.ECOS)
+-        dims = data["dims"]
+-        self.assertEqual(dims["q"], [3])
+-        self.assertEqual(data["c"].shape, (3,))
+-        self.assertEqual(data["A"].shape, (0, 3))
+-        self.assertEqual(data["G"].shape, (3, 3))
+-
+-        if s.CVXOPT in installed_solvers():
+-            import cvxopt
+-            data = Problem(Minimize(norm(self.x) + 3)).get_problem_data(s.CVXOPT)
+-            dims = data["dims"]
+-            self.assertEqual(dims["q"], [3])
+-            # NumPy ndarrays, not cvxopt matrices.
+-            self.assertEqual(type(data["c"]), cvxopt.matrix)
+-            self.assertEqual(type(data["A"]), cvxopt.spmatrix)
+-            self.assertEqual(data["c"].size, (3, 1))
+-            self.assertEqual(data["A"].size, (0, 3))
+-            self.assertEqual(data["G"].size, (3, 3))
+-
+-    def test_unpack_results(self):
+-        """Test unpack results method.
+-        """
+-        with self.assertRaises(Exception) as cm:
+-            Problem(Minimize(exp(self.a))).unpack_results("blah", None)
+-        self.assertEqual(str(cm.exception), "Unknown solver.")
+-
+-        prob = Problem(Minimize(exp(self.a)), [self.a == 0])
+-        args = prob.get_problem_data(s.SCS)
+-        data = {"c": args["c"], "A": args["A"], "b": args["b"]}
+-        results_dict = scs.solve(data, args["dims"])
+-        prob = Problem(Minimize(exp(self.a)), [self.a == 0])
+-        prob.unpack_results(s.SCS, results_dict)
+-        self.assertAlmostEqual(self.a.value, 0, places=3)
+-        self.assertAlmostEqual(prob.value, 1, places=3)
+-        self.assertAlmostEqual(prob.status, s.OPTIMAL)
+-
+-        prob = Problem(Minimize(norm(self.x)), [self.x == 0])
+-        args = prob.get_problem_data(s.ECOS)
+-        results_dict = ecos.solve(args["c"], args["G"], args["h"],
+-                                  args["dims"], args["A"], args["b"])
+-        prob = Problem(Minimize(norm(self.x)), [self.x == 0])
+-        prob.unpack_results(s.ECOS, results_dict)
+-        self.assertItemsAlmostEqual(self.x.value, [0, 0])
+-        self.assertAlmostEqual(prob.value, 0)
+-        self.assertAlmostEqual(prob.status, s.OPTIMAL)
+-
+-        if s.CVXOPT in installed_solvers():
+-            import cvxopt
+-            prob = Problem(Minimize(norm(self.x)), [self.x == 0])
+-            args = prob.get_problem_data(s.CVXOPT)
+-            results_dict = cvxopt.solvers.conelp(args["c"], args["G"],
+-                                                 args["h"], args["dims"],
+-                                                 args["A"], args["b"])
+-            prob = Problem(Minimize(norm(self.x)), [self.x == 0])
+-            prob.unpack_results(s.CVXOPT, results_dict)
+-            self.assertItemsAlmostEqual(self.x.value, [0, 0])
+-            self.assertAlmostEqual(prob.value, 0)
+-            self.assertAlmostEqual(prob.status, s.OPTIMAL)
+-
+     # Test silencing and enabling solver messages.
+     def test_verbose(self):
+         import sys
+@@ -333,45 +245,6 @@ class TestProblem(BaseTest):
+         result = p.solve(1, method="test", b=4)
+         self.assertEqual(result, (1, 4))
+ 
+-    def test_consistency(self):
+-        """Test that variables and constraints keep a consistent order.
+-        """
+-        import itertools
+-        num_solves = 4
+-        vars_lists = []
+-        ineqs_lists = []
+-        var_ids_order_created = []
+-        for k in range(num_solves):
+-            sum = 0
+-            constraints = []
+-            var_ids = []
+-            for i in range(100):
+-                var = Variable(name=str(i))
+-                var_ids.append(var.id)
+-                sum += var
+-                constraints.append(var >= i)
+-            var_ids_order_created.append(var_ids)
+-            obj = Minimize(sum)
+-            p = Problem(obj, constraints)
+-            objective, constraints = p.canonicalize()
+-            sym_data = SymData(objective, constraints, SOLVERS[s.ECOS])
+-            # Sort by offset.
+-            vars_ = sorted(sym_data.var_offsets.items(),
+-                           key=lambda key_val: key_val[1])
+-            vars_ = [var_id for (var_id, offset) in vars_]
+-            vars_lists.append(vars_)
+-            ineqs_lists.append(sym_data.constr_map[s.LEQ])
+-
+-        # Verify order of variables is consistent.
+-        for i in range(num_solves):
+-            self.assertEqual(var_ids_order_created[i],
+-                             vars_lists[i])
+-        for i in range(num_solves):
+-            for idx, constr in enumerate(ineqs_lists[i]):
+-                var_id, _ = lu.get_expr_vars(constr.expr)[0]
+-                self.assertEqual(var_ids_order_created[i][idx],
+-                                 var_id)
+-
+     # Test removing duplicate constraint objects.
+     def test_duplicate_constraints(self):
+         eq = (self.x == 2)
+@@ -428,7 +301,7 @@ class TestProblem(BaseTest):
+         p = Problem(Minimize(obj),[Aeq * self.y == beq, F * self.y <= g])
+         self.assertEqual(p.is_qp(), True)
+ 
+-        p = Problem(Minimize(obj),[max_elemwise(1, 3 * self.y) <= 200, abs(2 * self.y) <= 100, 
++        p = Problem(Minimize(obj),[max_elemwise(1, 3 * self.y) <= 200, abs(2 * self.y) <= 100,
+             norm(2 * self.y, 1) <= 1000, Aeq * self.y == beq])
+         self.assertEqual(p.is_qp(), True)
+ 
+@@ -534,77 +407,6 @@ class TestProblem(BaseTest):
+         self.assertAlmostEqual(self.a.value, 1)
+         self.assertAlmostEqual(self.b.value, 2)
+ 
+-    # Test scalar LP problems.
+-    def test_scalar_lp(self):
+-        p = Problem(Minimize(3*self.a), [self.a >= 2])
+-        result = p.solve()
+-        self.assertAlmostEqual(result, 6)
+-        self.assertAlmostEqual(self.a.value, 2)
+-
+-        p = Problem(Maximize(3*self.a - self.b),
+-                    [self.a <= 2, self.b == self.a, self.b <= 5])
+-        result = p.solve()
+-        self.assertAlmostEqual(result, 4.0)
+-        self.assertAlmostEqual(self.a.value, 2)
+-        self.assertAlmostEqual(self.b.value, 2)
+-
+-        # With a constant in the objective.
+-        p = Problem(Minimize(3*self.a - self.b + 100),
+-                    [self.a >= 2,
+-                     self.b + 5*self.c - 2 == self.a,
+-                     self.b <= 5 + self.c])
+-        result = p.solve()
+-        self.assertAlmostEqual(result, 101 + 1.0/6)
+-        self.assertAlmostEqual(self.a.value, 2)
+-        self.assertAlmostEqual(self.b.value, 5-1.0/6)
+-        self.assertAlmostEqual(self.c.value, -1.0/6)
+-
+-        # Test status and value.
+-        exp = Maximize(self.a)
+-        p = Problem(exp, [self.a <= 2])
+-        result = p.solve(solver=s.ECOS)
+-        self.assertEqual(result, p.value)
+-        self.assertEqual(p.status, s.OPTIMAL)
+-        assert self.a.value is not None
+-        assert p.constraints[0].dual_value is not None
+-
+-        # Unbounded problems.
+-        p = Problem(Maximize(self.a), [self.a >= 2])
+-        p.solve(solver=s.ECOS)
+-        self.assertEqual(p.status, s.UNBOUNDED)
+-        assert numpy.isinf(p.value)
+-        assert p.value > 0
+-        assert self.a.value is None
+-        assert p.constraints[0].dual_value is None
+-
+-        if s.CVXOPT in installed_solvers():
+-            p = Problem(Minimize(-self.a), [self.a >= 2])
+-            result = p.solve(solver=s.CVXOPT)
+-            self.assertEqual(result, p.value)
+-            self.assertEqual(p.status, s.UNBOUNDED)
+-            assert numpy.isinf(p.value)
+-            assert p.value < 0
+-
+-        # Infeasible problems.
+-        p = Problem(Maximize(self.a), [self.a >= 2, self.a <= 1])
+-        self.a.save_value(2)
+-        p.constraints[0].save_value(2)
+-
+-        result = p.solve(solver=s.ECOS)
+-        self.assertEqual(result, p.value)
+-        self.assertEqual(p.status, s.INFEASIBLE)
+-        assert numpy.isinf(p.value)
+-        assert p.value < 0
+-        assert self.a.value is None
+-        assert p.constraints[0].dual_value is None
+-
+-        p = Problem(Minimize(-self.a), [self.a >= 2, self.a <= 1])
+-        result = p.solve(solver=s.ECOS)
+-        self.assertEqual(result, p.value)
+-        self.assertEqual(p.status, s.INFEASIBLE)
+-        assert numpy.isinf(p.value)
+-        assert p.value > 0
+-
+     # Test vector LP problems.
+     def test_vector_lp(self):
+         c = Constant(numpy.matrix([1, 2]).T).value
+@@ -627,15 +429,6 @@ class TestProblem(BaseTest):
+         self.assertItemsAlmostEqual(self.x.value, [8, 8], places=3)
+         self.assertItemsAlmostEqual(self.z.value, [2, 2], places=3)
+ 
+-    def test_ecos_noineq(self):
+-        """Test ECOS with no inequality constraints.
+-        """
+-        T = Constant(numpy.ones((2, 2))).value
+-        p = Problem(Minimize(1), [self.A == T])
+-        result = p.solve(solver=s.ECOS)
+-        self.assertAlmostEqual(result, 1)
+-        self.assertItemsAlmostEqual(self.A.value, T)
+-
+     # Test matrix LP problems.
+     def test_matrix_lp(self):
+         T = Constant(numpy.ones((2, 2))).value
+@@ -863,7 +656,7 @@ class TestProblem(BaseTest):
+ 
+     # Test recovery of dual variables.
+     def test_dual_variables(self):
+-        for solver in [s.ECOS, s.SCS, s.CVXOPT]:
++        for solver in [s.SCS, s.CVXOPT]:
+             if solver in installed_solvers():
+                 if solver == s.SCS:
+                     acc = 1
+@@ -1151,20 +944,6 @@ class TestProblem(BaseTest):
+         result = p.solve()
+         self.assertAlmostEqual(result, 9)
+ 
+-    # Test redundant constraints in cvxopt.
+-    def test_redundant_constraints(self):
+-        obj = Minimize(sum_entries(self.x))
+-        constraints = [self.x == 2, self.x == 2, self.x.T == 2, self.x[0] == 2]
+-        p = Problem(obj, constraints)
+-        result = p.solve(solver=s.ECOS)
+-        self.assertAlmostEqual(result, 4)
+-
+-        obj = Minimize(sum_entries(square(self.x)))
+-        constraints = [self.x == self.x]
+-        p = Problem(obj, constraints)
+-        result = p.solve(solver=s.ECOS)
+-        self.assertAlmostEqual(result, 0)
+-
+     # Test that symmetry is enforced.
+     def test_sdp_symmetry(self):
+         # TODO should these raise exceptions?
+@@ -1269,36 +1048,6 @@ class TestProblem(BaseTest):
+         self.assertAlmostEqual(result, 10)
+         self.assertItemsAlmostEqual(expr.value, [5, -5] + [10, -10])
+ 
+-    def test_invalid_solvers(self):
+-        """Tests that errors occur when you use an invalid solver.
+-        """
+-        with self.assertRaises(Exception) as cm:
+-            Problem(Minimize(Bool())).solve(solver=s.ECOS)
+-
+-        expected = (
+-            "The solver ECOS cannot solve the problem "
+-            "because it cannot solve mixed-integer problems."
+-        )
+-        self.assertEqual(str(cm.exception), expected)
+-
+-        with self.assertRaises(Exception) as cm:
+-            Problem(Minimize(lambda_max(self.a))).solve(solver=s.ECOS)
+-
+-        expected = (
+-            "The solver ECOS cannot solve the problem "
+-            "because it cannot solve semidefinite problems."
+-        )
+-        self.assertEqual(str(cm.exception), expected)
+-
+-        with self.assertRaises(Exception) as cm:
+-            Problem(Minimize(self.a)).solve(solver=s.SCS)
+-
+-        expected = (
+-            "The solver SCS cannot solve the problem "
+-            "because it cannot solve unconstrained problems."
+-        )
+-        self.assertEqual(str(cm.exception), expected)
+-
+     def test_reshape(self):
+         """Tests problems with reshape.
+         """
+@@ -1379,20 +1128,6 @@ class TestProblem(BaseTest):
+         result = prob.solve()
+         self.assertAlmostEqual(result, 0.583151, places=2)
+ 
+-    def test_presolve_constant_constraints(self):
+-        """Test that the presolver removes constraints with no variables.
+-        """
+-        x = Variable()
+-        obj = Maximize(sqrt(x))
+-        prob = Problem(obj, [Constant(2) <= 2])
+-        data = prob.get_problem_data(s.ECOS)
+-        A = data["A"]
+-        G = data["G"]
+-        for row in range(A.shape[0]):
+-            assert A[row, :].nnz > 0
+-        for row in range(G.shape[0]):
+-            assert G[row, :].nnz > 0
+-
+     def test_presolve_parameters(self):
+         """Test presolve with parameters.
+         """
+diff --git a/setup.py b/setup.py
+index 5710a5b..2bf3aeb 100644
+--- a/setup.py
++++ b/setup.py
+@@ -27,8 +27,7 @@ setup(
+     license='Apache v2.0',
+     zip_safe=False,
+     description='A domain-specific language for modeling convex optimization problems in Python.',
+-    install_requires=["ecos >= 2",
+-                      "scs >= 1.1.3",
++    install_requires=["scs >= 1.1.3",
+                       "multiprocess",
+                       "fastcache",
+                       "six",
+-- 
+2.7.4
+

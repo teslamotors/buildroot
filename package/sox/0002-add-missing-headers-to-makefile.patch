@@ -1,0 +1,20 @@
+--- sox-14.4.2.orig/src/Makefile.am	2018-06-12 12:48:59.877178043 -0700
++++ sox-14.4.2/src/Makefile.am	2018-06-14 13:04:38.792902653 -0700
+@@ -37,7 +37,7 @@
+ bin_PROGRAMS = sox
+ EXTRA_PROGRAMS = example0 example1 example2 example3 example4 example5 example6 sox_sample_test
+ lib_LTLIBRARIES = libsox.la
+-include_HEADERS = sox.h
++pkginclude_HEADERS = sox.h util.h soxconfig.h xmalloc.h sox_sample_test.h
+ sox_SOURCES = sox.c
+ if HAVE_WIN32_GLOB
+ sox_SOURCES += win32-glob.c win32-glob.h
+@@ -177,7 +177,7 @@
+ 
+ loc:
+ 	sloccount \
+-	$(include_HEADERS) \
++	$(pkginclude_HEADERS) \
+ 	$(sox_SOURCES) \
+ 	$(example0_SOURCES) \
+ 	$(example1_SOURCES) \

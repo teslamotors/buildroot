@@ -1,0 +1,10 @@
+config BR2_PACKAGE_CAPICXX_CORE_RUNTIME_AVB
+       bool "Common API Core Runtime for AVB libraries"
+       help
+         CommonAPI C++ is a C++ framework for interprocess and network communication.
+
+         The Intel AVB stack requires a specific version that is older
+         than the version required by the Harman tuner, we need two
+         versions.
+
+         https://genivi.github.io/capicxx-core-tools/

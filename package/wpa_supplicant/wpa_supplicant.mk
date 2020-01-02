@@ -32,7 +32,8 @@ WPA_SUPPLICANT_CONFIG_ENABLE = \
 	CONFIG_MATCH_IFACE
 
 WPA_SUPPLICANT_CONFIG_DISABLE = \
-	CONFIG_SMARTCARD
+	CONFIG_SMARTCARD \
+	CONFIG_DRIVER_WEXT
 
 # libnl-3 needs -lm (for rint) and -lpthread if linking statically
 # And library order matters hence stick -lnl-3 first since it's appended
@@ -164,6 +165,15 @@ endef
 
 # LIBS for wpa_supplicant, LIBS_c for wpa_cli, LIBS_p for wpa_passphrase
 define WPA_SUPPLICANT_BUILD_CMDS
+
+	if [ "$(BR2_PACKAGE_WPA_SUPPLICANT_LIBBCMDHD)" = "y" ]; then \
+		$(TARGET_MAKE_ENV) CFLAGS="$(WPA_SUPPLICANT_CFLAGS)" \
+			LDFLAGS="$(TARGET_LDFLAGS)" BINDIR=/usr/sbin \
+			LIBS="$(WPA_SUPPLICANT_LIBS)" LIBS_c="$(WPA_SUPPLICANT_LIBS)" \
+			LIBS_p="$(WPA_SUPPLICANT_LIBS)" \
+			$(MAKE) CC="$(TARGET_CC)" -C $(@D)/libbcmdhd ; \
+	fi
+
 	$(TARGET_MAKE_ENV) CFLAGS="$(WPA_SUPPLICANT_CFLAGS)" \
 		LDFLAGS="$(TARGET_LDFLAGS)" BINDIR=/usr/sbin \
 		LIBS="$(WPA_SUPPLICANT_LIBS)" LIBS_c="$(WPA_SUPPLICANT_LIBS)" \

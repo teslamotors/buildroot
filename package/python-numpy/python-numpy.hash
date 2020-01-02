@@ -2,3 +2,4 @@
 sha256	3c1ccce5d935ef8df16ae0595b459ef08a5cdb05aee195ebc04b9d89a72be7fa	numpy-1.15.1.tar.gz
 # License files, locally calculated
 sha256	9e85ee1c3f11444243c9b7667721592a01f1cd90cb28ad937ac99f6241d6b685	LICENSE.txt
+sha256  d56d7fff81e844a407afa0503080c814e5d87678e338a73b8d8f98137713cfa9   numpy-1.12.1.tar.gz

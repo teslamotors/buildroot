@@ -18,10 +18,10 @@ GST1_VAAPI_DEPENDENCIES += \
 	libdrm
 
 GST1_VAAPI_CONF_OPTS += \
-	--disable-x11 \
-	--disable-glx \
+	--enable-x11 \
+	--enable-glx \
 	--disable-wayland \
-	--disable-egl \
+	--enable-egl \
 	--disable-gtk-doc-html
 
 ifeq ($(BR2_PACKAGE_GST1_VAAPI_ENCODERS),y)

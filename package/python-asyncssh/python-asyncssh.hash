@@ -1,0 +1,4 @@
+# md5, sha256 from https://pypi.python.org/pypi/asyncssh/json
+md5 a24ab349ec289f6e8b74f423d7d3793f asyncssh-1.12.2.tar.gz
+sha256 6933df88e5e76fd4d4d6e9f4ac3bb4d988c11568ca214e4e824cb5230a7d9f94 asyncssh-1.12.2.tar.gz
+sha256 cc07bd2bd6ba843a9a2865ed891d5a3b5835a64bab6fa90945403ee53965d46f LICENSE

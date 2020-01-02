@@ -1,0 +1,39 @@
+From eb1bbb7af33f4d70a3d1e9f3e63d2562d71d9a9d Mon Sep 17 00:00:00 2001
+Date: Mon, 16 Sep 2019 12:54:11 -0700
+Subject: [PATCH] SW-211483: reduce qt's webkit build log size
+
+- set a flag to ignore a new gcc pre-defined warning `-Wno-expansion-to-defined`
+---
+ src/3rdparty/javascriptcore/WebKit.pri | 2 +-
+ src/3rdparty/webkit/Source/WebKit.pri  | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/3rdparty/javascriptcore/WebKit.pri b/src/3rdparty/javascriptcore/WebKit.pri
+index 30c8726c..c73a152d 100644
+--- a/src/3rdparty/javascriptcore/WebKit.pri
++++ b/src/3rdparty/javascriptcore/WebKit.pri
+@@ -63,7 +63,7 @@ BASE_DIR = $$PWD
+ INCLUDEPATH += $$PWD/WebKit/qt/Api
+ 
+ CONFIG -= warn_on
+-*-g++*:QMAKE_CXXFLAGS += -Wall -Wreturn-type -fno-strict-aliasing -Wcast-align -Wchar-subscripts -Wformat-security -Wreturn-type -Wno-unused-parameter -Wno-sign-compare -Wno-switch -Wno-switch-enum -Wundef -Wmissing-noreturn -Winit-self
++*-g++*:QMAKE_CXXFLAGS += -Wall -Wreturn-type -fno-strict-aliasing -Wcast-align -Wchar-subscripts -Wformat-security -Wreturn-type -Wno-unused-parameter -Wno-sign-compare -Wno-switch -Wno-switch-enum -Wundef -Wmissing-noreturn -Winit-self -Wno-expansion-to-defined
+ 
+ # Enable GNU compiler extensions to the ARM compiler for all Qt ports using RVCT
+ symbian|*-armcc {
+diff --git a/src/3rdparty/webkit/Source/WebKit.pri b/src/3rdparty/webkit/Source/WebKit.pri
+index 01f88a48..17050950 100644
+--- a/src/3rdparty/webkit/Source/WebKit.pri
++++ b/src/3rdparty/webkit/Source/WebKit.pri
+@@ -98,7 +98,7 @@ win32-g++* {
+ }
+ 
+ CONFIG -= warn_on
+-*-g++*:QMAKE_CXXFLAGS += -Wall -Wextra -Wreturn-type -fno-strict-aliasing -Wcast-align -Wchar-subscripts -Wformat-security -Wreturn-type -Wno-unused-parameter -Wno-sign-compare -Wno-switch -Wno-switch-enum -Wundef -Wmissing-noreturn -Winit-self
++*-g++*:QMAKE_CXXFLAGS += -Wall -Wextra -Wreturn-type -fno-strict-aliasing -Wcast-align -Wchar-subscripts -Wformat-security -Wreturn-type -Wno-unused-parameter -Wno-sign-compare -Wno-switch -Wno-switch-enum -Wundef -Wmissing-noreturn -Winit-self -Wno-expansion-to-defined
+ 
+ # Treat warnings as errors on x86/Linux/GCC
+ linux-g++* {
+-- 
+2.19.1
+

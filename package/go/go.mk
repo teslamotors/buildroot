@@ -48,13 +48,14 @@ HOST_GO_TARGET_ENV = \
 	GOARCH=$(GO_GOARCH) \
 	GOCACHE="$(HOST_GO_TARGET_CACHE)" \
 	GOROOT="$(HOST_GO_ROOT)" \
+	CGO_ENABLED=$(HOST_GO_CGO_ENABLED) \
 	CC="$(TARGET_CC)" \
 	CXX="$(TARGET_CXX)" \
 	GOTOOLDIR="$(HOST_GO_TOOLDIR)"
 
 # The go compiler's cgo support uses threads.  If BR2_TOOLCHAIN_HAS_THREADS is
 # set, build in cgo support for any go programs that may need it.  Note that
-# any target package needing cgo support must include
+# any target or host package needing cgo support must include
 # 'depends on BR2_TOOLCHAIN_HAS_THREADS' in its config file.
 ifeq ($(BR2_TOOLCHAIN_HAS_THREADS),y)
 HOST_GO_CGO_ENABLED = 1
@@ -62,7 +63,6 @@ else
 HOST_GO_CGO_ENABLED = 0
 endif
 
-# The go build system is not compatible with ccache, so use
 # HOSTCC_NOCCACHE.  See https://github.com/golang/go/issues/11685.
 HOST_GO_MAKE_ENV = \
 	GO111MODULE=off \
@@ -70,6 +70,7 @@ HOST_GO_MAKE_ENV = \
 	GOROOT_BOOTSTRAP=$(HOST_GO_BOOTSTRAP_ROOT) \
 	GOROOT_FINAL=$(HOST_GO_ROOT) \
 	GOROOT="$(@D)" \
+	CGO_ENABLED=$(HOST_GO_CGO_ENABLED) \
 	GOBIN="$(@D)/bin" \
 	GOARCH=$(GO_GOARCH) \
 	$(if $(GO_GOARM),GOARM=$(GO_GOARM)) \

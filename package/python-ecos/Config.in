@@ -1,0 +1,9 @@
+config BR2_PACKAGE_PYTHON_ECOS
+       bool "python-ecos"
+       select BR2_PACKAGE_HOST_PYTHON_NUMPY
+       select BR2_PACKAGE_PYTHON_NUMPY
+       select BR2_PACKAGE_PYTHON_SCIPY
+       help
+         Python package for ECOS: Embedded Cone Solver.
+
+         http://github.com/embotech/ecos

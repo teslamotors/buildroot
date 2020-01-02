@@ -1,0 +1,4 @@
+# md5, sha256 from https://pypi.python.org/pypi/telnetlib3/json
+md5 6bdc2eebd19c2b9509c3de1dbdb3539a telnetlib3-1.0.0.tar.gz
+sha256 0b056d3b8bc593dd198e69a0e2f2905a85166aab3508b3ac80b910b7c2584f5d telnetlib3-1.0.0.tar.gz
+sha256 caaf4ac82c4363d4874a49b50af15797618f6aee5bf42218697cdcb41c391ca5 LICENSE.txt

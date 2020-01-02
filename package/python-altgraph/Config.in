@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PYTHON_ALTGRAPH
+	bool "python-altgraph"
+	help
+	  Python Package - Python graph (network) package
+
+	  https://pypi.org/project/altgraph/

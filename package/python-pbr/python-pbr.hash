@@ -1,0 +1,4 @@
+# md5, sha256 from https://pypi.python.org/pypi/pbr/json
+md5 dbc94417a8ff0432d6244501a7f1bd49 pbr-5.1.1.tar.gz
+sha256 f59d71442f9ece3dffc17bc36575768e1ee9967756e6b6535f0ee1f0054c3d68 pbr-5.1.1.tar.gz
+sha256 5df2a0d87d6c562f0ea11c688ac52532aa28d744cabc7994ff0537f64b3b3320 LICENSE

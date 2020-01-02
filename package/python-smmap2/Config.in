@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PYTHON_SMMAP2
+	bool "python-smmap2"
+	help
+	  Python Package - A pure Python implementation of a sliding window memory map manager
+
+	  https://pypi.org/project/smmap2/

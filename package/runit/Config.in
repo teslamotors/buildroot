@@ -1,0 +1,16 @@
+config BR2_PACKAGE_RUNIT
+       bool "runit"
+       select BR2_INIT_NONE
+       help
+         Runit - a UNIX init scheme with service supervision
+
+         http://smarden.org/runit/
+
+if BR2_PACKAGE_RUNIT
+config BR2_PACKAGE_RUNIT_INIT
+       bool "runit-init"
+       default "y"
+       help
+         Install a symlink from /sbin/init to /sbin/runit-init,
+         making runit-init the init for the system
+endif

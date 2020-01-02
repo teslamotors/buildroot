@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PYTHON_FUTURE
+	bool "python-future"
+	help
+	  Python Package -　Clean single-source support for Python 3 and 2
+
+	  https://pypi.org/project/future/

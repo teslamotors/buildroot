@@ -1,0 +1,32 @@
+From 36a90bb8f33ebd93746f1e82e294626d654840ed Mon Sep 17 00:00:00 2001
+Date: Sat, 6 Oct 2018 23:06:00 -0700
+Subject: [PATCH] kafel: Add default include directory
+
+Kafel added '#include' support, except you need to manually
+specify an include directory when calling the library code.
+Instead of making everyone do this, set up a safe default
+include path for us.
+---
+ src/context.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/context.c b/src/context.c
+index 427d7dd..27532a2 100644
+--- a/src/context.c
++++ b/src/context.c
+@@ -30,9 +30,12 @@
+ 
+ #include <linux/audit.h>
+ 
++#define DEFAULT_INCLUDE "/etc/kafel/include"
++
+ KAFEL_API kafel_ctxt_t kafel_ctxt_create(void) {
+   struct kafel_ctxt* ctxt = calloc(1, sizeof(*ctxt));
+   includes_ctxt_init(&ctxt->includes_ctxt);
++  includes_add_search_path(&ctxt->includes_ctxt, DEFAULT_INCLUDE);
+   TAILQ_INIT(&ctxt->policies);
+   TAILQ_INIT(&ctxt->constants);
+   ctxt->target_arch = KAFEL_DEFAULT_TARGET_ARCH;
+-- 
+2.17.1
+

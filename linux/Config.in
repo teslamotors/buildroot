@@ -130,6 +130,12 @@ config BR2_LINUX_KERNEL_VERSION
 	default BR2_LINUX_KERNEL_CUSTOM_REPO_VERSION \
 		if BR2_LINUX_KERNEL_CUSTOM_GIT || BR2_LINUX_KERNEL_CUSTOM_HG || BR2_LINUX_KERNEL_CUSTOM_SVN
 
+config BR2_LINUX_KERNEL_SHOW_EXTRA_KERNEL_VERSION
+	bool "Show extra version from localversion-tesla."
+	help
+	  Enable this option to append the first 10 digits of the
+	  kernel commit hash to the end of the kernel version.
+
 #
 # Patch selection
 #
@@ -441,6 +447,21 @@ config BR2_LINUX_KERNEL_NEEDS_HOST_LIBELF
 	  such as "Cannot generate ORC metadata for
 	  CONFIG_UNWINDER_ORC=y, please install libelf-dev,
 	  libelf-devel or elfutils-libelf-devel".
+
+config BR2_LINUX_KERNEL_EXT_INITRAMFS
+	bool "Initramfs different from rootfs"
+	help
+	  Select this option if you have an initramfs package
+	  that is different from the rootfs package built by
+	  the buildroot. This will be linked into the linux kernel.
+
+config BR2_LINUX_KERNEL_EXT_INITRAMFS_LOCATION
+	string "External initramfs location"
+	depends on BR2_LINUX_KERNEL_EXT_INITRAMFS
+
+config BR2_LINUX_KERNEL_EXT_INITRAMFS_PKG
+	string "External initramfs pkg name"
+	depends on BR2_LINUX_KERNEL_EXT_INITRAMFS
 
 # Linux extensions
 source "linux/Config.ext.in"

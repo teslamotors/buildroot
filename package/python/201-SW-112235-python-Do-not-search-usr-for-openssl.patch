@@ -1,0 +1,38 @@
+From ded90985a67330b89e014dbf60417b90caeafa12 Mon Sep 17 00:00:00 2001
+Date: Fri, 4 Aug 2017 10:56:07 -0700
+Subject: [PATCH] SW-112235: python: Do not search /usr for openssl
+
+The crypt module adds /usr/include to the include paths and
+/lib, /lib64, /usr/lib, and /usr/lib64 to the lib paths to find
+openssl.  This, of course, breaks host-python module compilate.
+
+Remove the build-machine paths.
+
+---
+ setup.py | 10 ----------
+ 1 file changed, 10 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index 04f65f9..c9ccb5e 100644
+--- a/setup.py
++++ b/setup.py
+@@ -500,16 +500,6 @@ class PyBuildExt(build_ext):
+         # be assumed that no additional -I,-L directives are needed.
+         inc_dirs = self.compiler.include_dirs[:]
+         lib_dirs = self.compiler.library_dirs[:]
+-        if not cross_compiling:
+-            for d in (
+-                '/usr/include',
+-                ):
+-                add_dir_to_list(inc_dirs, d)
+-            for d in (
+-                '/lib64', '/usr/lib64',
+-                '/lib', '/usr/lib',
+-                ):
+-                add_dir_to_list(lib_dirs, d)
+         exts = []
+         missing = []
+ 
+-- 
+2.10.2
+

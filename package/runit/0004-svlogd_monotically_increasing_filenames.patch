@@ -1,0 +1,249 @@
+SW-112367 Optionally enforce monotonically increasing timestamps from svlodg during log rotation
+
+If svlogd is launced with -M option, it will enforece monotonically increasing timestamps during
+log file rotation. These timestamps are used by svlogd to remove old log files. With this change,
+we ensure that log files created before system clock sync dont get removed immediately.
+
+
+--- runit-2.1.2/src/Makefile
++++ runit-2.1.2/src/Makefile
+@@ -439,12 +439,15 @@ taia_sub.o: compile tai.h taia.h taia_sub.c uint64.h
+ taia_uint.o: compile tai.h taia.h taia_uint.c uint64.h
+ 	./compile taia_uint.c
+ 
++taia_unpack.o: compile tai.h taia.h taia_unpack.c uint64.h
++	./compile taia_unpack.c
++
+ time.a: iopause.o makelib tai_now.o tai_pack.o tai_sub.o tai_unpack.o \
+ taia_add.o taia_approx.o taia_frac.o taia_less.o taia_now.o \
+-taia_pack.o taia_sub.o taia_uint.o
++taia_pack.o taia_sub.o taia_uint.o taia_unpack.o
+ 	./makelib time.a iopause.o tai_now.o tai_pack.o tai_sub.o \
+ 	tai_unpack.o taia_add.o taia_approx.o taia_frac.o taia_less.o \
+-	taia_now.o taia_pack.o taia_sub.o taia_uint.o
++	taia_now.o taia_pack.o taia_sub.o taia_uint.o taia_unpack.o
+ 
+ uint64.h: choose compile load tryulong64.c uint64.h1 uint64.h2
+ 	./choose clr tryulong64 uint64.h1 uint64.h2 > uint64.h
+--- runit-2.1.2/src/TARGETS
++++ runit-2.1.2/src/TARGETS
+@@ -123,6 +123,7 @@ taia_now.o
+ taia_pack.o
+ taia_sub.o
+ taia_uint.o
++taia_unpack.o
+ time.a
+ uint64.h
+ unix.a
+--- runit-2.1.2/src/fmt_ptime.c
++++ runit-2.1.2/src/fmt_ptime.c
+@@ -1,6 +1,7 @@
+ #include <time.h>
+ #include "fmt_ptime.h"
+ #include "fmt.h"
++#include "str.h"
+ 
+ unsigned int fmt_ptime2(char *s, struct taia *ta, char sep, unsigned int use_localtime) {
+   struct tm *t;
+@@ -66,3 +67,29 @@ unsigned int fmt_taia(char *s, struct taia *t) {
+   }
+   return(25);
+ }
++
++int rev_fmt_taia(struct taia *t, const char *s) {
++  static char pack[TAIA_PACK];
++  int i;
++  char c, d;
++
++  if ((s[0] != '@') || (str_len(s) < 25)) return(0);
++  for (i =0; i < 12; ++i) {
++    c =s[i *2 +1];
++    if ((c >= '0') && (c <= '9')) d =(c -'0') <<4;
++    else if ((c >= 'a') && (c <= 'f')) d =(10 +(c -'a')) <<4;
++    else return(0);
++
++    c =s[i *2 +2];
++    if ((c >= '0') && (c <= '9')) d |=(c -'0');
++    else if ((c >= 'a') && (c <= 'f')) d |=(10 +(c -'a'));
++    else return(0);
++
++    pack[i] =d;
++  }
++  for (; i < TAIA_PACK; ++i)
++    pack[i] = 0;
++
++  taia_unpack(pack, t);
++  return(1);
++}
+--- runit-2.1.2/src/fmt_ptime.h
++++ runit-2.1.2/src/fmt_ptime.h
+@@ -11,4 +11,5 @@ extern unsigned int fmt_ptime(char *, struct taia *);
+ extern unsigned int fmt_ptime_iso8601(char *, struct taia *);
+ extern unsigned int fmt_taia(char *, struct taia *);
+ 
++extern int rev_fmt_taia(struct taia*, const char*);
+ #endif
+--- runit-2.1.2/src/svlogd.c
++++ runit-2.1.2/src/svlogd.c
+@@ -33,7 +33,7 @@
+ #include "ndelay.h"
+ #include "iopause.h"
+ 
+-#define USAGE " [-ttv] [-r c] [-R abc] [-l len] [-b buflen] dir ..."
++#define USAGE " [-ttvLMV] [-r c] [-R abc] [-l len] [-b buflen] dir ..."
+ #define VERSION "$Id: 5e55a90e0a1b35ec47fed3021453c50675ea1117 $"
+ 
+ #define FATAL "svlogd: fatal: "
+@@ -47,6 +47,7 @@ unsigned int timestamp =0;
+ unsigned long linemax =1000;
+ unsigned long buflen =1024;
+ unsigned int lossy =0;
++unsigned int monotonicfnsave =0;
+ unsigned long linelen;
+ 
+ const char *replace ="";
+@@ -83,6 +84,7 @@ struct logdir {
+   unsigned long nmin;
+   unsigned long tmax;
+   struct taia trotate;
++  struct taia tlastsave;
+   stralloc processor;
+   int ppid;
+   char fnsave[FMT_PTIME];
+@@ -252,6 +254,10 @@ void rmoldest(struct logdir *ld) {
+ 
+ unsigned int rotate(struct logdir *ld) {
+   char tmp[FMT_ULONG +1];
++  struct taia tsave;
++  struct taia nanosecond;
++  taia_uint(&nanosecond, 0);
++  nanosecond.nano =1;
+ 
+   if (ld->fddir == -1) { ld->tmax =0; return(0); }
+   if (ld->ppid) while(! processorstop(ld));
+@@ -268,7 +274,10 @@ unsigned int rotate(struct logdir *ld) {
+   ld->fnsave[27] =0;
+   do {
+     taia_now(&now);
+-    fmt_taia(ld->fnsave, &now);
++    tsave =now;
++    if (monotonicfnsave && taia_less(&tsave, &ld->tlastsave))
++      taia_add(&tsave, &ld->tlastsave, &nanosecond);
++    fmt_taia(ld->fnsave, &tsave);
+     errno =0;
+   } while ((stat(ld->fnsave, &st) != -1) || (errno != error_noent));
+ 
+@@ -292,6 +301,7 @@ unsigned int rotate(struct logdir *ld) {
+     }
+     while (rename("current", ld->fnsave) == -1)
+       pause2("unable to rename current", ld->name);
++    ld->tlastsave =tsave;
+     while ((ld->fdcur =open_append("current")) == -1)
+       pause2("unable to create new current", ld->name);
+     coe(ld->fdcur);
+@@ -406,8 +416,16 @@ unsigned int ip4_scan(const char *s,char ip[4])
+ }
+ 
+ unsigned int logdir_open(struct logdir *ld, const char *fn) {
++  struct taia tsave;
++  struct taia nanosecond;
++  DIR *d;
++  direntry *f;
++  char latest[FMT_PTIME];
+   int i;
+ 
++  taia_uint(&nanosecond, 0);
++  nanosecond.nano =1;
++
+   if ((ld->fddir =open_read(fn)) == -1) {
+     warn2("unable to open log directory", (char*)fn);
+     return(0);
+@@ -524,17 +542,43 @@ unsigned int logdir_open(struct logdir *ld, const char *fn) {
+     }
+   }
+ 
++  /* get timestamp from last rotated filename */
++  taia_uint(&ld->tlastsave, 0);
++  if (monotonicfnsave) {
++    latest[0] =latest[27] =latest[FMT_PTIME-1] =0;
++    while (! (d =opendir(".")))
++      pause2("unable to open directory, want update latest log timestamp",
++            ld->name);
++    errno =0;
++    while ((f =readdir(d)))
++      if ((f->d_name[0] == '@') && (str_len(f->d_name) == 27))
++        if (str_diff(latest, f->d_name) < 0)
++          byte_copy(latest, 27, f->d_name);
++    if (errno) warn2("unable to read directory", ld->name);
++    closedir(d);
++
++    if (*latest == '@') {
++      struct taia tlastsave;
++      if (rev_fmt_taia(&tlastsave, latest))
++        ld->tlastsave = tlastsave;
++    }
++  }
++
+   /* open current */
+   if ((i =stat("current", &st)) != -1) {
+     if (st.st_size && ! (st.st_mode & S_IXUSR)) {
+       ld->fnsave[25] ='.'; ld->fnsave[26] ='u'; ld->fnsave[27] =0;
+       do {
+         taia_now(&now);
+-        fmt_taia(ld->fnsave, &now);
++        tsave =now;
++        if (monotonicfnsave && taia_less(&tsave, &ld->tlastsave))
++          taia_add(&tsave, &ld->tlastsave, &nanosecond);
++        fmt_taia(ld->fnsave, &tsave);
+         errno =0;
+       } while ((stat(ld->fnsave, &st) != -1) || (errno != error_noent));
+       while (rename("current", ld->fnsave) == -1)
+         pause2("unable to rename current", ld->name);
++      ld->tlastsave =tsave;
+       rmoldest(ld);
+       i =-1;
+     }
+@@ -672,7 +716,7 @@ int main(int argc, const char **argv) {
+ 
+   progname =*argv;
+ 
+-  while ((opt =getopt(argc, argv, "R:r:l:b:tvLV")) != opteof) {
++  while ((opt =getopt(argc, argv, "R:r:l:b:tvLMV")) != opteof) {
+     switch(opt) {
+     case 'R':
+       replace =optarg;
+@@ -699,6 +743,9 @@ int main(int argc, const char **argv) {
+     case 'L':
+       ++lossy;
+       break;
++    case 'M':
++      monotonicfnsave =1;
++      break;
+     case 'V': strerr_warn1(VERSION, 0);
+     case '?': usage();
+     }
+--- /dev/null
++++ runit-2.1.2/src/taia_unpack.c
+@@ -0,0 +1,22 @@
++/* Public domain. */
++
++#include "taia.h"
++
++void taia_unpack(const char *s, struct taia *t)
++{
++  unsigned long x;
++
++  tai_unpack(s,&t->sec);
++  s += 8;
++
++  x = (unsigned char) s[4];
++  x <<= 8; x += (unsigned char) s[5];
++  x <<= 8; x += (unsigned char) s[6];
++  x <<= 8; x += (unsigned char) s[7];
++  t->atto = x;
++  x = (unsigned char) s[0];
++  x <<= 8; x += (unsigned char) s[1];
++  x <<= 8; x += (unsigned char) s[2];
++  x <<= 8; x += (unsigned char) s[3];
++  t->nano = x;
++}

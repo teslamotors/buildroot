@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PYTHON_BITARRAY
+	bool "python-bitarray"
+	help
+	  Python Library - efficient arrays of booleans -- C extension
+
+	  https://pypi.org/project/bitarray/

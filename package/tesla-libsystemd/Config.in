@@ -1,0 +1,6 @@
+config BR2_PACKAGE_TESLA_LIBSYSTEMD
+	bool "tesla-libsystemd"
+	help
+          tesla-libsystemd only exists to satisfy some link
+          dependencies that the Intel AVB libraries have.  The code
+          doesn't actually get run.

@@ -1,0 +1,42 @@
+From 7b33f6b5628b2a09d1aae1f3a3ac11de5bb4cf9c Mon Sep 17 00:00:00 2001
+Date: Sat, 6 Oct 2018 16:39:33 -0700
+Subject: [PATCH] kafel: Prevent bison/flex race
+
+When doing highly parellel builds, there is a
+race condition due to incomplete dependencies being
+declared in the kafel Makefile. The Makefile does
+not guarantee that flex and bison have fully completed,
+thus causing several compiler errors.  This change
+correctly marks the full chain of bison/flex dependencies.
+---
+ src/Makefile | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/Makefile b/src/Makefile
+index 9357fc6..6c8bfa2 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -68,7 +68,7 @@ parser.h parser.c: parser.y
+ # DO NOT DELETE THIS LINE -- make depend depends on it.
+ 
+ kafel.o: parser.h context.h includes.h policy.h expression.h syscall.h
+-kafel.o: codegen.h common.h lexer.h
++kafel.o: codegen.h common.h lexer.h lexer.c parser.c
+ context.o: context.h includes.h policy.h expression.h syscall.h common.h
+ codegen.o: codegen.h context.h includes.h policy.h expression.h syscall.h
+ codegen.o: common.h range_rules.h
+@@ -78,9 +78,9 @@ policy.o: policy.h expression.h common.h
+ range_rules.o: range_rules.h policy.h expression.h common.h syscall.h
+ syscall.o: syscall.h common.h
+ lexer.o: parser.h context.h includes.h policy.h expression.h syscall.h
+-lexer.o: common.h
++lexer.o: common.h parser.c
+ parser.o: parser.h context.h includes.h policy.h expression.h syscall.h
+-parser.o: lexer.h
++parser.o: lexer.h parser.c lexer.c
+ syscalls/amd64_syscalls.o: syscall.h
+ syscalls/i386_syscalls.o: syscall.h
+ syscalls/aarch64_syscalls.o: syscall.h
+-- 
+2.17.1
+

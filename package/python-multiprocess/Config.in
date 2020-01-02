@@ -1,0 +1,5 @@
+config BR2_PACKAGE_PYTHON_MULTIPROCESS
+	bool "python-multiprocess"
+	help
+	   better multiprocessing and multithreading in python
+	   https://pypi.python.org/pypi/multiprocess

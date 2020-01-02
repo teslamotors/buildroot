@@ -1,0 +1,34 @@
+This reverts upstream fix for launchpad bug#969926:
+
+     * src/trace.c: update to ignore symlinks when tracing + cleanup extra stat()
+       (LP: #969926)
+
+     -- Bryan Fullerton <fehwalker@gmail.com>  Mon, 25 Mar 2013 10:09:18 +0100
+
+We can't ignore symlinks, for example: commonly used libraries will mostly be
+symlinks and ureadahead wasn't recording them in the pack file.
+
+Nevertheless right bug fix for LP #969926 seems to be calling ignore_path()
+with the de-referenced pathname. Anywas LP #969926 doesn't seem to be
+anything critical that we need to address:
+
+---
+
+--- ureadahead-0.100.0/src/trace.c.orig	2017-01-17 17:30:01.851861448 -0800
++++ ureadahead-0.100.0/src/trace.c	2017-01-17 17:32:15.088860285 -0800
+@@ -490,11 +490,12 @@ trace_add_path (const void *parent,
+ 		nih_hash_add (path_hash, &entry->entry);
+ 	}
+ 
+-	/* Make sure that we have an ordinary file
+-	 * This avoids us opening a fifo or socket or symlink.
++	/* Make sure that we have an ordinary file, or a symlink to an
++	 * ordinary file. This avoids us opening a fifo or socket.
+ 	 */
+ 	if ((lstat (pathname, &statbuf) < 0)
+-	    || (S_ISLNK (statbuf.st_mode))
++	    || (S_ISLNK (statbuf.st_mode)
++            && (stat (pathname, &statbuf) < 0))
+ 	    || (! S_ISREG (statbuf.st_mode)))
+ 		return 0;
+ 

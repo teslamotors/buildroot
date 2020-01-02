@@ -1,0 +1,21 @@
+#!/bin/sh
+
+[ -z "$1" ] && exit 255
+
+LOGDIR="/var/log/$1"
+
+mkdir -p -m 755 $LOGDIR
+chown -R log:log $LOGDIR
+
+if [ -f config ] ; then
+    cp config $LOGDIR
+else
+    cp /etc/log-config.default $LOGDIR/config
+fi
+
+# start each log file with the version info
+echo 0product-release: $(cat /etc/product-release) >>$LOGDIR/config
+
+chown log:log $LOGDIR/config
+
+exec chpst -ulog /sbin/svlogd -L -tttt -M $LOGDIR

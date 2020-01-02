@@ -1,0 +1,274 @@
+From 5ed96091cf5e97de6d08cc2c819da2b40d6075b1 Mon Sep 17 00:00:00 2001
+Date: Fri, 10 May 2019 11:44:14 -0700
+Subject: [PATCH] mmc-utils: Add support for vendor-specific commands
+
+Support vendor-specific EXT CSD reads and multi-block reads
+
+---
+ mmc.c      |  13 +++-
+ mmc.h      |   8 +++
+ mmc_cmds.c | 182 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ mmc_cmds.h |   2 +
+ 4 files changed, 204 insertions(+), 1 deletion(-)
+
+diff --git a/mmc.c b/mmc.c
+index 50c9c9e..9a81ca0 100644
+--- a/mmc.c
++++ b/mmc.c
+@@ -212,9 +212,20 @@ static struct Command commands[] = {
+ 	},
+ 	{ do_ffu, -2,
+ 	  "ffu", "<image name> <device>\n"
+-		"Run Field Firmware Update with <image name> on <device>.\n",
++		"Run Field Firmware Update with <image name> on <device>.",
+ 	  NULL
+ 	},
++	{ do_vendor_ext_csd, -5,
++	  "vendor extcsd", "<opcode1> <arg1> <opcode2> <arg2> <device>\n"
++		"Print vendor-specific extcsd data from <device>.",
++	  NULL
++	},
++	{ do_vendor_block_info, -5,
++	  "vendor blkinfo", "<opcode1> <arg1> <opcode2> <arg2> <device>\n"
++		"Print vendor-specific block information from <device>.",
++	  NULL
++	},
++
+ 	{ 0, 0, 0, 0 }
+ };
+ 
+diff --git a/mmc.h b/mmc.h
+index 285c1f1..ecafe58 100644
+--- a/mmc.h
++++ b/mmc.h
+@@ -35,6 +35,14 @@
+ #define MMC_CLEAR_WRITE_PROT	29    /* ac   [31:0] data addr   R1b */
+ #define MMC_SEND_WRITE_PROT_TYPE 31   /* ac   [31:0] data addr   R1  */
+ 
++/*
++ * Vendor-specific commands
++ */
++#define	MMC_MANUF_RSVD_0	60	/* CMD60: Reserved for manufacturer */
++#define	MMC_MANUF_RSVD_1	61	/* CMD61: Reserved for manufacturer */
++#define	MMC_MANUF_RSVD_2	62	/* CMD62: Reserved for manufacturer */
++#define	MMC_MANUF_RSVD_3	63	/* CMD63: Reserved for manufacturer */
++
+ /*
+  * EXT_CSD fields
+  */
+diff --git a/mmc_cmds.c b/mmc_cmds.c
+index 19a9da1..c4066f5 100644
+--- a/mmc_cmds.c
++++ b/mmc_cmds.c
+@@ -97,6 +97,81 @@ int write_extcsd_value(int fd, __u8 index, __u8 value)
+ 	return ret;
+ }
+ 
++/*
++ * Vendor-specific CMD8 and CMD18 sequences.
++ * e.g., CMD60(arg1) + CMD60(arg2) + SEND_EXT_CSD
++ * or CMD60(arg1) + CMD60(arg2) + MMC_READ_MULTIPLE_BLOCK
++ * will dump manufacturer-specific information different from the usual
++ * EXT CSD read and block read commands.
++ *
++ * @response must be able to accept @response_len bytes of data
++ * rounded up to nearest 512-byte chunk
++ *
++ * Note that this command sequence must be done atomically.
++ */
++int vendor_cmd_multi_read(int fd, __u8 *response, size_t response_len,
++	__u32 opcode1, __u32 arg1,
++	__u32 opcode2, __u32 arg2,
++	__u32 opcode3, __u32 arg3)
++{
++	struct mmc_ioc_cmd *ioc;
++	struct mmc_ioc_multi_cmd *mioc;
++	int err;
++
++#ifndef MMC_IOC_MULTI_CMD
++	fprintf(stderr, "mmc-utils has been compiled without MMC_IOC_MULTI_CMD"
++		" support, needed by this operation.\n");
++	exit(1);
++#endif
++
++	/* Sanity check */
++	if (opcode1 < MMC_MANUF_RSVD_0 || opcode2 < MMC_MANUF_RSVD_0 ||
++		opcode1 > MMC_MANUF_RSVD_3 || opcode2 > MMC_MANUF_RSVD_3) {
++		fprintf(stderr, "Invalid vendor-specific command given\n");
++		return -EINVAL;
++	}
++
++	/* prepare arguments for MMC_IOC_MULTI_CMD ioctl */
++	mioc = (struct mmc_ioc_multi_cmd *)
++		malloc(sizeof (struct mmc_ioc_multi_cmd) +
++		       3 * sizeof (struct mmc_ioc_cmd));
++	if (!mioc) {
++		return -ENOMEM;
++	}
++
++	mioc->num_of_cmds = 3;
++
++	ioc = &mioc->cmds[0];
++	memset(ioc, 0, sizeof(struct mmc_ioc_cmd));
++	ioc->opcode = opcode1;
++	ioc->arg = arg1;
++	ioc->flags = MMC_RSP_R1B;
++
++	ioc = &mioc->cmds[1];
++	memset(ioc, 0, sizeof(struct mmc_ioc_cmd));
++	ioc->opcode = opcode2;
++	ioc->arg = arg2;
++	ioc->flags = MMC_RSP_R1B;
++
++	ioc = &mioc->cmds[2];
++	memset(ioc, 0, sizeof(struct mmc_ioc_cmd));
++	memset(response, 0, sizeof(__u8) * 512);
++	ioc->opcode = opcode3;
++	ioc->arg = arg3;
++	ioc->flags = MMC_RSP_R1 | MMC_RSP_SPI_S1 | MMC_CMD_ADTC;
++	ioc->blksz = 512;
++	ioc->blocks = ((response_len-1) >> 9) + 1;
++	mmc_ioc_cmd_set_data((*ioc), response);
++
++	/* Do it */
++	err = ioctl(fd, MMC_IOC_MULTI_CMD, mioc);
++	if (err)
++		perror("ioctl");
++
++	free(mioc);
++	return err;
++}
++
+ int send_status(int fd, __u32 *response)
+ {
+ 	int ret = 0;
+@@ -1809,6 +1884,113 @@ int do_sanitize(int nargs, char **argv)
+ 
+ }
+ 
++#define VENDOR_EXT_CSD_NUM_WORDS	128
++int do_vendor_ext_csd(int nargs, char **argv)
++{
++	__u32 ext_csd[VENDOR_EXT_CSD_NUM_WORDS];
++	int fd, ret;
++	__u32 opcode1, opcode2, arg1, arg2;
++	char *device;
++	int j;
++
++	if (nargs != 6) {
++		fprintf(stderr, "Usage: mmc vendor extcsd <opcode1> <arg1> <opcode2> <arg2> </path/to/mmcblkX>\n");
++		exit(1);
++	}
++
++	opcode1 = strtol(argv[1], NULL, 10);
++	arg1 = strtol(argv[2], NULL, 16);
++	opcode2 = strtol(argv[3], NULL, 10);
++	arg2 = strtol(argv[4], NULL, 16);
++	device = argv[5];
++
++	fd = open(device, O_RDWR);
++	if (fd < 0) {
++		perror("open");
++		exit(1);
++	}
++
++	ret = vendor_cmd_multi_read(fd, (__u8 *) ext_csd, 512,
++				      opcode1, arg1, opcode2, arg2,
++				      MMC_SEND_EXT_CSD, 0);
++
++	if (ret) {
++		fprintf(stderr, "Could not read vendor-specific EXT_CSD "
++				"from %s\n", device);
++		exit(1);
++	}
++
++	printf("=============================================\n");
++	printf("  Vendor-specific extended CSD\n");
++	printf("=============================================\n\n");
++
++	for (j = 0; j < VENDOR_EXT_CSD_NUM_WORDS; j++)
++		printf("Vendor Specific Word Fields"
++			" [VENDOR_SPECIFIC_WORD[%d]]: 0x%08x\n",
++			j, ext_csd[j]);
++
++	return ret;
++}
++
++#define VENDOR_BLOCK_INFO_SIZE_KB	16
++#define VENDOR_NUM_BLOCKS		(VENDOR_BLOCK_INFO_SIZE_KB << 9)
++int do_vendor_block_info(int nargs, char **argv)
++{
++	__u16 *blkinfo;
++	int fd, ret;
++	__u32 opcode1, opcode2, arg1, arg2;
++	char *device;
++	int j;
++
++	if (nargs != 6) {
++		fprintf(stderr, "Usage: mmc vendor blkinfo <opcode1> <arg1> <opcode2> <arg2> </path/to/mmcblkX>\n");
++		exit(1);
++	}
++
++	opcode1 = strtol(argv[1], NULL, 10);
++	arg1 = strtol(argv[2], NULL, 16);
++	opcode2 = strtol(argv[3], NULL, 10);
++	arg2 = strtol(argv[4], NULL, 16);
++	device = argv[5];
++
++	fd = open(device, O_RDWR);
++	if (fd < 0) {
++		perror("open");
++		exit(1);
++	}
++
++	blkinfo = (__u16 *) calloc(512*VENDOR_BLOCK_INFO_SIZE_KB, 2);
++
++	ret = vendor_cmd_multi_read(fd, (__u8 *) blkinfo,
++				    VENDOR_BLOCK_INFO_SIZE_KB<<10,
++				    opcode1, arg1, opcode2, arg2,
++				    MMC_READ_MULTIPLE_BLOCK, 0);
++
++	if (ret) {
++		fprintf(stderr, "Could not read vendor-specific block info "
++				"from %s\n", device);
++		exit(1);
++	}
++
++	printf("=============================================\n");
++	printf("  Vendor-specific block information\n");
++	printf("=============================================\n\n");
++
++	/* Assume 16 bits of data for each block */
++	for (j = 0; j < VENDOR_NUM_BLOCKS; j++) {
++		if ((j % 10) == 0)
++			printf("\n%5d: ", j);
++		printf("%04x ", blkinfo[j]);
++	}
++
++	printf("\n");
++
++	free(blkinfo);
++
++	return ret;
++}
++
++
+ #define DO_IO(func, fd, buf, nbyte)					\
+ 	({												\
+ 		ssize_t ret = 0, r;							\
+diff --git a/mmc_cmds.h b/mmc_cmds.h
+index 9d3246c..78350be 100644
+--- a/mmc_cmds.h
++++ b/mmc_cmds.h
+@@ -31,6 +31,8 @@ int do_write_bkops_en(int nargs, char **argv);
+ int do_hwreset_en(int nargs, char **argv);
+ int do_hwreset_dis(int nargs, char **argv);
+ int do_sanitize(int nargs, char **argv);
++int do_vendor_ext_csd(int nargs, char **argv);
++int do_vendor_block_info(int nargs, char **argv);
+ int do_status_get(int nargs, char **argv);
+ int do_create_gp_partition(int nargs, char **argv);
+ int do_enh_area_set(int nargs, char **argv);
+-- 
+2.17.2
+

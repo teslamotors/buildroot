@@ -1,0 +1,175 @@
+SW-97860 Add patch to svlogd to make an option available to print timestamps in localtime
+
+
+--- runit-2.1.2/doc/svlogd.8.html
++++ runit-2.1.2/doc/svlogd.8.html
+@@ -11,7 +11,7 @@
+ <h2><a name='sect0'>Name</a></h2>
+ svlogd - runit&rsquo;s service logging daemon 
+ <h2><a name='sect1'>Synopsis</a></h2>
+-<b>svlogd</b> [-tttv] [-r <i>c]</i> [-R
++<b>svlogd</b> [-ttttv] [-r <i>c]</i> [-R
+ <i>xyz]</i> [-l <i>len]</i> [-b <i>buflen]</i> [-L] <i>logs</i> 
+ <h2><a name='sect2'>Description</a></h2>
+ <i>logs</i> consists of one or more arguments,
+@@ -195,6 +195,11 @@ to standard error. </dd>
+ readable, sortable UTC timestamp of the form YYYY-MM-DDTHH:MM:SS.xxxxx when
+ writing to <i>log</i> or to standard error. </dd>
+ 
++<dt><b>-tttt</b> </dt>
++<dd>timestamp. Prefix each selected line with a human
++readable, sortable timestamp in local time of the form YYYY-MM-DD_HH:MM:SS.xxxxx+/-OHOM when
++writing to <i>log</i> or to standard error. OH and OM are offset east of UTC in hours, minutes.</dd>
++
+ <dt><b>-r <i>c</b> </i></dt>
+ <dd>replace. <i>c</i> must be a single character.
+ Replace non-printable characters in log messages with <i>c</i>. Characters are replaced
+--- runit-2.1.2/man/svlogd.8
++++ runit-2.1.2/man/svlogd.8
+@@ -3,7 +3,7 @@
+ svlogd \- runit's service logging daemon
+ .SH SYNOPSIS
+ .B svlogd
+-[\-tttv] [\-r
++[\-ttttv] [\-r
+ .I c\fR] [\-R
+ .I xyz\fR] [\-l
+ .I len\fR] [\-b
+@@ -377,6 +377,13 @@ the form YYYY-MM-DDTHH:MM:SS.xxxxx when writing to
+ .I log
+ or to standard error.
+ .TP
++.B \-tttt
++timestamp.
++Prefix each selected line with a human readable, sortable timestamp in local
++time of the form YYYY-MM-DD_HH:MM:SS.xxxxx+/-OHOM when writing to
++.I log
++or to standard error. OH and OM are offset east of UTC in hours, minutes.
++.TP
+ .B \-r \fIc
+ replace.
+ .I c
+--- runit-2.1.2/src/fmt_ptime.c
++++ runit-2.1.2/src/fmt_ptime.c
+@@ -2,13 +2,21 @@
+ #include "fmt_ptime.h"
+ #include "fmt.h"
+ 
+-unsigned int fmt_ptime2(char *s, struct taia *ta, char sep) {
++unsigned int fmt_ptime2(char *s, struct taia *ta, char sep, unsigned int use_localtime) {
+   struct tm *t;
+   time_t u;
++  unsigned int len = 25; // Length of string for GMT
++  int offset_hr, offset_min;
+ 
+   if (ta->sec.x < 4611686018427387914ULL) return(0); /* impossible? */
+   u =ta->sec.x -4611686018427387914ULL;
+-  if (! (t =gmtime((time_t*)&u))) return(0);
++  if (! use_localtime) {
++    if (! (t =gmtime((time_t*)&u))) return(0);
++  }
++  else {
++    if (! (t =localtime((time_t*)&u))) return(0);
++  }
++
+   fmt_ulong(s, 1900 +t->tm_year);
+   s[4] ='-'; fmt_uint0(&s[5], t->tm_mon +1, 2);
+   s[7] ='-'; fmt_uint0(&s[8], t->tm_mday, 2);
+@@ -16,15 +24,33 @@ unsigned int fmt_ptime2(char *s, struct taia *ta, char sep) {
+   s[13] =':'; fmt_uint0(&s[14], t->tm_min, 2);
+   s[16] =':'; fmt_uint0(&s[17], t->tm_sec, 2);
+   s[19] ='.'; fmt_uint0(&s[20], ta->nano, 9);
+-  return(25);
++  if (use_localtime) {
++    offset_hr = (t->tm_gmtoff / 3600);
++    offset_min = ((t->tm_gmtoff - offset_hr * 3600) / 60);
++    if (t->tm_gmtoff < 0) {
++      s[25] = '-';
++      offset_hr = -offset_hr;
++    }
++    else {
++      s[25] = '+';
++    }
++    fmt_uint0(&s[26], offset_hr, 2);
++    fmt_uint0(&s[28], offset_min, 2);
++    len = 30;
++  }
++  return(len);
+ }
+ 
+ unsigned int fmt_ptime(char *s, struct taia *ta) {
+-  return(fmt_ptime2(s, ta, '_'));
++  return(fmt_ptime2(s, ta, '_', 0));
+ }
+ 
+ unsigned int fmt_ptime_iso8601(char *s, struct taia *ta) {
+-  return(fmt_ptime2(s, ta, 'T'));
++  return(fmt_ptime2(s, ta, 'T', 0));
++}
++
++unsigned int fmt_ptime_localtime(char *s, struct taia *ta) {
++  return(fmt_ptime2(s, ta, '_', 1));
+ }
+ 
+ unsigned int fmt_taia(char *s, struct taia *t) {
+--- runit-2.1.2/src/fmt_ptime.h
++++ runit-2.1.2/src/fmt_ptime.h
+@@ -1,7 +1,7 @@
+ #ifndef FMT_PTIME_H
+ #define FMT_PTIME_H
+ 
+-#define FMT_PTIME 30
++#define FMT_PTIME 35
+ 
+ #include <time.h>
+ #include <sys/time.h>
+@@ -10,6 +10,7 @@
+ extern unsigned int fmt_ptime(char *, struct taia *);
+ extern unsigned int fmt_ptime_iso8601(char *, struct taia *);
+ extern unsigned int fmt_taia(char *, struct taia *);
++extern unsigned int fmt_ptime_localtime(char *, struct taia *);
+ 
+ extern int rev_fmt_taia(struct taia*, const char*);
+ #endif
+--- runit-2.1.2/src/svlogd.c
++++ runit-2.1.2/src/svlogd.c
+@@ -33,8 +33,8 @@
+ #include "ndelay.h"
+ #include "iopause.h"
+ 
+-#define USAGE " [-ttvLMV] [-r c] [-R abc] [-l len] [-b buflen] dir ..."
+-#define VERSION "$Id: 5e55a90e0a1b35ec47fed3021453c50675ea1117 $"
++#define USAGE " [-ttttvLMV] [-r c] [-R abc] [-l len] [-b buflen] dir ..."
++#define VERSION "$Id: 5e55a90e0a1b35ec47fed3021453c50675ea1117+tesla_mods $"
+ 
+ #define FATAL "svlogd: fatal: "
+ #define WARNING "svlogd: warning: "
+@@ -686,7 +685,7 @@ int main(int argc, const char **argv) {
+       if (buflen == 0) buflen =1024;
+       break;
+     case 't':
+-      if (++timestamp > 3) timestamp =3;
++      if (++timestamp > 4) timestamp =4;
+       break;
+     case 'v':
+       ++verbose;
+@@ -742,13 +741,15 @@ int main(int argc, const char **argv) {
+         break;
+       }
+       if (! linelen && timestamp) {
++        unsigned int ts_len;
+         taia_now(&now);
+         switch (timestamp) {
+-        case 1: fmt_taia(stamp, &now); break;
+-        case 2: fmt_ptime(stamp, &now); break;
+-        case 3: fmt_ptime_iso8601(stamp, &now); break;
++        case 1: ts_len = fmt_taia(stamp, &now); break;
++        case 2: ts_len = fmt_ptime(stamp, &now); break;
++        case 3: ts_len = fmt_ptime_iso8601(stamp, &now); break;
++        case 4: ts_len = fmt_ptime_localtime(stamp, &now); break;
+         }
+-        stamp[25] =' '; stamp[26] =0;
++        stamp[ts_len++] =' '; stamp[ts_len++] =0;
+       }
+       if (ch == '\n') break;
+       if (repl) {

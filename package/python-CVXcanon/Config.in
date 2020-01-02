@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PYTHON_CVXCANON
+	bool "python-CVXcanon"
+        select BR2_PACKAGE_PYTHON_SCIPY
+	help
+	  A low-level library to perform the matrix building step in cvxpy, a convex optimization modeling software.
+	  https://pypi.python.org/pypi/CVXcanon/0.1.1

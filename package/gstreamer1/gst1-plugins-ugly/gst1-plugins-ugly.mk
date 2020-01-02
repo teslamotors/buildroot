@@ -15,7 +15,6 @@ GST1_PLUGINS_UGLY_CONF_OPTS = --disable-examples --disable-valgrind
 
 GST1_PLUGINS_UGLY_CONF_OPTS += \
 	--disable-a52dec \
-	--disable-amrnb \
 	--disable-amrwb \
 	--disable-cdio \
 	--disable-sidplay \
@@ -26,6 +25,13 @@ GST1_PLUGINS_UGLY_DEPENDENCIES = gstreamer1 gst1-plugins-base
 ifeq ($(BR2_PACKAGE_ORC),y)
 GST1_PLUGINS_UGLY_CONF_OPTS += --enable-orc
 GST1_PLUGINS_UGLY_DEPENDENCIES += orc
+endif
+
+ifeq ($(BR2_PACKAGE_GST1_PLUGINS_UGLY_PLUGIN_AMRNB),y)
+GST1_PLUGINS_UGLY_CONF_OPTS += --enable-amrnb
+GST1_PLUGINS_UGLY_DEPENDENCIES += opencore-amr
+else
+GST1_PLUGINS_UGLY_CONF_OPTS += --disable-amrnb
 endif
 
 ifeq ($(BR2_PACKAGE_GST1_PLUGINS_UGLY_PLUGIN_ASFDEMUX),y)

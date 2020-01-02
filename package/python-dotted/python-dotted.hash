@@ -1,0 +1,4 @@
+# md5, sha256 from https://pypi.python.org/pypi/dotted/json
+md5 505f95a2c1a73b88b9ef823b3cce88c1 dotted-0.1.8.tar.gz
+sha256 e0334688d854461b3b065e54b80781cd7cd2545e0692756c5244be0aeec41bdf dotted-0.1.8.tar.gz
+sha256 a1acfa29061ec1d516f36d990338f35e4d3f4dcd7d8d6d39a55a0b8df631730a LICENSE

@@ -1,5 +1,6 @@
 menuconfig BR2_PACKAGE_GST_PLUGINS_UGLY
 	bool "gst-plugins-ugly"
+	select BR2_PACKAGE_OPENCORE_AMR
 	select BR2_PACKAGE_GST_PLUGINS_BASE
 	help
 	  A set of well-supported plug-ins for GStreamer, but might pose

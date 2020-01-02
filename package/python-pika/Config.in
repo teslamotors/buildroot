@@ -1,0 +1,8 @@
+config BR2_PACKAGE_PYTHON_PIKA
+	bool "python-pika"
+	depends on BR2_PACKAGE_PYTHON_TORNADO
+	depends on BR2_PACKAGE_PYTHON_TWISTED
+	help
+	  Python Package - Pika Python AMQP Client Library
+
+	  https://pypi.org/project/pika/

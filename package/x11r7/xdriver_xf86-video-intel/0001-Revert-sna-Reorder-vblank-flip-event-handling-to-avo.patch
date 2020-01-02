@@ -1,0 +1,159 @@
+From c52d5875761d801fea72460827d9291476ac8824 Mon Sep 17 00:00:00 2001
+Date: Fri, 16 Aug 2019 13:12:06 -0700
+Subject: [PATCH] Revert "sna: Reorder vblank/flip event handling to avoid
+ TearFree recursion"
+
+This reverts commit 12db28ab3d509dfada4f0514858b311f48ed8cc4.
+---
+ src/sna/sna.h         |  1 +
+ src/sna/sna_display.c | 37 +++++++++++++++++++++++++++----------
+ src/sna/sna_present.c |  6 ++++++
+ 3 files changed, 34 insertions(+), 10 deletions(-)
+
+diff --git a/src/sna/sna.h b/src/sna/sna.h
+index cf2a7a51..85de2dd6 100644
+--- a/src/sna/sna.h
++++ b/src/sna/sna.h
+@@ -310,6 +310,7 @@ struct sna {
+ 		unsigned flip_active;
+ 		unsigned hidden;
+ 		bool shadow_enabled;
++		bool shadow_wait;
+ 		bool dirty;
+ 
+ 		struct drm_event_vblank *shadow_events;
+diff --git a/src/sna/sna_display.c b/src/sna/sna_display.c
+index d6210cc7..b39db3d1 100644
+--- a/src/sna/sna_display.c
++++ b/src/sna/sna_display.c
+@@ -1711,8 +1711,8 @@ static bool wait_for_shadow(struct sna *sna,
+ 	int flip_active;
+ 	bool ret = true;
+ 
+-	DBG(("%s: enabled? %d flags=%x, flips=%d, pixmap=%ld [front?=%d], handle=%d, shadow=%d\n",
+-	     __FUNCTION__, sna->mode.shadow_enabled,
++	DBG(("%s: enabled? %d waiting? %d, flags=%x, flips=%d, pixmap=%ld [front?=%d], handle=%d, shadow=%d\n",
++	     __FUNCTION__, sna->mode.shadow_enabled, sna->mode.shadow_wait,
+ 	     flags, sna->mode.flip_active,
+ 	     pixmap->drawable.serialNumber, pixmap == sna->front,
+ 	     priv->gpu_bo->handle, sna->mode.shadow->handle));
+@@ -1724,6 +1724,7 @@ static bool wait_for_shadow(struct sna *sna,
+ 		goto done;
+ 
+ 	assert(sna->mode.shadow_damage);
++	assert(!sna->mode.shadow_wait);
+ 
+ 	if ((flags & MOVE_WRITE) == 0) {
+ 		if ((flags & __MOVE_SCANOUT) == 0) {
+@@ -1765,6 +1766,7 @@ static bool wait_for_shadow(struct sna *sna,
+ 	}
+ 
+ 	assert(sna->mode.shadow_active);
++	sna->mode.shadow_wait = true;
+ 
+ 	flip_active = sna->mode.flip_active;
+ 	if (flip_active) {
+@@ -1774,6 +1776,21 @@ static bool wait_for_shadow(struct sna *sna,
+ 		DBG(("%s: %d flips still pending, shadow flip_active=%d\n",
+ 		     __FUNCTION__, sna->mode.flip_active, flip_active));
+ 	}
++	if (flip_active) {
++		/* raw cmd to avoid setting wedged in the middle of an op */
++		drmIoctl(sna->kgem.fd, DRM_IOCTL_I915_GEM_THROTTLE, 0);
++		sna->kgem.need_throttle = false;
++
++		while (flip_active && sna_mode_wakeup(sna)) {
++			struct sna_crtc *crtc;
++
++			flip_active = sna->mode.flip_active;
++			list_for_each_entry(crtc, &sna->mode.shadow_crtc, shadow_link)
++				flip_active -= crtc->flip_pending;
++		}
++		DBG(("%s: after waiting %d flips outstanding, flip_active=%d\n",
++		     __FUNCTION__, sna->mode.flip_active, flip_active));
++	}
+ 
+ 	bo = sna->mode.shadow;
+ 	if (flip_active) {
+@@ -1796,6 +1813,8 @@ static bool wait_for_shadow(struct sna *sna,
+ 		sna->mode.shadow_region.extents.y2 = pixmap->drawable.height;
+ 		sna->mode.shadow_region.data = NULL;
+ 	}
++	assert(sna->mode.shadow_wait);
++	sna->mode.shadow_wait = false;
+ 
+ 	if (bo->refcnt > 1) {
+ 		bo = kgem_create_2d(&sna->kgem,
+@@ -1903,6 +1922,9 @@ done:
+ 	priv->move_to_gpu_data = NULL;
+ 	priv->move_to_gpu = NULL;
+ 
++	assert(!sna->mode.shadow_wait);
++	flush_events(sna);
++
+ 	assert(sna->mode.shadow->active_scanout);
+ 	return ret;
+ }
+@@ -9714,7 +9736,6 @@ fixup_flip:
+ 
+ int sna_mode_wakeup(struct sna *sna)
+ {
+-	bool defer_vblanks = sna->mode.flip_active && sna->mode.shadow_enabled;
+ 	char buffer[1024];
+ 	int len, i;
+ 	int ret = 0;
+@@ -9725,14 +9746,14 @@ again:
+ 	 * event from drm.
+ 	 */
+ 	if (!event_pending(sna->kgem.fd))
+-		goto done;
++		return ret;
+ 
+ 	/* The DRM read semantics guarantees that we always get only
+ 	 * complete events.
+ 	 */
+ 	len = read(sna->kgem.fd, buffer, sizeof (buffer));
+ 	if (len < (int)sizeof(struct drm_event))
+-		goto done;
++		return ret;
+ 
+ 	/* Note that we cannot rely on the passed in struct sna matching
+ 	 * the struct sna used for the vblank event (in case it was submitted
+@@ -9747,7 +9768,7 @@ again:
+ 		struct drm_event *e = (struct drm_event *)&buffer[i];
+ 		switch (e->type) {
+ 		case DRM_EVENT_VBLANK:
+-			if (defer_vblanks)
++			if (sna->mode.shadow_wait)
+ 				defer_event(sna, e);
+ 			else if (((uintptr_t)((struct drm_event_vblank *)e)->user_data) & 2)
+ 				sna_present_vblank_handler((struct drm_event_vblank *)e);
+@@ -9818,8 +9839,4 @@ again:
+ 	}
+ 
+ 	goto again;
+-
+-done:
+-	flush_events(sna);
+-	return ret;
+ }
+diff --git a/src/sna/sna_present.c b/src/sna/sna_present.c
+index 6bb7b927..327f1b85 100644
+--- a/src/sna/sna_present.c
++++ b/src/sna/sna_present.c
+@@ -473,6 +473,12 @@ sna_present_vblank_handler(struct drm_event_vblank *event)
+ 
+ 	msc = sna_crtc_record_event(info->crtc, event);
+ 
++	if (info->sna->mode.shadow_wait) {
++		DBG(("%s: recursed from TearFree\n", __FUNCTION__));
++		if (TimerSet(NULL, 0, 1, sna_fake_vblank_handler, info))
++			return;
++	}
++
+ 	vblank_complete(info, ust64(event->tv_sec, event->tv_usec), msc);
+ }
+ 
+-- 
+2.22.0
+

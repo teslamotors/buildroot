@@ -1,0 +1,10 @@
+config BR2_PACKAGE_LMMS
+	bool "lmms"
+	select BR2_PACKAGE_FFTW
+	select BR2_PACKAGE_FFTW_SINGLE
+	select BR2_PACKAGE_FLUIDSYNTH
+	select BR2_PACKAGE_LAME
+	select BR2_PACKAGE_LIBSNDFILE
+	select BR2_PACKAGE_QT
+	help
+	  lmms is an open source synthesizer

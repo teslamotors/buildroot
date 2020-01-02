@@ -1,0 +1,189 @@
+From 8ed19de5a755bcde1a346510419e776e4b3c976a Mon Sep 17 00:00:00 2001
+Date: Mon, 10 Jun 2019 18:20:11 -0700
+Subject: [PATCH] SW-148735: busybox: libbb: mimic yank-last-arg function from
+ bash
+
+Added a new feature to busybox command line editor,
+that can yank the last argument from the history.
+
+Brief description from bash manual:
+
+    yank-last-arg (M-. or M-_)
+    Insert last argument to the previous command
+    (the last word of the previous history entry).
+    Successive calls to yank-last-arg move back through the history list,
+    inserting the last word (or the word specified by the argument to
+    the first call) of each line in turn.
+
+    Reference:
+    https://www.gnu.org/software/bash/manual/bash.html#index-yank_002dlast_002darg-_0028M_002d_002e-or-M_002d_005f_0029
+
+This feature can be enabled by configuring FEATURE_EDITING_YANK_LAST_ARG.
+Disabled by default.
+---
+ include/libbb.h  |  2 ++
+ libbb/Config.src |  8 ++++++
+ libbb/lineedit.c | 74 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ libbb/read_key.c |  1 +
+ 4 files changed, 85 insertions(+)
+
+diff --git a/include/libbb.h b/include/libbb.h
+index d4ba031..262bb46 100644
+--- a/include/libbb.h
++++ b/include/libbb.h
+@@ -1654,6 +1654,7 @@ enum {
+ 	KEYCODE_PAGEDOWN  = -11,
+ 	KEYCODE_BACKSPACE = -12, /* Used only if Alt/Ctrl/Shifted */
+ 	KEYCODE_D         = -13, /* Used only if Alted */
++	KEYCODE_DOT       = -14, /* Used only if Alted */
+ #if 0
+ 	KEYCODE_FUN1      = ,
+ 	KEYCODE_FUN2      = ,
+@@ -1682,6 +1683,7 @@ enum {
+ 	KEYCODE_ALT_LEFT      = KEYCODE_LEFT  & ~0x20,
+ 	KEYCODE_ALT_BACKSPACE = KEYCODE_BACKSPACE & ~0x20,
+ 	KEYCODE_ALT_D         = KEYCODE_D     & ~0x20,
++	KEYCODE_ALT_DOT       = KEYCODE_DOT   & ~0x20,
+ 
+ 	KEYCODE_CURSOR_POS = -0x100, /* 0xfff..fff00 */
+ 	/* How long is the longest ESC sequence we know?
+diff --git a/libbb/Config.src b/libbb/Config.src
+index 312aa18..5146137 100644
+--- a/libbb/Config.src
++++ b/libbb/Config.src
+@@ -178,6 +178,14 @@ config FEATURE_EDITING_ASK_TERMINAL
+ 	correctly, or want to save on code size (about 400 bytes),
+ 	then do not turn this option on.
+ 
++config FEATURE_EDITING_YANK_LAST_ARG
++	bool "Yank last argument"
++	default n
++	depends on FEATURE_EDITING_SAVEHISTORY
++	help
++	  Insert last argument to the previous command when
++	  M-. (dot) is pressed.
++
+ config LOCALE_SUPPORT
+ 	bool "Enable locale support (system needs locale for this to work)"
+ 	default n
+diff --git a/libbb/lineedit.c b/libbb/lineedit.c
+index d5e92e8..e4e259f 100644
+--- a/libbb/lineedit.c
++++ b/libbb/lineedit.c
+@@ -631,6 +631,64 @@ static void input_forward(void)
+ 		put_cur_glyph_and_inc_cursor();
+ }
+ 
++#if ENABLE_FEATURE_EDITING_YANK_LAST_ARG
++static void put_last_arg(smallint repeating)
++{
++	int ocursor;
++	int len = 0;
++	static int prev_len, lookup_hist = 0;
++	char *last_arg;
++
++	if (!repeating)
++		lookup_hist = state->cur_history;
++
++	if (!lookup_hist)
++		return;
++
++	lookup_hist--;
++
++	if (state->history[lookup_hist]) {
++		char *buf = state->history[lookup_hist];
++		int pos = strlen(buf) + 1;
++
++		/* find the length of the last arg */
++		while (--pos) {
++			if (buf[pos - 1] == ' ') {
++				if (!len)
++					continue;
++				break;
++			}
++			len++;
++		}
++		if (len)
++			last_arg = &buf[pos];
++	}
++
++	/* nothing to put */
++	if (len == 0)
++		return;
++
++	/* revert previous change in the buffer */
++	if (repeating) {
++		memmove(command_ps + cursor - prev_len, command_ps + cursor,
++			(command_len - cursor + 1) * sizeof(command_ps[0]));
++		command_len -= prev_len;
++		input_backward(prev_len);
++		printf(SEQ_CLEAR_TILL_END_OF_SCREEN);
++	}
++
++	ocursor = cursor;
++	/* open hole and then fill it */
++	memmove(command_ps + cursor + len, command_ps + cursor,
++			(command_len - cursor + 1) * sizeof(command_ps[0]));
++	memcpy(command_ps + cursor, last_arg, len * sizeof(command_ps[0]));
++	command_len	+= len;
++	prev_len 	 = len;
++	put_till_end_and_adv_cursor();
++	input_backward(cursor - ocursor - len); /* at end of new text */
++}
++#endif
++
+ #if ENABLE_FEATURE_TAB_COMPLETION
+ 
+ //FIXME:
+@@ -2327,6 +2385,9 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
+ #if ENABLE_FEATURE_EDITING_VI
+ 	smallint vi_cmdmode = 0;
+ #endif
++#if ENABLE_FEATURE_EDITING_YANK_LAST_ARG
++	smallint altdot_mode = 0;
++#endif
+ 	struct termios initial_settings;
+ 	struct termios new_settings;
+ 	char read_key_buffer[KEYCODE_BUFFER_SIZE];
+@@ -2454,6 +2515,11 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
+ 			ic |= VI_CMDMODE_BIT;
+ 		}
+ #endif
++#if ENABLE_FEATURE_EDITING_YANK_LAST_ARG
++		/* altdot_mode stores the key input history of alt+dot
++		 * although only the very previous state (bit[1]) matters */
++		altdot_mode 		<<= 1;
++#endif
+ 
+ 		switch (ic) {
+ 		case '\n':
+@@ -2730,6 +2796,14 @@ int FAST_FUNC read_line_input(line_input_t *st, const char *prompt, char *comman
+ 			/* redraw and go to eol (bol, in vi) */
+ 			redraw(cmdedit_y, (state->flags & VI_MODE) ? 9999 : 0);
+ 			break;
++#if ENABLE_FEATURE_EDITING_YANK_LAST_ARG
++		case KEYCODE_ALT_DOT: {
++			/* Put last argument */
++			put_last_arg(altdot_mode & 0x2);
++			altdot_mode |= 0x1;
++			break;
++		}
++#endif
+ #endif
+ 		case KEYCODE_RIGHT:
+ 			input_forward();
+diff --git a/libbb/read_key.c b/libbb/read_key.c
+index 9517868..df1b8f0 100644
+--- a/libbb/read_key.c
++++ b/libbb/read_key.c
+@@ -24,6 +24,7 @@ int64_t FAST_FUNC read_key(int fd, char *buffer, int timeout)
+ 		'\x7f'         |0x80,KEYCODE_ALT_BACKSPACE,
+ 		'\b'           |0x80,KEYCODE_ALT_BACKSPACE,
+ 		'd'            |0x80,KEYCODE_ALT_D   ,
++		'.'            |0x80,KEYCODE_ALT_DOT ,
+ 	/* lineedit mimics bash: Alt-f and Alt-b are forward/backward
+ 	 * word jumps. We cheat here and make them return ALT_LEFT/RIGHT
+ 	 * keycodes. This way, lineedit need no special code to handle them.
+-- 
+2.7.4
+

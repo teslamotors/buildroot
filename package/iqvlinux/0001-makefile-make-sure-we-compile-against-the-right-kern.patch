@@ -1,0 +1,190 @@
+--- a/src/linux/driver/Makefile	2017-12-20 11:30:20.000000000 +0100
++++ b/src/linux/driver/Makefile	2018-02-01 14:22:52.139051000 +0100
+@@ -17,73 +17,22 @@
+ #
+ ###########################################################################
+ 
+-
+-
+ CFILES = nalioctldrv.c linuxnaldriver.c linuxdriveros_i.c linuxdriverpci_i.c linuxdriverdevice_i.c linuxdrivermemory_i.c
+ 
+-
+-
+ ifeq (,$(NALDIR))
+     $(error NALDIR variable not set)
+ endif
+ 
+-
+-KERNEL = $(shell [ -e /etc/chroot-kernel ] && cat /etc/chroot-kernel || uname -r)
+-BVER = $(shell uname -r | sed 's/\([0-9\.-]\)*//')
+-
+-KSP := /usr/src/linux-$(shell echo $(KERNEL) | sed 's/$(BVER)/obj/')/$(shell uname -i)/$(BVER) \
+-       /usr/src/linux-$(KERNEL) \
+-       /usr/src/linux-$(shell echo $(KERNEL) | sed 's/-.*//') \
+-       /usr/src/linux-$(shell echo $(KERNEL) | sed 's/\([0-9]*\.[0-9]*\)\..*/\1/') \
+-       /usr/src/kernel-headers-$(KERNEL) \
+-       /usr/src/kernel-source-$(KERNEL) \
+-       /lib/modules/$(KERNEL)/build \
+-       /lib/modules/$(KERNEL)/source \
+-       /usr/src/linux
+-
+-test_dir = $(shell [ -e $(dir)/include/linux -o -e $(dir)/include/generated/uapi ] && echo $(dir))
+-KSP := $(foreach dir, $(KSP), $(test_dir))
+-
+-ifeq (,$(KSRC))
+-ifeq (,$(VERSION_FILE))
+-  VSPATH := /include/linux/version.h \
+-			/include/generated/utsrelease.h \
+-			/include/linux/utsrelease.h \
+-			/boot/vmlinuz.version.h \
+-			/include/generated/uapi/linux/version.h
+-
+-  test_version_h = $(shell [ -f $(ksp)$(file) ] && echo $(ksp)$(file))
+-  KVER := $(foreach ksp,$(KSP),$(foreach file, $(VSPATH), $(test_version_h)))
+-  VER_FILE := $(firstword $(KVER))
+-
+-  strip_ksrc=$(findstring $(pp),$(VER_FILE))
+-  KSRC := $(foreach pp,$(KSP),$(strip_ksrc))
+-  KSRC := $(firstword $(KSRC))
+-endif
+-endif
+-
+-ifeq (,$(KSRC))
+-  $(error Linux kernel source not found)
+-else
+-ifeq (/lib/modules/$(KERNEL)/source, $(KSRC))
+-  KOBJ :=  /lib/modules/$(KERNEL)/build
+-else
+-  KOBJ :=  $(KSRC)
+-endif
+-endif
++KSRC := $(KERNEL_SRC)
++KERNEL := $(KERNEL_VERSION)
++KOBJ :=  $(KERNEL_BUILDDIR)
+ 
+ VSP :=  $(KOBJ)/include/generated/utsrelease.h \
+         $(KOBJ)/include/linux/utsrelease.h \
+-        $(KOBJ)/include/linux/version.h \
+-        /boot/vmlinuz.version.h
++        $(KOBJ)/include/linux/version.h
+ 
+-CSP :=  $(KSRC)/include/generated/autoconf.h \
+-        $(KSRC)/include/linux/autoconf.h \
+-        /boot/vmlinuz.autoconf.h
+-
+-test_file = $(shell [ -f $(file) ] && echo $(file))
+-VSP := $(foreach file, $(VSP), $(test_file))
+-CSP := $(foreach file, $(CSP), $(test_file))
++CSP :=  $(KOBJ)/include/generated/autoconf.h \
++        $(KOBJ)/include/linux/autoconf.h
+ 
+ ifeq (,$(VERSION_FILE))
+   VERSION_FILE := $(firstword $(VSP))
+@@ -100,19 +49,6 @@
+   $(error Linux kernel source not configured - missing autoconf.h)
+ endif
+ 
+-ifneq (,$(findstring egcs-2.91.66, $(shell cat /proc/version)))
+-  CC := kgcc gcc cc
+-else
+-  CC := gcc cc
+-endif
+-test_cc = $(shell $(cc) --version > /dev/null 2>&1 && echo $(cc))
+-CC := $(foreach cc, $(CC), $(test_cc))
+-CC := $(firstword $(CC))
+-ifeq (,$(CC))
+-  $(error Compiler not found)
+-endif
+-
+-ARCH := $(shell uname -m | sed 's/i.86/i386/')
+ ifeq ($(ARCH),alpha)
+   EXTRA_CFLAGS += -ffixed-8 -mno-fp-regs
+ endif
+@@ -159,33 +95,12 @@
+           *** This driver is not supported on kernel versions older than 2.4.0)
+ endif
+ 
+-ifneq (,$(wildcard /lib/modules/$(KVER)/kernel))
+-  INSTDIR := /lib/modules/$(KVER)/kernel/drivers/char
+-else
+-  INSTDIR := /lib/modules/$(KVER)/char
+-endif
+-
+-
+ SMP := $(shell $(CC) $(CFLAGS) -E -dM $(CONFIG_FILE) | \
+          grep '\<CONFIG_SMP\>' | awk '{ print $$3 }')
+ ifneq ($(SMP),1)
+   SMP := 0
+ endif
+ 
+-ifneq ($(SMP),$(shell uname -a | grep SMP > /dev/null 2>&1 && echo 1 || echo 0))
+-  $(warning ***)
+-  ifeq ($(SMP),1)
+-    $(warning *** Warning: kernel source configuration (SMP))
+-    $(warning *** does not match running kernel (UP))
+-  else
+-    $(warning *** Warning: kernel source configuration (UP))
+-    $(warning *** does not match running kernel (SMP))
+-  endif
+-  $(warning *** Continuing with build,)
+-  $(warning *** resulting driver may not be what you want)
+-  $(warning ***)
+-endif
+-
+ ifeq ($(SMP),1)
+   EXTRA_CFLAGS += -D__SMP__
+ endif
+@@ -255,48 +170,17 @@
+ iqvlinux-objs := $(CFILES:.c=.o)
+ else
+ default:
+-ifeq ($(KOBJ),$(KSRC))
+ 	$(MAKE) -C $(KSRC) SUBDIRS=$(shell pwd) modules
+-else
+-	$(MAKE) -C $(KSRC) O=$(KOBJ) SUBDIRS=$(shell pwd) modules
+-endif
+ endif
+ 
+ endif # ifeq ($(K_VERSION),2.4)
+ 
+-DEPVER := $(shell /sbin/depmod -V 2>/dev/null | \
+-          awk 'BEGIN {FS="."} NR==1 {print $$2}')
+-
+-
+-
+-install: default
+-	# remove all old versions of the driver
+-	find $(INSTALL_MOD_PATH)/lib/modules/$(KVER) -name $(TARGET) -exec rm -f {} \; || true
+-	install -D -m 744 $(TARGET) $(INSTALL_MOD_PATH)$(INSTDIR)/$(TARGET)
+-ifeq (,$(INSTALL_MOD_PATH))
+-	/sbin/depmod -a || true
+-else
+-  ifeq ($(DEPVER),1 )
+-	/sbin/depmod -r $(INSTALL_MOD_PATH) -a || true
+-  else
+-	/sbin/depmod -b $(INSTALL_MOD_PATH) -a -n > /dev/null || true
+-  endif
+-endif
+-
+-uninstall:
+-	if [ -e $(INSTDIR)/$(TARGET) ] ; then \
+-	    rm -f $(INSTDIR)/$(TARGET) ; \
+-	fi
+-	/sbin/depmod -a
+-
+ .PHONY: clean install
+ 
+-installrpm:
+-	mkdir -p $(DESTDIR)/inc/linux/
+-	mkdir -p $(DESTDIR)/src/linux/driver/
+-	cp -r $(NALDIR)/inc/* $(DESTDIR)/inc
+-	cp $(NALDIR)/src/linux/driver/* $(DESTDIR)/src/linux/driver/
+-	cp $(NALDIR)/COPYING $(DESTDIR)/COPYING
+-
+ clean:
+ 	rm -rf $(TARGET) $(TARGET:.ko=.o) $(TARGET:.ko=.mod.o) $(CFILES:.c=.o) $(MANFILE).gz .*cmd
++
++modules_install:
++	$(MAKE) -C $(KSRC) M=$(PWD) modules_install
++
++install: modules_install

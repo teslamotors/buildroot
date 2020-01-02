@@ -10,7 +10,13 @@ GMP_SOURCE = gmp-$(GMP_VERSION).tar.xz
 GMP_INSTALL_STAGING = YES
 GMP_LICENSE = LGPL-3.0+ or GPL-2.0+
 GMP_LICENSE_FILES = COPYING.LESSERv3 COPYINGv2
-GMP_DEPENDENCIES = host-m4
+GMP_DEPENDENCIES = host-m4 host-flex host-bison
+ifeq ($(BR2_PACKAGE_NCURSES),y)
+GMP_DEPENDENCIES += ncurses
+endif
+ifeq ($(BR2_PACKAGE_READLINE),y)
+GMP_DEPENDENCIES += readline
+endif
 HOST_GMP_DEPENDENCIES = host-m4
 
 # GMP doesn't support assembly for coldfire or mips r6 ISA yet

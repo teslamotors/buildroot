@@ -12,5 +12,6 @@ LIBTASN1_LICENSE_FILES = COPYING COPYING.LIB
 LIBTASN1_INSTALL_STAGING = YES
 # 'missing' fallback logic botched so disable it completely
 LIBTASN1_CONF_ENV = MAKEINFO="true"
+LIBTASN1_DEPENDENCIES = host-pkgconf host-bison
 
 $(eval $(autotools-package))

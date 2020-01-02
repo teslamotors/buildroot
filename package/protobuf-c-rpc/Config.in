@@ -1,0 +1,3 @@
+config BR2_PACKAGE_PROTOBUF_C_RPC
+       select BR2_PACKAGE_PROTOBUF_C
+       bool "protobuf-c-rpc"

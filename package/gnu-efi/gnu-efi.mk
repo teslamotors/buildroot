@@ -40,4 +40,12 @@ define GNU_EFI_INSTALL_STAGING_CMDS
 		INSTALLROOT=$(STAGING_DIR) install
 endef
 
+define HOST_GNU_EFI_BUILD_CMDS
+	$(HOST_MAKE_ENV) $(MAKE) -C $(@D) $(HOST_CONFIGURE_OPTS) INSTALLROOT=$(HOST_DIR) PREFIX=/usr
+endef
+define HOST_GNU_EFI_INSTALL_CMDS
+	$(HOST_MAKE_ENV) $(MAKE) -C $(@D) $(HOST_CONFIGURE_OPTS) INSTALLROOT=$(HOST_DIR) PREFIX=/usr install
+endef
+
 $(eval $(generic-package))
+$(eval $(host-generic-package))

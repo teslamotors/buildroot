@@ -1,0 +1,54 @@
+From 1359664ac7315b14b6958dc5d44a5d90e8d3bdfb Mon Sep 17 00:00:00 2001
+Date: Wed, 16 Jan 2019 14:11:37 -0800
+Subject: [PATCH] netlink_connector.hpp: Removed unused nl_endpoint methods
+
+The various comparison operator overloads for nl_endpoint won't
+compile with a newer g++ since apparently the sockaddr_nl integer type
+hasn't defined an operator==, operator<, or operator>.  Just another
+way in which C++ makes the programmer's life so much easier!
+---
+ .../endpoints/include/netlink_connector.hpp   | 28 -------------------
+ 1 file changed, 28 deletions(-)
+
+diff --git a/implementation/endpoints/include/netlink_connector.hpp b/implementation/endpoints/include/netlink_connector.hpp
+index db0cbc5..140b73a 100644
+--- a/implementation/endpoints/include/netlink_connector.hpp
++++ b/implementation/endpoints/include/netlink_connector.hpp
+@@ -94,34 +94,6 @@ public:
+         return sizeof(sockaddr);
+     }
+ 
+-    /// Compare two endpoints for equality.
+-    friend bool operator==(const nl_endpoint<Protocol>& e1,
+-               const nl_endpoint<Protocol>& e2)
+-    {
+-        return e1.sockaddr == e2.sockaddr;
+-    }
+-
+-    /// Compare two endpoints for inequality.
+-    friend bool operator!=(const nl_endpoint<Protocol>& e1,
+-               const nl_endpoint<Protocol>& e2)
+-    {
+-        return !(e1.sockaddr == e2.sockaddr);
+-    }
+-
+-    /// Compare endpoints for ordering.
+-    friend bool operator<(const nl_endpoint<Protocol>& e1,
+-              const nl_endpoint<Protocol>& e2)
+-    {
+-        return e1.sockaddr < e2.sockaddr;
+-    }
+-
+-    /// Compare endpoints for ordering.
+-    friend bool operator>(const nl_endpoint<Protocol>& e1,
+-              const nl_endpoint<Protocol>& e2)
+-    {
+-        return e2.sockaddr < e1.sockaddr;
+-    }
+-
+     /// Compare endpoints for ordering.
+     friend bool operator<=(const nl_endpoint<Protocol>& e1,
+                const nl_endpoint<Protocol>& e2)
+-- 
+2.19.2
+

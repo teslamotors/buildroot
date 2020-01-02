@@ -1,0 +1,38 @@
+From b0f3e9604ff4110c3f716309960245511ec2436f Mon Sep 17 00:00:00 2001
+Date: Sun, 3 Sep 2017 02:09:11 -0700
+Subject: [PATCH] Lift breakpad limitation to capture only 32k of stack
+
+Frequently we observe that gdb can reconstruct a full
+trace from a core dump but not from a minidump. It seems
+that this is one of the main issue.
+---
+ src/client/linux/minidump_writer/linux_dumper.cc | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/src/client/linux/minidump_writer/linux_dumper.cc b/src/client/linux/minidump_writer/linux_dumper.cc
+index 0013824b9277..54b5b7165e00 100644
+--- a/src/client/linux/minidump_writer/linux_dumper.cc
++++ b/src/client/linux/minidump_writer/linux_dumper.cc
+@@ -771,9 +771,6 @@ bool LinuxDumper::GetStackInfo(const void** stack, size_t* stack_len,
+   uint8_t* const stack_pointer =
+       reinterpret_cast<uint8_t*>(int_stack_pointer & ~(page_size - 1));
+ 
+-  // The number of bytes of stack which we try to capture.
+-  static const ptrdiff_t kStackToCapture = 32 * 1024;
+-
+   const MappingInfo* mapping = FindMapping(stack_pointer);
+   if (!mapping)
+     return false;
+@@ -781,8 +778,7 @@ bool LinuxDumper::GetStackInfo(const void** stack, size_t* stack_len,
+       reinterpret_cast<uint8_t*>(mapping->start_addr);
+   const ptrdiff_t distance_to_end =
+       static_cast<ptrdiff_t>(mapping->size) - offset;
+-  *stack_len = distance_to_end > kStackToCapture ?
+-      kStackToCapture : distance_to_end;
++  *stack_len = distance_to_end;
+   *stack = stack_pointer;
+   return true;
+ }
+-- 
+2.14.1
+

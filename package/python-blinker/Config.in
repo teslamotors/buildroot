@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PYTHON_BLINKER
+	bool "python-blinker"
+	help
+	  Python Package - Fast, simple object-to-object and broadcast signaling
+
+	  https://pypi.org/project/blinker/

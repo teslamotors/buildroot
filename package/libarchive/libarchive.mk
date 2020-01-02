@@ -110,6 +110,10 @@ else
 LIBARCHIVE_CONF_OPTS += --without-lzma
 endif
 
+ifeq ($(BR2_PACKAGE_E2FSPROGS),y)
+LIBARCHIVE_DEPENDENCIES += e2fsprogs
+endif
+
 # The only user of host-libarchive needs zlib support
 HOST_LIBARCHIVE_DEPENDENCIES = host-zlib
 HOST_LIBARCHIVE_CONF_OPTS = \

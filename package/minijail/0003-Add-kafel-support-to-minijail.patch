@@ -1,0 +1,247 @@
+From 7cb2dcd5981950c758a2c41f837c51c09c667392 Mon Sep 17 00:00:00 2001
+Date: Mon, 27 Aug 2018 23:31:49 -0700
+Subject: [PATCH] Add kafel support to minijail
+
+The kafel seccomp language is, IMO, easier
+and better to use for describing seccomp
+policies vs. what minijail provides by default.
+In addition, kafel supports seccomp logging.
+This change adds the ability to compile kafel
+seccomp profiles via the "--kafel" command line
+flags to minijail.
+---
+ Makefile         |  6 ++---
+ libminijail.c    | 14 +++++++++--
+ libminijail.h    |  1 +
+ minijail0_cli.c  |  5 ++++
+ syscall_filter.c | 71 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ syscall_filter.h |  3 +++
+ 6 files changed, 95 insertions(+), 5 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index bcf2217..42d42fc 100644
+--- a/Makefile
++++ b/Makefile
+@@ -60,13 +60,13 @@ tests: TEST(CXX_BINARY(libminijail_unittest)) \
+ 	TEST(CXX_BINARY(util_unittest)) \
+ 
+ 
+-CC_BINARY(minijail0): LDLIBS += -lcap -ldl
++CC_BINARY(minijail0): LDLIBS += -lcap -ldl -lkafel
+ CC_BINARY(minijail0): $(CORE_OBJECT_FILES) \
+ 	elfparse.o minijail0.o minijail0_cli.o
+ clean: CLEAN(minijail0)
+ 
+ 
+-CC_LIBRARY(libminijail.so): LDLIBS += -lcap
++CC_LIBRARY(libminijail.so): LDLIBS += -lcap -lkafel
+ CC_LIBRARY(libminijail.so): $(CORE_OBJECT_FILES)
+ clean: CLEAN(libminijail.so)
+ 
+@@ -82,7 +82,7 @@ CXX_BINARY(libminijail_unittest): libminijail_unittest.o $(CORE_OBJECT_FILES) \
+ clean: CLEAN(libminijail_unittest)
+ 
+ 
+-CC_LIBRARY(libminijailpreload.so): LDLIBS += -lcap -ldl
++CC_LIBRARY(libminijailpreload.so): LDLIBS += -lcap -ldl -lkafel
+ CC_LIBRARY(libminijailpreload.so): libminijailpreload.o $(CORE_OBJECT_FILES)
+ clean: CLEAN(libminijailpreload.so)
+ 
+diff --git a/libminijail.c b/libminijail.c
+index 708d41e..ee8246f 100644
+--- a/libminijail.c
++++ b/libminijail.c
+@@ -145,6 +145,7 @@ struct minijail {
+ 		int seccomp : 1;
+ 		int remount_proc_ro : 1;
+ 		int no_new_privs : 1;
++		int use_kafel : 1;
+ 		int seccomp_filter : 1;
+ 		int seccomp_filter_tsync : 1;
+ 		int seccomp_filter_logging : 1;
+@@ -360,6 +361,11 @@ void API minijail_use_seccomp_filter(struct minijail *j)
+ 	j->flags.seccomp_filter = 1;
+ }
+ 
++void API minijail_use_kafel(struct minijail *j)
++{
++	j->flags.use_kafel = 1;
++}
++
+ void API minijail_set_seccomp_filter_tsync(struct minijail *j)
+ {
+ 	if (j->filter_len > 0 && j->filter_prog != NULL) {
+@@ -884,8 +890,12 @@ static int parse_seccomp_filters(struct minijail *j, const char *filename,
+ 	    j->flags.seccomp_filter_tsync || j->flags.seccomp_filter_logging;
+ 	int allow_logging = j->flags.seccomp_filter_logging;
+ 
+-	if (compile_filter(filename, policy_file, fprog, use_ret_trap,
+-			   allow_logging)) {
++	if (j->flags.use_kafel && kafel_compile_filter(filename, fprog)) {
++		free(fprog);
++		return -1;
++	}
++
++	if (!j->flags.use_kafel && compile_filter(filename, policy_file, fprog, use_ret_trap, allow_logging)) {
+ 		free(fprog);
+ 		return -1;
+ 	}
+diff --git a/libminijail.h b/libminijail.h
+index 03c93c4..b515476 100644
+--- a/libminijail.h
++++ b/libminijail.h
+@@ -81,6 +81,7 @@ void minijail_use_seccomp(struct minijail *j);
+ void minijail_no_new_privs(struct minijail *j);
+ void minijail_use_seccomp_filter(struct minijail *j);
+ void minijail_set_seccomp_filter_tsync(struct minijail *j);
++void minijail_use_kafel(struct minijail *j);
+ void minijail_parse_seccomp_filters(struct minijail *j, const char *path);
+ void minijail_parse_seccomp_filters_from_fd(struct minijail *j, int fd);
+ void minijail_log_seccomp_filter_failures(struct minijail *j);
+diff --git a/minijail0_cli.c b/minijail0_cli.c
+index a1ee82b..e4c697f 100644
+--- a/minijail0_cli.c
++++ b/minijail0_cli.c
+@@ -456,6 +456,7 @@ static void usage(const char *progn)
+ 	       "  -Y:           Synchronize seccomp filters across thread group.\n"
+ 	       "  -z:           Don't forward signals to jailed process.\n"
+ 	       "  --ambient:    Raise ambient capabilities. Requires -c.\n"
++	       "  --kafel:      Use kafel seccomp language.\n"
+ 	       "  --uts[=name]: Enter a new UTS namespace (and set hostname).\n"
+ 	       "  --logging=<s>:Use <s> as the logging system.\n"
+ 	       "                <s> must be 'syslog' (default) or 'stderr'.\n"
+@@ -508,6 +509,7 @@ int parse_args(struct minijail *j, int argc, char * const argv[],
+ 		{"uts", optional_argument, 0, 129},
+ 		{"logging", required_argument, 0, 130},
+ 		{"profile", required_argument, 0, 131},
++		{"kafel", optional_argument, 0, 132},
+ 		{0, 0, 0, 0},
+ 	};
+ 	/* clang-format on */
+@@ -738,6 +740,9 @@ int parse_args(struct minijail *j, int argc, char * const argv[],
+ 		case 131: /* Profile */
+ 			use_profile(j, optarg, &pivot_root, chroot, &tmp_size);
+ 			break;
++		case 132: /* Use kafel seccomp language */
++			minijail_use_kafel(j);
++			break;
+ 		default:
+ 			usage(argv[0]);
+ 			exit(opt == 'h' ? 0 : 1);
+diff --git a/syscall_filter.c b/syscall_filter.c
+index 29f250e..545daa3 100644
+--- a/syscall_filter.c
++++ b/syscall_filter.c
+@@ -7,10 +7,12 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include <sys/stat.h>
+ 
+ #include "syscall_filter.h"
+ 
+ #include "util.h"
++#include <kafel.h>
+ 
+ /* clang-format off */
+ #define ONE_INSTR	1
+@@ -664,6 +666,75 @@ free_line:
+ 	return ret;
+ }
+ 
++int kafel_compile_filter(const char *filename, struct sock_fprog *prog)
++{
++	char *seccomp_policy = NULL;
++	FILE *f = NULL;
++	int ret = -1;
++	struct stat s;
++	size_t total, read;
++	char *p;
++
++	memset(prog, 0, sizeof(*prog));
++
++	/* Make sure the file exists, and get the size. */
++	if (stat(filename, &s) < 0)
++	{
++		warn("failed to stat policy file!\n");
++		goto done;
++	}
++
++	/* Read in the policy file. */
++	f = fopen(filename, "r");
++	if (!f)
++	{
++		warn("failed to open policy file!\n");
++		goto done;
++	}
++
++	total = (size_t)s.st_size;
++	seccomp_policy = (char *)calloc(total + 1, sizeof(char));
++	if (!seccomp_policy)
++	{
++		warn("failed to allocate seccomp policy buffer!\n");
++		goto done;
++	}
++
++	p = seccomp_policy;
++	while (total)
++	{
++		read = total < CHUNK_SIZE ? total : CHUNK_SIZE;
++		if (fread(p, 1, read, f) != read)
++		{
++			warn("failed to read policy file!\n");
++			goto done;
++		}
++		p += read;
++		total -= read;
++	}
++
++	if (kafel_compile_string(seccomp_policy, prog))
++	{
++		warn("seccomp policy compilation failed!\n");
++		goto done;
++	}
++
++	ret = 0;
++
++done:
++	if (ret && prog->filter) {
++		free(prog->filter);
++		prog->filter = NULL;
++	}
++
++	if (f)
++		fclose(f);
++	if (seccomp_policy)
++		free(seccomp_policy);
++
++	return ret;
++}
++
+ int compile_filter(const char *filename, FILE *initial_file,
+ 		   struct sock_fprog *prog, int use_ret_trap, int allow_logging)
+ {
+diff --git a/syscall_filter.h b/syscall_filter.h
+index 737ef49..073e460 100644
+--- a/syscall_filter.h
++++ b/syscall_filter.h
+@@ -15,6 +15,8 @@
+ extern "C" {
+ #endif
+ 
++#define CHUNK_SIZE 4096
++
+ struct filter_block {
+ 	struct sock_filter *instrs;
+ 	size_t len;
+@@ -40,6 +42,7 @@ int compile_file(const char *filename, FILE *policy_file,
+ 		 struct filter_block *head, struct filter_block **arg_blocks,
+ 		 struct bpf_labels *labels, int use_ret_trap, int allow_logging,
+ 		 unsigned int include_level);
++int kafel_compile_filter(const char *filename, struct sock_fprog *prog);
+ int compile_filter(const char *filename, FILE *policy_file,
+ 		   struct sock_fprog *prog, int do_ret_trap,
+ 		   int add_logging_syscalls);
+-- 
+2.7.4
+

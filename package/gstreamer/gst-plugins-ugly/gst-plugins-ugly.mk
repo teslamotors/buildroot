@@ -16,7 +16,7 @@ GST_PLUGINS_UGLY_LICENSE_FILES = COPYING
 GST_PLUGINS_UGLY_CONF_OPTS = \
 	--disable-examples
 
-GST_PLUGINS_UGLY_DEPENDENCIES = gstreamer gst-plugins-base
+GST_PLUGINS_UGLY_DEPENDENCIES = gstreamer gst-plugins-base opencore-amr
 
 ifeq ($(BR2_PACKAGE_GST_PLUGINS_UGLY_PLUGIN_ASFDEMUX),y)
 GST_PLUGINS_UGLY_CONF_OPTS += --enable-asfdemux

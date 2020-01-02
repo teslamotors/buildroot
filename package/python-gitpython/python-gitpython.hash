@@ -1,0 +1,4 @@
+# md5, sha256 from https://pypi.python.org/pypi/GitPython/json
+md5 77f8339e68dedb6d7c4e26371a588ed9 GitPython-2.1.1.tar.gz
+sha256 e96f8e953cf9fee0a7599fc587667591328760b6341a0081ef311a942fc96204 GitPython-2.1.1.tar.gz
+sha256 fd657ffc2cef63d25c78cab7808d414dd03a282e63893491fd11c32f98be67fb LICENSE

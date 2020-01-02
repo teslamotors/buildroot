@@ -1,0 +1,4 @@
+# md5, sha256 from https://pypi.python.org/pypi/cachetools/json
+md5 fbca1d46878fa493a0b03bca99ace328 cachetools-2.0.0.tar.gz
+sha256 715a7202240dc20dbe83abdb2d804d543e2d4f07af146f53c82166bd75f3a628 cachetools-2.0.0.tar.gz
+sha256 f36e3d5b687f1a9126e99a2c5d950345a7b536a18e98ab5e6824ef2b602ab9a5 LICENSE

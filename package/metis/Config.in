@@ -1,0 +1,6 @@
+config BR2_PACKAGE_METIS
+       bool "metis"
+       help
+         Serial Graph Partitioning and Fill-reducing Matrix Ordering
+
+         http://glaros.dtc.umn.edu/gkhome/metis/metis/overview

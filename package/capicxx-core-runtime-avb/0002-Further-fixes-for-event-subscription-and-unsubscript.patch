@@ -1,0 +1,41 @@
+From 69216d47dd804ab1fd60d50d4644900713ea8b27 Mon Sep 17 00:00:00 2001
+From: Klaus Uhl <klaus.uhl@intel.com>
+Date: Thu, 20 Aug 2015 17:03:38 +0200
+Subject: [PATCH 2/6] Further fixes for event subscription and unsubscription
+
+Change-Id: I1ee45a8f56e252a59d2d2acc1996616bcad16d05
+---
+ include/CommonAPI/Event.hpp | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/include/CommonAPI/Event.hpp b/include/CommonAPI/Event.hpp
+index c1c816a..de3cc2d 100755
+--- a/include/CommonAPI/Event.hpp
++++ b/include/CommonAPI/Event.hpp
+@@ -143,10 +143,9 @@ void Event<Arguments_...>::unsubscribe(Subscription subscription) {
+         listenerIterator = pendingSubscriptions_.find(subscription);
+         if (pendingSubscriptions_.end() != listenerIterator) {
+             listener = std::get<0>(listenerIterator->second);
+-            if (0 != pendingSubscriptions_.erase(subscription)) {
+-                isLastListener = (pendingUnsubscriptions_.size() == subscriptions_.size());
+-                hasUnsubscribed = true;
+-            }
++            pendingSubscriptions_.erase(subscription);
++            isLastListener = (pendingUnsubscriptions_.size() == subscriptions_.size());
++            hasUnsubscribed = true;
+         }
+     }
+     isLastListener = isLastListener && (0 == pendingSubscriptions_.size());
+@@ -162,8 +161,8 @@ void Event<Arguments_...>::unsubscribe(Subscription subscription) {
+ 
+ template<typename ... Arguments_>
+ void Event<Arguments_...>::notifyListeners(const Arguments_&... eventArguments) {
+-    subscriptionMutex_.lock();
+     notificationMutex_.lock();
++    subscriptionMutex_.lock();
+     for (auto iterator = pendingUnsubscriptions_.begin();
+          iterator != pendingUnsubscriptions_.end();
+          iterator++) {
+-- 
+2.1.0
+

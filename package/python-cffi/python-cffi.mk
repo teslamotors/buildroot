@@ -23,5 +23,13 @@ HOST_PYTHON_CFFI_ENV = \
 	PKG_CONFIG_LIBDIR="$(HOST_DIR)/lib/pkgconfig:$(HOST_DIR)/share/pkgconfig"
 HOST_PYTHON_CFFI_DEPENDENCIES = host-pkgconf host-python-pycparser host-libffi
 
+
+define PYTHON_CFFI_INSTALL_TARGET_FIXUP
+	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/cffi/*.py
+	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/cffi/*.h
+endef
+
+PYTHON_CFFI_POST_INSTALL_TARGET_HOOKS += PYTHON_CFFI_INSTALL_TARGET_FIXUP
+
 $(eval $(python-package))
 $(eval $(host-python-package))

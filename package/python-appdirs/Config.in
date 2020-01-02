@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PYTHON_APPDIRS
+	bool "python-appdirs"
+	help
+	  Python Package - A small Python module for determining appropriate platform-specific dirs, e.g. a "user data dir".
+
+	  https://pypi.org/project/appdirs/

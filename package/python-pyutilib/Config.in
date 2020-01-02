@@ -1,0 +1,9 @@
+config BR2_PACKAGE_PYTHON_PYUTILIB
+	bool "python-PyUtilib"
+	select BR2_PACKAGE_PYTHON_NOSE
+	select BR2_PACKAGE_PYTHON_SIX
+	help
+	  The PyUtilib project supports a collection of Python utilities,
+	  including a well-developed component architecture and extensions to the
+	  PyUnit testing framework. PyUtilib has been developed to support several
+	  Python-centric projects, especially Pyomo.

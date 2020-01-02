@@ -37,6 +37,8 @@ define EIGEN_INSTALL_STAGING_CMDS
 	$(EIGEN_INSTALL_UNSUPPORTED_MODULES_CMDS)
 	$(INSTALL) -D -m 0644 $(@D)/eigen3.pc \
 		$(STAGING_DIR)/usr/lib/pkgconfig/eigen3.pc
+# hack to make ceres-solver build; it doesn't expect the eigen3 parent directory
+	cd $(EIGEN_DEST_DIR)/.. && ln -sf $(notdir $(EIGEN_DEST_DIR))/Eigen
 endef
 
 $(eval $(generic-package))

@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PYTHON_PYOMO
+	bool "python-pyomo"
+	help
+	  Pyomo is a Python-based open-source software package that supports a
+	  diverse set of optimization capabilities for formulating, solving, and
+	  analyzing optimization models.

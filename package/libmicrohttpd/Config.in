@@ -17,6 +17,30 @@ config BR2_PACKAGE_LIBMICROHTTPD_SSL
 	help
 	  Enable HTTPS (SSL) support.
 
+config BR2_PACKAGE_LIBMICROHTTPD_EPOLL
+	bool "epoll support"
+	default y
+	help
+	  epoll support
+
+config BR2_PACKAGE_LIBMICROHTTPD_HTTP_BASIC_AUTH
+	bool "http basic auth support"
+	default y
+	help
+	  HTTP basic authentication support
+
+config BR2_PACKAGE_LIBMICROHTTPD_HTTP_DIGEST_AUTH
+	bool "http digest auth support"
+	default y
+	help
+	  HTTP digest authentication support
+
+config BR2_PACKAGE_LIBMICROHTTPD_HTTP_UPGRADE
+	bool "http upgrade support"
+	default y
+	help
+	  HTTP Upgrade support
+
 comment "libmicrohttpd https support needs a toolchain w/ wchar, dynamic library"
 	depends on !BR2_USE_WCHAR || BR2_STATIC_LIBS
 

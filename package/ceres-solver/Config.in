@@ -1,0 +1,8 @@
+config BR2_PACKAGE_CERES_SOLVER
+       bool "Ceres-Solver"
+       select BR2_PACKAGE_OPENBLAS
+       help
+         Ceres Solver is an open source C++ library for modeling and solving
+         large, complicated optimization problems.
+
+         http://ceres-solver.org

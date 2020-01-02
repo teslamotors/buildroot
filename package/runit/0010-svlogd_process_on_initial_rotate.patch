@@ -1,0 +1,13 @@
+Process file on initial rotate, e.g. compress
+
+
+--- runit-2.1.2/src/svlogd.c
++++ runit-2.1.2/src/svlogd.c
+@@ -590,6 +590,7 @@
+       ld->tlastsave =tsave;
+       rmoldest(ld);
+       i =-1;
++      processorstart(ld);
+     }
+     else
+       ld->size =st.st_size;

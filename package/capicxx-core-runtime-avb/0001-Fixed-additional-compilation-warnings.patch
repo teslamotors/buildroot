@@ -1,0 +1,31 @@
+From 52461390887bce08e33b85fe6f43eea84a012f6a Mon Sep 17 00:00:00 2001
+From: Klaus Uhl <klaus.uhl@intel.com>
+Date: Thu, 20 Aug 2015 17:00:58 +0200
+Subject: [PATCH 1/6] Fixed additional compilation warnings
+
+Change-Id: I6e13d114b2badb11eda1083dedc3622e61fa9d93
+---
+ include/CommonAPI/Deployable.hpp | 2 +-
+ include/CommonAPI/Event.hpp      | 0
+ 2 files changed, 1 insertion(+), 1 deletion(-)
+ mode change 100644 => 100755 include/CommonAPI/Event.hpp
+
+diff --git a/include/CommonAPI/Deployable.hpp b/include/CommonAPI/Deployable.hpp
+index 4b4b901..293f93e 100644
+--- a/include/CommonAPI/Deployable.hpp
++++ b/include/CommonAPI/Deployable.hpp
+@@ -50,7 +50,7 @@ struct Deployable : DeployableBase
+     }
+ 
+  protected:
+-    Type_ value_;
++    Type_ value_{};
+     TypeDepl_ *depl_;
+ };
+ 
+diff --git a/include/CommonAPI/Event.hpp b/include/CommonAPI/Event.hpp
+old mode 100644
+new mode 100755
+-- 
+2.1.0
+

@@ -1,9 +1,8 @@
 config BR2_PACKAGE_PYTHON_YARL
 	bool "python-yarl"
 	depends on BR2_PACKAGE_PYTHON3
-	select BR2_PACKAGE_PYTHON_MULTIDICT
-	select BR2_PACKAGE_PYTHON_IDNA
+	depends on BR2_PACKAGE_PYTHON_MULTIDICT
 	help
-	  Yet another URL library.
+	  Python Package - Yet another URL library
 
-	  http://yarl.readthedocs.io/
+	  https://pypi.org/project/yarl/

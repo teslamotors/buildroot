@@ -1,0 +1,4 @@
+# md5, sha256 from https://pypi.python.org/pypi/aioes/json
+md5 2e5806919e8768ec7a659448b92c98d1 aioes-0.7.2.tar.gz
+sha256 02f8eacd21086baa5f888d36333edaa685cad3f10f7b7967f1af119a5d0ce84b aioes-0.7.2.tar.gz
+sha256 b5bc5e70741307d2842f57b88dd3acc555597429044b0ceac6146c2dec44e04d LICENSE.txt

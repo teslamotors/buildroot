@@ -1,0 +1,152 @@
+From 0d3c756a25df66ebaa6064762403a231badf5cdc Mon Sep 17 00:00:00 2001
+Date: Tue, 5 Mar 2019 16:23:11 -0800
+Subject: [PATCH] SW-182048: Add support for new seccomp actions
+
+The addition of chromium brings in some spam to seccomp
+logging, since it by default has errno and trap handlers.
+To account for this, we've added specific policies for
+ERRNO and TRAP actions to be logged (or not logged).
+---
+ README.md     | 18 ++++++++++--------
+ src/codegen.c | 12 ++++++++++++
+ src/lexer.l   |  2 ++
+ src/parser.y  | 18 +++++++++++++++++-
+ src/policy.h  |  2 ++
+ 5 files changed, 43 insertions(+), 9 deletions(-)
+
+diff --git a/README.md b/README.md
+index 29ca6f6..8c3576e 100644
+--- a/README.md
++++ b/README.md
+@@ -105,14 +105,16 @@ Target of first rule matched is the policy decision.
+ Following table list Kafel targets and their corresponding seccomp-filter
+ return values.
+ 
+-Kafel           | seccomp-filter
+---------------- | ---------------------------
+-`ALLOW`         | `SECCOMP_RET_ALLOW`
+-`LOG`           | `SECCOMP_RET_LOG`
+-`KILL`, `DENY`  | `SECCOMP_RET_KILL`
+-`ERRNO(number)` | `SECCOMP_RET_ERRNO+number`
+-`TRAP(number)`  | `SECCOMP_RET_TRAP+number`
+-`TRACE(number)` | `SECCOMP_RET_TRACE+number`
++Kafel               | seccomp-filter
++------------------- | ---------------------------
++`ALLOW`             | `SECCOMP_RET_ALLOW`
++`LOG`               | `SECCOMP_RET_LOG`
++`KILL`, `DENY`      | `SECCOMP_RET_KILL`
++`ERRNO(number)`     | `SECCOMP_RET_ERRNO+number`
++`ERRNO_LOG(number)` | `SECCOMP_RET_ERRNO_LOG+number`
++`TRAP(number)`      | `SECCOMP_RET_TRAP+number`
++`TRAP_LOG(number)`  | `SECCOMP_RET_TRAP_LOG+number`
++`TRACE(number)`     | `SECCOMP_RET_TRACE+number`
+ 
+ ### Syscall matching rules
+ 
+diff --git a/src/codegen.c b/src/codegen.c
+index 4ab10ec..a7d0ade 100644
+--- a/src/codegen.c
++++ b/src/codegen.c
+@@ -48,6 +48,14 @@
+ #define SECCOMP_RET_LOG 0x7ffc0000U
+ #endif
+ 
++#ifndef SECCOMP_RET_TRAP_LOG
++#define SECCOMP_RET_TRAP_LOG 0x00040000U
++#endif
++
++#ifndef SECCOMP_RET_ERRNO_LOG
++#define SECCOMP_RET_ERRNO_LOG 0x00060000U
++#endif
++
+ #define CURRENT_LOC (ctxt->buffer.len - 1)
+ #define LOC_TO_JUMP(loc) (CURRENT_LOC - (loc))
+ 
+@@ -79,8 +87,12 @@ static __u32 ACTION_TO_BPF(int action) {
+   switch (masked_action) {
+     case ACTION_TRAP:
+       return SECCOMP_RET_TRAP | value;
++    case ACTION_TRAP_LOG:
++      return SECCOMP_RET_TRAP_LOG | value;
+     case ACTION_ERRNO:
+       return SECCOMP_RET_ERRNO | value;
++    case ACTION_ERRNO_LOG:
++      return SECCOMP_RET_ERRNO_LOG | value;
+     case ACTION_TRACE:
+       return SECCOMP_RET_TRACE | value;
+   }
+diff --git a/src/lexer.l b/src/lexer.l
+index 9d76ba5..f3ec76f 100644
+--- a/src/lexer.l
++++ b/src/lexer.l
+@@ -125,9 +125,11 @@ bool whitespace = false;
+ "ALLOW"         { return ALLOW; }
+ "LOG"           { return LOG; }
+ "ERRNO"         { return ERRNO; }
++"ERRNO_LOG"     { return ERRNO_LOG; }
+ "KILL"          { return KILL; }
+ "DENY"          { return DENY; }
+ "TRAP"          { return TRAP; }
++"TRAP_LOG"      { return TRAP_LOG; }
+ "TRACE"         { return TRACE; }
+ "USE"           { return USE; }
+ "POLICY"        { return POLICY; }
+diff --git a/src/parser.y b/src/parser.y
+index 66c6e67..f5c2c79 100644
+--- a/src/parser.y
++++ b/src/parser.y
+@@ -125,7 +125,7 @@ YY_DECL;
+ %token IDENTIFIER NUMBER
+ 
+ %token POLICY USE DEFAULT SYSCALL DEFINE
+-%token ALLOW LOG KILL DENY ERRNO TRAP TRACE
++%token ALLOW LOG KILL DENY ERRNO ERRNO_LOG TRAP TRAP_LOG TRACE
+ 
+ %token GT LT GE LE EQ NEQ
+ 
+@@ -254,6 +254,14 @@ action
+           }
+           $$ = ACTION_ERRNO | ($3 & 0xffff);
+         }
++    | ERRNO_LOG '(' NUMBER ')'
++        {
++          if ($3 > 0xffff) {
++            emit_error(@3, "Errno value %"PRIu64" out of range (0-65535)", $3);
++            YYERROR;
++          }
++          $$ = ACTION_ERRNO_LOG | ($3 & 0xffff);
++        }
+     | TRACE '(' NUMBER ')'
+         {
+           if ($3 > 0xffff) {
+@@ -270,6 +278,14 @@ action
+           }
+           $$ = ACTION_TRAP | ($3 & 0xffff);
+         }
++    | TRAP_LOG '(' NUMBER ')'
++        {
++          if ($3 > 0xffff) {
++            emit_error(@3, "Trap value %"PRIu64" out of range (0-65535)", $3);
++            YYERROR;
++          }
++          $$ = ACTION_TRAP_LOG | ($3 & 0xffff);
++        }
+     ;
+ 
+ syscall_filters
+diff --git a/src/policy.h b/src/policy.h
+index 82b1158..6ba8280 100644
+--- a/src/policy.h
++++ b/src/policy.h
+@@ -45,6 +45,8 @@ enum {
+   ACTION_TRAP = 0x10000,
+   ACTION_ERRNO = 0x20000,
+   ACTION_TRACE = 0x40000,
++  ACTION_TRAP_LOG = 0x80000,
++  ACTION_ERRNO_LOG = 0x100000,
+ };
+ 
+ struct policy_entry {
+-- 
+2.17.1
+

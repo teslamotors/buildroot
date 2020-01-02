@@ -1,0 +1,6 @@
+config BR2_PACKAGE_LIBBACKTRACE
+       bool "libbacktrace"
+       help
+         libbacktrace - unwinding library
+
+         https://github.com/ianlancetaylor/libbacktrace

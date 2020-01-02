@@ -1,0 +1,11 @@
+config BR2_PACKAGE_AP_LINUX_SYSCALL_SUPPORT
+	bool "linux-syscall-support (lss)"
+	help
+	  This project provides a header file that can be included into
+	  your application whenever you need to make direct system
+	  calls.
+	  
+	  Tesla: This has been backported to work in our old buildroot
+	  for the purpose of autopilot breakpad support.
+
+	  https://chromium.googlesource.com/linux-syscall-support/

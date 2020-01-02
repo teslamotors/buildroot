@@ -15,6 +15,7 @@ LIBSIGC_LICENSE_FILES = COPYING
 
 define LIBSIGC_INSTALL_TARGET_FIXUP
 	rm -rf $(TARGET_DIR)/usr/share/devhelp/books/libsigc++*
+	rm -rf $(TARGET_DIR)/usr/lib/sigc++-*/include
 endef
 
 LIBSIGC_POST_INSTALL_TARGET_HOOKS += LIBSIGC_INSTALL_TARGET_FIXUP

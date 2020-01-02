@@ -1,0 +1,20 @@
+--- runit-2.1.2/src/runsvdir.c~	2017-03-14 18:08:16.537953286 -0700
++++ runit-2.1.2/src/runsvdir.c	2017-03-15 10:07:26.339318924 -0700
+@@ -232,9 +232,15 @@ int main(int argc, char **argv) {
+             mtime =s.st_mtime;
+             dev =s.st_dev;
+             ino =s.st_ino;
+-            check =0;
+-            if (now.sec.x <= (4611686018427387914ULL +(uint64)mtime))
++            /*
++             * Not quite sure If I understand this check.
++             * Nevertheless, It sounds like we can skip this when
++             * check is '1' at which point we don't depend on
++             * now, mtime anyways.
++             */
++            if (!check && now.sec.x <= (4611686018427387914ULL +(uint64)mtime))
+               sleep(1);
++            check =0;
+             runsvdir();
+             while (fchdir(curdir) == -1) {
+               warn("unable to change directory, pausing", 0);

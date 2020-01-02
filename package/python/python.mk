@@ -17,6 +17,7 @@ PYTHON_LIBTOOL_PATCH = NO
 # also installed in $(HOST_DIR), as it is needed when cross-compiling
 # third-party Python modules.
 
+HOST_PYTHON_DEPENDENCIES += host-openssl
 HOST_PYTHON_CONF_OPTS += \
 	--enable-static \
 	--without-cxx-main \
@@ -32,7 +33,6 @@ HOST_PYTHON_CONF_OPTS += \
 	--disable-bsddb \
 	--disable-test-modules \
 	--disable-bz2 \
-	--disable-ssl \
 	--disable-ossaudiodev \
 	--disable-pyo-build
 

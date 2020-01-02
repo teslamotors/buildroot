@@ -1,0 +1,4 @@
+# md5, sha256 from https://pypi.python.org/pypi/altgraph/json
+md5 b8f5c435f769ae57e7cda8c8a9769844 altgraph-0.16.1.tar.gz
+sha256 ddf5320017147ba7b810198e0b6619bd7b5563aa034da388cea8546b877f9b0c altgraph-0.16.1.tar.gz
+sha256 04d3c25e835d24dbfc8c31cd7d601e05b1c39dc10fc774e2cf509eb16692cea5 LICENSE

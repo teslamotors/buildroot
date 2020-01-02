@@ -241,7 +241,7 @@ endif
 # this top-level Makefile in parallel comment the ".NOTPARALLEL" line and
 # use the -j<jobs> option when building, e.g:
 #      make -j$((`getconf _NPROCESSORS_ONLN`+1))
-.NOTPARALLEL:
+#.NOTPARALLEL:
 
 # timezone and locale may affect build output
 ifeq ($(BR2_REPRODUCIBLE),y)

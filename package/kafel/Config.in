@@ -1,0 +1,6 @@
+config BR2_PACKAGE_KAFEL
+	bool "kafel"
+	help
+          Kafel - A language and library for specifying syscall filtering policies.
+
+          https://github.com/google/kafel

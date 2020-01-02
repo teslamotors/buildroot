@@ -1,0 +1,55 @@
+From 4abdf6633574863038e8c98ca940d153ed61602b Mon Sep 17 00:00:00 2001
+Date: Tue, 6 Feb 2018 19:05:27 -0800
+Subject: [PATCH] minijail: Forward signal in PID namespace
+
+When minijail double-forks in order to properly
+launch a child process without PID 1 in a PID
+namespace, signals only get forwarded to "init",
+and not the actual process.  This change ensures
+that signals get forwarded all the way down the
+process tree in the PID namespace.
+---
+ libminijail.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/libminijail.c b/libminijail.c
+index 708d41e..42e676e 100644
+--- a/libminijail.c
++++ b/libminijail.c
+@@ -1891,6 +1891,7 @@ static void set_seccomp_filter(const struct minijail *j)
+ }
+ 
+ static pid_t forward_pid = -1;
++static pid_t forward_pid_ns = -1;
+ 
+ static void forward_signal(int sig,
+ 			   siginfo_t *siginfo attribute_unused,
+@@ -1899,6 +1900,9 @@ static void forward_signal(int sig,
+ 	if (forward_pid != -1) {
+ 		kill(forward_pid, sig);
+ 	}
++	if (forward_pid_ns != -1) {
++		kill(forward_pid_ns, sig);
++	}
+ }
+ 
+ static void install_signal_handlers(void)
+@@ -2140,6 +2144,7 @@ void init(pid_t rootpid)
+ 	int status;
+ 	/* So that we exit with the right status. */
+ 	signal(SIGTERM, init_term);
++	install_signal_handlers();
+ 	/* TODO(wad): self jail with seccomp filters here. */
+ 	while ((pid = wait(&status)) > 0) {
+ 		/*
+@@ -2836,6 +2841,7 @@ static int minijail_run_internal(struct minijail *j,
+ 			/*
+ 			 * Best effort. Don't bother checking the return value.
+ 			 */
++			forward_pid_ns = child_pid;
+ 			prctl(PR_SET_NAME, "minijail-init");
+ 			init(child_pid);	/* Never returns. */
+ 		}
+-- 
+2.7.4
+

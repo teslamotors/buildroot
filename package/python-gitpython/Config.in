@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PYTHON_GITPYTHON
+	bool "python-gitpython"
+	depends on BR2_PACKAGE_PYTHON_GITDB2
+	help
+	  Python Package - Python Git Library
+
+	  https://pypi.org/project/GitPython/

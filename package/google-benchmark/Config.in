@@ -1,0 +1,4 @@
+config BR2_PACKAGE_GOOGLE_BENCHMARK
+	bool "google-benchmark"
+	help
+	  Install Google Benchmark for C++ unit-test performance measurements.

@@ -13,8 +13,10 @@ XDRIVER_XF86_VIDEO_INTEL_AUTORECONF = YES
 # -D_GNU_SOURCE fixes a getline-related compile error in src/sna/kgem.c
 # We force -O2 regardless of the optimization level chosen by the user,
 # as compiling this package is known to be broken with -Os.
+# Disable full RELRO because X can't hang with the big boys.
 XDRIVER_XF86_VIDEO_INTEL_CONF_ENV = \
-	CFLAGS="$(TARGET_CFLAGS) -D_GNU_SOURCE -O2"
+	CFLAGS="$(TARGET_CFLAGS) -D_GNU_SOURCE -O2 -Wl,-z,lazy"
+XDRIVER_XF86_VIDEO_INTEL_CONF_ENV += LDFLAGS="$(TARGET_LDFLAGS) -z lazy"
 
 XDRIVER_XF86_VIDEO_INTEL_CONF_OPTS = \
 	--disable-xvmc \

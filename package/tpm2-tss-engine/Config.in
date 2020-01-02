@@ -1,0 +1,11 @@
+config BR2_PACKAGE_TPM2_TSS_ENGINE
+	bool "tpm2-tss-engine"
+	depends on BR2_PACKAGE_OPENSSL
+	select BR2_PACKAGE_TPM2_TSS
+	help
+	The tpm2-tss-engine project implements an OpenSSL engine for the 
+	Trusted Platform Module (TPM) 2.0 using the tpm2-tss software stack 
+	that follows the Trusted Computing Groups (TCG) TPM Software Stack 
+	(TSS 2.0).
+
+	https://github.com/tpm2-software/tpm2-tss-engine

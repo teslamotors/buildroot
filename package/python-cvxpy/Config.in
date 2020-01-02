@@ -1,0 +1,14 @@
+config BR2_PACKAGE_PYTHON_CVXPY
+	bool "python-cvxpy"
+        select BR2_PACKAGE_HOST_PYTHON_NUMPY
+        select BR2_PACKAGE_PYTHON_NUMPY
+        select BR2_PACKAGE_PYTHON_CVXCANON
+	select BR2_PACKAGE_PYTHON_MULTIPROCESS
+        select BR2_PACKAGE_PYTHON_SCIPY
+        select BR2_PACKAGE_PYTHON_TOOLZ
+        select BR2_PACKAGE_PYTHON_SCS
+        select BR2_PACKAGE_OPENBLAS
+	help
+	  A domain-specific language for modeling convex optimization problems in Python
+
+	  https://pypi.python.org/pypi/cvxpy

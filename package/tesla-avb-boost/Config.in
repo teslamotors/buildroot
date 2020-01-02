@@ -1,0 +1,166 @@
+comment "boost needs a toolchain w/ C++, threads, wchar"
+	depends on !BR2_INSTALL_LIBSTDCPP || !BR2_TOOLCHAIN_HAS_THREADS || !BR2_USE_WCHAR
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_ARCH_SUPPORTS
+	bool
+	default y if !BR2_TOOLCHAIN_EXTERNAL_CODESOURCERY_NIOSII
+
+config BR2_PACKAGE_TESLA_AVB_BOOST
+	bool "tesla_avb_boost"
+	depends on BR2_INSTALL_LIBSTDCPP
+	depends on BR2_PACKAGE_TESLA_AVB_BOOST_ARCH_SUPPORTS
+	# Tesla_Avb_Boost could theorically be built with threading=single, but
+	# that unfortunately doesn't work. Until someone fixes that,
+	# let's depend on threads.
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	depends on BR2_USE_WCHAR
+	help
+	  Contortions to supply the specific version of Boost that are
+	  required by the Intel AVB binaries that we are using.
+
+	  http://www.boost.org/
+
+if BR2_PACKAGE_TESLA_AVB_BOOST
+config BR2_PACKAGE_TESLA_AVB_BOOST_INSTALL_PREFIX
+	string "install prefix"
+	default "/opt/tesla-avb-boost"
+	help
+	  Selects the target install directory prefix for Tesla AVB Boost libraries
+
+choice
+	prompt "Layout"
+	default BR2_PACKAGE_TESLA_AVB_BOOST_LAYOUT_SYSTEM
+	help
+	  Selects the layout of Tesla_Avb_Boost binary names
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_LAYOUT_SYSTEM
+	bool "system"
+	help
+	  Tesla_Avb_Boost binary names do not include the Tesla_Avb_Boost version number
+	  or the name and version number of the compiler.
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_LAYOUT_TAGGED
+	bool "tagged"
+	help
+	  Tesla_Avb_Boost binary names include the encoded build properties such
+	  as variant and threading, but do not include compiler name
+	  and version, or Tesla_Avb_Boost version. This option is useful if you
+	  build several variants of Tesla_Avb_Boost, using the same compiler.
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_LAYOUT_VERSIONED
+	bool "versioned"
+	help
+	  Tesla_Avb_Boost binary names include the Tesla_Avb_Boost version number, name
+	  and version of the compiler and encoded build properties.
+
+endchoice
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_LAYOUT
+	string
+	default "system" if BR2_PACKAGE_TESLA_AVB_BOOST_LAYOUT_SYSTEM
+	default "tagged" if BR2_PACKAGE_TESLA_AVB_BOOST_LAYOUT_TAGGED
+	default "versioned" if BR2_PACKAGE_TESLA_AVB_BOOST_LAYOUT_VERSIONED
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_ATOMIC
+	bool "tesla_avb_boost-atomic"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_CHRONO
+	bool "tesla_avb_boost-chrono"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_CONTAINER
+	bool "tesla_avb_boost-container"
+
+# see
+# http://www.boost.org/doc/libs/1_59_0/libs/context/doc/html/context/architectures.html
+# for the list of supported architectures. Sparc pretends to be
+# supported, but it doesn't build.
+config BR2_PACKAGE_TESLA_AVB_BOOST_CONTEXT
+	bool "tesla_avb_boost-context"
+	depends on (BR2_arm || BR2_armeb || BR2_i386 || BR2_mips || BR2_mipsel \
+			|| BR2_powerpc || BR2_x86_64)
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_COROUTINE
+	bool "tesla_avb_boost-coroutine"
+	depends on BR2_PACKAGE_TESLA_AVB_BOOST_CONTEXT
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_COROUTINE2
+	bool "tesla_avb_boost-coroutine2"
+	depends on BR2_PACKAGE_TESLA_AVB_BOOST_CONTEXT
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_DATE_TIME
+	bool "tesla_avb_boost-date_time"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_EXCEPTION
+	bool "tesla_avb_boost-exception"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_FILESYSTEM
+	bool "tesla_avb_boost-filesystem"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_GRAPH
+	bool "tesla_avb_boost-graph"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_GRAPH_PARALLEL
+	bool "tesla_avb_boost-graph_parallel"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_IOSTREAMS
+	bool "tesla_avb_boost-iostreams"
+	select BR2_PACKAGE_BZIP2
+	select BR2_PACKAGE_ZLIB
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_LOCALE
+	bool "tesla_avb_boost-locale"
+	select BR2_PACKAGE_LIBICONV if !BR2_ENABLE_LOCALE
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_LOG
+	bool "tesla_avb_boost-log"
+	depends on BR2_TOOLCHAIN_HAS_THREADS_NPTL
+	# for some reason, uClibc on PowerPC fails to build the tesla_avb_boost
+	# log module
+	depends on !(BR2_powerpc && BR2_TOOLCHAIN_USES_UCLIBC)
+
+comment "tesla_avb_boost-log needs a toolchain w/ NPTL"
+	depends on !BR2_TOOLCHAIN_HAS_THREADS_NPTL
+	depends on !(BR2_powerpc && BR2_TOOLCHAIN_USES_UCLIBC)
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_MATH
+	bool "tesla_avb_boost-math"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_MPI
+	bool "tesla_avb_boost-mpi"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_PROGRAM_OPTIONS
+	bool "tesla_avb_boost-program_options"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_PYTHON
+	depends on BR2_PACKAGE_PYTHON || BR2_PACKAGE_PYTHON3
+	bool "tesla_avb_boost-python"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_RANDOM
+	bool "tesla_avb_boost-random"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_REGEX
+	bool "tesla_avb_boost-regex"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_SERIALIZATION
+	bool "tesla_avb_boost-serialization"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_SIGNALS
+	bool "tesla_avb_boost-signals"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_SYSTEM
+	bool "tesla_avb_boost-system"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_TEST
+	bool "tesla_avb_boost-test"
+	depends on BR2_USE_MMU # fork()
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_THREAD
+	bool "tesla_avb_boost-thread"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_TIMER
+	bool "tesla_avb_boost-timer"
+
+config BR2_PACKAGE_TESLA_AVB_BOOST_WAVE
+	bool "tesla_avb_boost-wave"
+
+endif

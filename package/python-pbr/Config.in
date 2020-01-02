@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PYTHON_PBR
+	bool "python-pbr"
+	help
+	  Python Package - Python Build Reasonableness
+
+	  https://pypi.org/project/pbr/

@@ -1,0 +1,28 @@
+This is an old version of protobuf - we have packages that reference it still, they are getting confused between whether they should link the protobuf3 or these libraries.
+
+To enforce that these libraries are used when appropriate reference the exact version of protobuf2 via its .so file.
+
+Tesla-internal patch, do not apply upstream.
+--- a/protobuf.pc.in
++++ b/protobuf.pc.in
+@@ -6,7 +6,7 @@ includedir=@includedir@
+ Name: Protocol Buffers
+ Description: Google's Data Interchange Format
+ Version: @VERSION@
+-Libs: -L${libdir} -lprotobuf @PTHREAD_CFLAGS@ @PTHREAD_LIBS@
++Libs: -L${libdir} -l:libprotobuf.so.9 @PTHREAD_CFLAGS@ @PTHREAD_LIBS@
+ Libs.private: @LIBS@
+ Cflags: -I${includedir} @PTHREAD_CFLAGS@
+ # Commented out because it crashes pkg-config *sigh*:
+
+--- a/protobuf-lite.pc.in
++++ b/protobuf-lite.pc.in
+@@ -6,7 +6,7 @@ includedir=@includedir@
+ Name: Protocol Buffers
+ Description: Google's Data Interchange Format
+ Version: @VERSION@
+-Libs: -L${libdir} -lprotobuf-lite @PTHREAD_CFLAGS@ @PTHREAD_LIBS@
++Libs: -L${libdir} -l:libprotobuf-lite.so.9 @PTHREAD_CFLAGS@ @PTHREAD_LIBS@
+ Cflags: -I${includedir} @PTHREAD_CFLAGS@
+ # Commented out because it crashes pkg-config *sigh*:
+ #   http://bugs.freedesktop.org/show_bug.cgi?id=13265

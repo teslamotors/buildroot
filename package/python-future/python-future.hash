@@ -1,0 +1,5 @@
+# md5, sha256 from https://pypi.python.org/pypi/future/json
+md5 3e8e88a2bda48d54b1da7634d04760d7 future-0.16.0.tar.gz
+sha256 e39ced1ab767b5936646cedba8bcce582398233d6a627067d4c6a454c90cfedb future-0.16.0.tar.gz
+sha256 9c1e620a5cf8e74fe81c1fd4c55e9cc0b189fc04e677cfc7ef915de746c3f59e LICENSE
+sha256 c3c99f3e65c29ddbdb236e5a7fe2ec670f365af325812211dc271cb0af222085 LICENSE.txt

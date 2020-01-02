@@ -1,0 +1,7 @@
+config BR2_PACKAGE_SUITESPARSE
+       bool "suitesparse"
+       depends on BR2_PACKAGE_METIS
+       help
+         A suite of sparse matrix algorithms
+
+         http://faculty.cse.tamu.edu/davis/suitesparse.html

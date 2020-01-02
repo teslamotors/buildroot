@@ -1,0 +1,31 @@
+From b68c7118c54a3d5be56ebe883ecfdb0127fce801 Mon Sep 17 00:00:00 2001
+Date: Fri, 4 Aug 2017 16:34:53 -0700
+Subject: [PATCH] SW-112235: python: Always pass -lcrypt
+
+gcc/glibc require -lcrypt to link against glibc when crypt is used,
+even though the function is within libc.
+
+---
+ setup.py | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index c9ccb5e..949c2a4 100644
+--- a/setup.py
++++ b/setup.py
+@@ -760,11 +760,7 @@ class PyBuildExt(build_ext):
+ 
+         # crypt module.
+ 
+-        if self.compiler.find_library_file(lib_dirs, 'crypt'):
+-            libs = ['crypt']
+-        else:
+-            libs = []
+-        exts.append( Extension('crypt', ['cryptmodule.c'], libraries=libs) )
++        exts.append( Extension('crypt', ['cryptmodule.c'], libraries=['crypt']) )
+ 
+         # CSV files
+         exts.append( Extension('_csv', ['_csv.c']) )
+-- 
+2.10.2
+

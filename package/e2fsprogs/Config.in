@@ -21,6 +21,16 @@ menuconfig BR2_PACKAGE_E2FSPROGS
 
 if BR2_PACKAGE_E2FSPROGS
 
+config BR2_PACKAGE_E2FSPROGS_OVERWRITE_BUSYBOX
+	bool "Overwrite Busybox's tools"
+	default y
+	help
+	  overwrite busybox's e2fstools by installing to /bin and /sbin
+	  instead of installing to /usr/bin and /usr/sbin
+
+	  Warning: If you also build busybox e2fsprogs, then unchecking
+	  this option will result in 2 e2fs binaries on the target
+
 config BR2_PACKAGE_E2FSPROGS_DEBUGFS
 	bool "debugfs"
 	help

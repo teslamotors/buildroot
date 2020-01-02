@@ -1,0 +1,199 @@
+From 3feccabb11fb312f0198551b31c3d38326c32d31 Mon Sep 17 00:00:00 2001
+Date: Wed, 12 Jun 2019 17:03:10 -0700
+Subject: [PATCH] mmc: Add support for Micron CMD56 health report
+
+Add new command "mmc micron health" that executes Micron's Secure
+Smart Report command and displays the data returned.
+
+---
+ mmc.c      |   6 +++
+ mmc.h      |   7 +++
+ mmc_cmds.c | 123 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ mmc_cmds.h |   1 +
+ 4 files changed, 137 insertions(+)
+
+diff --git a/mmc.c b/mmc.c
+index 9a81ca0..7346fab 100644
+--- a/mmc.c
++++ b/mmc.c
+@@ -215,6 +215,12 @@ static struct Command commands[] = {
+ 		"Run Field Firmware Update with <image name> on <device>.",
+ 	  NULL
+ 	},
++	{ do_micron_health, -1,
++	  "micron health", "[-d] <device>\n"
++	  "Usage: mmc micron health [-d] <device>\n"
++	  "-d\tdump raw data block",
++	  NULL
++	},
+ 	{ do_vendor_ext_csd, -5,
+ 	  "vendor extcsd", "<opcode1> <arg1> <opcode2> <arg2> <device>\n"
+ 		"Print vendor-specific extcsd data from <device>.",
+diff --git a/mmc.h b/mmc.h
+index aaccccc..c7bcc01 100644
+--- a/mmc.h
++++ b/mmc.h
+@@ -35,6 +35,13 @@
+ #define MMC_CLEAR_WRITE_PROT	29    /* ac   [31:0] data addr   R1b */
+ #define MMC_SEND_WRITE_PROT_TYPE 31   /* ac   [31:0] data addr   R1  */
+ 
++/*
++ * Micron CMD56 Vendor-specific commands
++ */
++#define MMC_MICRON_CMD56	56	/* CMD56: adtc, R1 */
++#define MMC_MICRON_CMD56_BS	512	/* CMD56 data block size */
++#define MMC_MICRON_CMD56_SSR	0x00039	/* arg: Secure Smart Report */
++
+ /*
+  * Vendor-specific commands
+  */
+diff --git a/mmc_cmds.c b/mmc_cmds.c
+index c4066f5..63e8105 100644
+--- a/mmc_cmds.c
++++ b/mmc_cmds.c
+@@ -97,6 +97,44 @@ int write_extcsd_value(int fd, __u8 index, __u8 value)
+ 	return ret;
+ }
+ 
++/* Micron CMD56 commands returning one 512-byte block of data */
++int micron_cmd56_read(int fd, int cmd56_arg, __u8 *buf)
++{
++	int ret = 0;
++	struct mmc_ioc_cmd idata;
++
++	memset(&idata, 0, sizeof(idata));
++	memset(buf, 0, sizeof(__u8) * MMC_MICRON_CMD56_BS);
++	idata.write_flag = 0;
++	idata.opcode = MMC_MICRON_CMD56;
++	idata.arg = cmd56_arg;
++	idata.flags = MMC_RSP_SPI_R1 | MMC_RSP_R1 | MMC_CMD_ADTC;
++	idata.blksz = MMC_MICRON_CMD56_BS;
++	idata.blocks = 1;
++	mmc_ioc_cmd_set_data(idata, buf);
++
++	ret = ioctl(fd, MMC_IOC_CMD, &idata);
++	if (ret)
++		perror("ioctl");
++
++	return ret;
++}
++
++/* Hex dump out raw data */
++void hex_dump_data(__u8 *buf, int buf_size)
++{
++	int count = 0;
++
++	while (count < buf_size) {
++		if (count % 16 == 0)
++			printf("\n%03x:  ", count);
++		printf("%02x ", buf[count]);
++		count++;
++	}
++	printf("\n");
++}
++
++
+ /*
+  * Vendor-specific CMD8 and CMD18 sequences.
+  * e.g., CMD60(arg1) + CMD60(arg2) + SEND_EXT_CSD
+@@ -2807,3 +2845,88 @@ out:
+ 	return ret;
+ #endif
+ }
++
++#define LE_WORD_AT(n)	(__u32) ((buf[n+3] << 24) | (buf[n+2] << 16) | (buf[n+1] << 8) | buf[n+0])
++#define BE_WORD_AT(n)	(__u32) ((buf[n+0] << 24) | (buf[n+1] << 16) | (buf[n+2] << 8) | buf[n+3])
++int do_micron_health(int nargs, char **argv)
++{
++	__u8 *buf;
++	int ret = 0;
++	int fd;
++	char *device;
++
++	buf = malloc(MMC_MICRON_CMD56_BS);
++	if (buf == NULL) {
++		perror("failed to allocate memory");
++		ret = -ENOMEM;
++		goto out;
++	}
++
++	if (nargs != 2 && nargs != 3) {
++		fprintf(stderr, "Usage: mmc micron health [-d] "
++				"</path/to/mmcblkX>\n");
++		exit(1);
++	}
++
++	device = argv[nargs-1];
++
++	fd = open(device, O_RDWR);
++	if (fd < 0) {
++		perror("open");
++		exit(1);
++	}
++
++	/* Execute CMD56 and get one 512-byte data block */
++	ret = micron_cmd56_read(fd, MMC_MICRON_CMD56_SSR, buf);
++
++	if (ret) {
++		fprintf(stderr, "Could not read health status from %s\n",
++			device);
++		exit(1);
++	}
++
++	close(fd);
++
++	if (!strncmp("-d", argv[1], 2)) {
++		printf("Micron Health Status Report Raw Data:\n");
++		hex_dump_data(buf, MMC_MICRON_CMD56_BS);
++		printf("\n");
++	}
++
++	printf("Power Loss Counter [PWR_LOSS_COUNT]: %d\n", LE_WORD_AT(192));
++	printf("Data Written 100MB Size Count [WRITE_COUNT_100MB]: %d\n",
++	       LE_WORD_AT(68));
++	printf("Cumulative Init Count [INIT_COUNT]: %d\n", LE_WORD_AT(48));
++
++	printf("Total SLC block erases [SLC_ERASES_TOTAL]: %d\n",
++	       BE_WORD_AT(44));
++	printf("Average SLC block erases [SLC_ERASES_AVG]: %d\n",
++	       BE_WORD_AT(40));
++	printf("Minimum SLC block erases [SLC_ERASES_MIN]: %d\n",
++	       BE_WORD_AT(32));
++	printf("Maximum SLC block erases [SLC_ERASES_MAX]: %d\n",
++	       BE_WORD_AT(36));
++
++	printf("Total MLC block erases [MLC_ERASES_TOTAL]: %d\n",
++	       BE_WORD_AT(28));
++	printf("Average MLC block erases [MLC_ERASES_AVG]: %d\n",
++	       BE_WORD_AT(24));
++	printf("Minimum MLC block erases [MLC_ERASES_MIN]: %d\n",
++	       BE_WORD_AT(16));
++	printf("Maximum MLC block erases [MLC_ERASES_MAX]: %d\n",
++	       BE_WORD_AT(20));
++
++	printf("Spare Blocks Remaining [SPARE_BLOCKS_LEFT]: %d\n",
++	       (__u16) (buf[5] | (buf[4] << 8)));
++
++	printf("Runtime Bad Block Count [RT_BAD_BLOCK_COUNT]: %d\n",
++	       (__u16) (buf[3] | (buf[2] << 8)));
++
++	printf("Initial Bad Block Count [INIT_BAD_BLOCK_COUNT]: %d\n",
++	       (__u16) (buf[1] | (buf[0] << 8)));
++
++	free(buf);
++
++out:
++	return ret;
++}
+diff --git a/mmc_cmds.h b/mmc_cmds.h
+index 78350be..4eb3799 100644
+--- a/mmc_cmds.h
++++ b/mmc_cmds.h
+@@ -47,3 +47,4 @@ int do_ffu(int nargs, char **argv);
+ int do_read_scr(int argc, char **argv);
+ int do_read_cid(int argc, char **argv);
+ int do_read_csd(int argc, char **argv);
++int do_micron_health(int nargs, char **argv);
+-- 
+2.17.2
+

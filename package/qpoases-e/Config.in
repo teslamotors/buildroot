@@ -1,0 +1,7 @@
+config BR2_PACKAGE_QPOASES_E
+       bool "QPOASES"
+       help
+         qpOASES embedded - This is an almost complete plain C, static memory
+         translation of qpOASES 3.1 from February 2015
+
+         https://projects.coin-or.org/qpOASES/wiki/QpoasesEmbedded

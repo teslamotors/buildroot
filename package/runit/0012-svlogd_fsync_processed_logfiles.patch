@@ -1,0 +1,41 @@
+Reduce vulnerability to power loss events as files get processed and
+rotated by flushing the processed file and its containing log
+directory.
+
+--- runit-2.1.2/src/svlogd.c
++++ runit-2.1.2/src/svlogd.c
+@@ -183,6 +183,7 @@
+   return(1);
+ }
+ unsigned int processorstop(struct logdir *ld) {
++  int fd;
+   char f[28];
+ 
+   if (ld->ppid) {
+@@ -206,12 +207,26 @@
+     return(ld->processor.len ? 0 : 1);
+   }
+   ld->fnsave[26] ='t';
++
++  /* ensure processed .t file gets flushed to disk */
++  if ((fd = open_read(ld->fnsave)) < 0) {
++    warnx("unable to open processed output file", ld->fnsave);
++  } else {
++    if (fsync(fd) < 0)
++      warnx("unable to flush processed output file", ld->fnsave);
++    close(fd);
++  }
++
+   byte_copy(f, 26, ld->fnsave);
+   f[26] ='s'; f[27] =0;
+   while (rename(ld->fnsave, f) == -1)
+     pause2("unable to rename processed", ld->name);
+   while (chmod(f, 0744) == -1)
+     pause2("unable to set mode of processed", ld->name);
++
++  /* before unlink, sync containing directory for power loss immunity */
++  fsync(ld->fddir);
++
+   ld->fnsave[26] ='u';
+   if (unlink(ld->fnsave) == -1)
+     strerr_warn5(WARNING, "unable to unlink: ", ld->name, "/", ld->fnsave, 0);

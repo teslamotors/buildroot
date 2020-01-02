@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PYTHON_PLOTLY
+	bool "python-plotly"
+	select BR2_PACKAGE_PYTHON_REQUESTS
+	help
+	  Python plotting library for collaborative, interactive, publication-quality graphs.
+
+	  https://plot.ly/

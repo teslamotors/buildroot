@@ -1,0 +1,29 @@
+From d887e5395b56a09b397b6e56bba1c3a14cf85c72 Mon Sep 17 00:00:00 2001
+Date: Wed, 22 May 2019 11:07:15 -0700
+Subject: [PATCH] numpy/distutils: Fix fortran detection magick regex yet again
+
+If you find yourself with an increasingly complex chain of regular
+expressions to attempt to detect the version of a compiler series, you
+should perhaps rethink your approach to software and version
+compatibility.
+---
+ numpy/distutils/fcompiler/gnu.py | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/numpy/distutils/fcompiler/gnu.py b/numpy/distutils/fcompiler/gnu.py
+index 0ebbe79..468f55d 100644
+--- a/numpy/distutils/fcompiler/gnu.py
++++ b/numpy/distutils/fcompiler/gnu.py
+@@ -66,8 +66,7 @@ class GnuFCompiler(FCompiler):
+             m = re.search(r'GNU Fortran\s+95.*?([0-9-.]+)', version_string)
+             if m:
+                 return ('gfortran', m.group(1))
+-            m = re.search(
+-                r'GNU Fortran.*?\-?([0-9-.]+\.[0-9-.]+)', version_string)
++            m = re.search(r'GNU Fortran.*?(?:\(.*?\))?\s+([0-9-.]+)', version_string)
+             if m:
+                 v = m.group(1)
+                 if v.startswith('0') or v.startswith('2') or v.startswith('3'):
+-- 
+2.19.2
+

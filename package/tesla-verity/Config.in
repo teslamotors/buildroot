@@ -1,0 +1,32 @@
+config BR2_PACKAGE_TESLA_VERITY
+       bool "Tesla verity init"
+       select BR2_PACKAGE_OPENSSL
+       select BR2_PACKAGE_LVM2
+       help
+         Tesla-specific target init program for authenticating and mounting verity images
+
+if BR2_PACKAGE_TESLA_VERITY
+choice
+        prompt "Target system"
+        default BR2_PACKAGE_TESLA_VERITY_AP_HW2
+        help
+          Select the target system.
+
+config BR2_PACKAGE_TESLA_VERITY_AP_HW2
+       bool "ap-hw2"
+       help
+         Autopilot HW2 and HW2.5.
+
+config BR2_PACKAGE_TESLA_VERITY_AP_HW3
+       bool "ap-hw3"
+       help
+         Autopilot HW3
+
+config BR2_PACKAGE_TESLA_VERITY_ICE_MRB
+       bool "ice-mrb"
+       select BR2_PACKAGE_LIBHECI
+       help
+         Infotainment system.
+
+endchoice
+endif

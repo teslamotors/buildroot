@@ -14,8 +14,8 @@ E2FSPROGS_INSTALL_STAGING = YES
 # Use libblkid and libuuid from util-linux for host and target packages.
 # This prevents overriding them with e2fsprogs' ones, which may cause
 # problems for other packages.
-E2FSPROGS_DEPENDENCIES = host-pkgconf util-linux
-HOST_E2FSPROGS_DEPENDENCIES = host-pkgconf host-util-linux
+E2FSPROGS_DEPENDENCIES = host-pkgconf util-linux host-gettext host-bison
+HOST_E2FSPROGS_DEPENDENCIES = host-pkgconf host-util-linux host-gettext host-bison
 
 # e4defrag doesn't build on older systems like RHEL5.x, and we don't
 # need it on the host anyway.
@@ -30,11 +30,8 @@ HOST_E2FSPROGS_CONF_OPTS = \
 	--enable-symlink-install \
 	--enable-elf-shlibs
 
-# Set the binary directories to "/bin" and "/sbin", as busybox does,
-# so that we do not end up with two versions of e2fs tools.
 E2FSPROGS_CONF_OPTS = \
-	--bindir=/bin \
-	--sbindir=/sbin \
+	$(if $(BR2_PACKAGE_E2FSPROGS_OVERWRITE_BUSYBOX), --bindir=/bin --sbindir=/sbin, ) \
 	$(if $(BR2_STATIC_LIBS),--disable-elf-shlibs,--enable-elf-shlibs) \
 	$(if $(BR2_PACKAGE_E2FSPROGS_DEBUGFS),--enable-debugfs,--disable-debugfs) \
 	$(if $(BR2_PACKAGE_E2FSPROGS_E2IMAGE),--enable-imager,--disable-imager) \

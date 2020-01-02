@@ -1,0 +1,64 @@
+SW-116502: Optionally start each log file with fixed line
+
+When a firstline is specified with 0<firstline> in a configuration
+file, new log files will have a <firstline> log before any other logs
+lines, including any timestamp and prefix.
+
+--- runit-2.1.2/doc/svlogd.8.html	2017-10-11 02:49:10.672462231 -0700
++++ runit-2.1.2/doc/svlogd.8.html	2017-10-11 04:08:54.896385757 -0700
+@@ -125,6 +125,10 @@ concerning sending udp packages still go
+ <dd>tells
+ <b>svlogd</b> to prefix each line to be written to the log directory, to standard
+ error, or through UDP, with <i>prefix</i>. </dd>
++
++<dt>0<i>firstline</i> </dt>
++<dd>tells
++<b>svlogd</b> to add a log line of <i>firstline</i> to each created log file. </dd>
+ </dl>
+ <p>
+ If a line starts with a <i>-</i>, <i>+</i>, <i>e</i>, or <i>E</i>,
+diff -purN runit-2.1.2/src/svlogd.c runit-2.1.2/src/svlogd.c
+--- runit-2.1.2/src/svlogd.c	2017-10-11 04:00:49.000393523 -0700
++++ runit-2.1.2/src/svlogd.c	2017-10-11 04:05:18.380389218 -0700
+@@ -97,6 +97,7 @@ struct logdir {
+   struct sockaddr_in udpaddr;
+   unsigned int udponly;
+   stralloc prefix;
++  stralloc first;
+ } *dir;
+ unsigned int dirn =0;
+ 
+@@ -457,6 +458,7 @@ unsigned int logdir_open(struct logdir *
+   ld->udpaddr.sin_port =0;
+   ld->udponly =0;
+   while (! stralloc_copys(&ld->prefix, "")) pause_nomem();
++  while (! stralloc_copys(&ld->first, "")) pause_nomem();
+   while (! stralloc_copys(&ld->inst, "")) pause_nomem();
+   while (! stralloc_copys(&ld->processor, "")) pause_nomem();
+ 
+@@ -538,6 +540,12 @@ unsigned int logdir_open(struct logdir *
+           while (! stralloc_0(&ld->prefix)) pause_nomem();
+         }
+         break;
++      case '0':
++        if (len > 1) {
++          while (! stralloc_copys(&ld->first, &sa.s[i +1])) pause_nomem();
++          while (! stralloc_0(&ld->first)) pause_nomem();
++        }
++        break;
+       }
+       i +=len;
+     }
+@@ -824,6 +834,12 @@ int main(int argc, const char **argv) {
+     if (exitasap && ! data.p) break; /* data buffer is empty */
+     for (i =0; i < dirn; ++i)
+       if (dir[i].fddir != -1) {
++        if (dir[i].first.len && (dir[i].size == 0)) {
++          if (timestamp) buffer_puts(&dir[i].b, stamp);
++          if (dir[i].prefix.len) buffer_puts(&dir[i].b, dir[i].prefix.s);
++          buffer_puts(&dir[i].b, dir[i].first.s);
++          buffer_put(&dir[i].b, "\n", 1);
++        }
+         if (dir[i].inst.len) logmatch(&dir[i]);
+         if (dir[i].matcherr == 'e') {
+           if (timestamp) buffer_puts(buffer_2, stamp);

@@ -1,0 +1,8 @@
+config BR2_PACKAGE_PYTHON_MOCK
+	bool "python-mock"
+	depends on BR2_PACKAGE_PYTHON_PBR
+	depends on BR2_PACKAGE_PYTHON_SIX
+	help
+	  Python Package - Rolling backport of unittest.mock for all Pythons
+
+	  https://pypi.org/project/mock/

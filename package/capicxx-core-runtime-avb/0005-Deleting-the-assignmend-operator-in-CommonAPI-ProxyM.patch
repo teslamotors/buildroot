@@ -1,0 +1,26 @@
+From 61b24b3824597b63124fc8178ff4caa8e4c4aa6c Mon Sep 17 00:00:00 2001
+From: Bernd Gassmann <bernd.gassmann@intel.com>
+Date: Wed, 16 Dec 2015 09:42:03 +0100
+Subject: [PATCH 5/6] Deleting the assignmend operator in
+ CommonAPI::ProxyManager
+
+Change-Id: Ida9632b63c35173ba9a979feaa0d6e1904997252
+---
+ include/CommonAPI/ProxyManager.hpp | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/CommonAPI/ProxyManager.hpp b/include/CommonAPI/ProxyManager.hpp
+index 52d666c..7a89b5c 100644
+--- a/include/CommonAPI/ProxyManager.hpp
++++ b/include/CommonAPI/ProxyManager.hpp
+@@ -32,6 +32,7 @@ public:
+     ProxyManager() = default;
+     ProxyManager(ProxyManager &&) = delete;
+     ProxyManager(const ProxyManager &) = delete;
++    ProxyManager & operator=(const ProxyManager &) = delete;
+ 
+     virtual ~ProxyManager() {}
+ 
+-- 
+2.1.0
+

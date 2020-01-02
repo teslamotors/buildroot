@@ -264,4 +264,10 @@ else
 GST1_PLUGINS_BASE_CONF_OPTS += --disable-vorbis
 endif
 
+define GST1_PLUGINS_BASE_INSTALL_TARGET_FIXUP
+    rm -rf $(TARGET_DIR)/usr/lib/gstreamer-1.0/include/gst/gl
+endef
+
+GST1_PLUGINS_BASE_POST_INSTALL_TARGET_HOOKS += GST1_PLUGINS_BASE_INSTALL_TARGET_FIXUP
+
 $(eval $(autotools-package))

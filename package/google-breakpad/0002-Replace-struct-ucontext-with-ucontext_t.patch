@@ -1,0 +1,158 @@
+From 6500b3147c59ae433aa9e9fd7dc63d4238623d9f Mon Sep 17 00:00:00 2001
+Date: Fri, 23 Aug 2019 17:03:06 -0700
+Subject: [PATCH] Replace 'struct ucontext' with 'ucontext_t'
+
+glibc changed type 'struct ucontext' to a typedef 'ucontext_t' in
+2.26, breaking the universe again.  This patch fixes up all those
+references in breakpad.
+
+References:
+
+https://sourceware.org/git/?p=glibc.git;h=251287734e89a52da3db682a8241eb6bccc050c9
+https://sourceware.org/ml/libc-alpha/2017-08/msg00010.html
+---
+ src/client/linux/handler/exception_handler.cc | 10 +++++-----
+ src/client/linux/handler/exception_handler.h  |  2 +-
+ .../linux/minidump_writer/minidump_writer.cc  |  4 ++--
+ src/common/android/include/sys/ucontext.h     | 20 +++++++++----------
+ 4 files changed, 18 insertions(+), 18 deletions(-)
+
+diff --git a/src/client/linux/handler/exception_handler.cc b/src/client/linux/handler/exception_handler.cc
+index f30e459..f2f234e 100644
+--- a/src/client/linux/handler/exception_handler.cc
++++ b/src/client/linux/handler/exception_handler.cc
+@@ -399,9 +399,9 @@ bool ExceptionHandler::HandleSignal(int sig, siginfo_t* info, void* uc) {
+   }
+   CrashContext context;
+   memcpy(&context.siginfo, info, sizeof(siginfo_t));
+-  memcpy(&context.context, uc, sizeof(struct ucontext));
++  memcpy(&context.context, uc, sizeof(ucontext_t));
+ #if defined(__aarch64__)
+-  struct ucontext *uc_ptr = (struct ucontext*)uc;
++  ucontext_t *uc_ptr = (ucontext_t*)uc;
+   struct fpsimd_context *fp_ptr =
+       (struct fpsimd_context*)&uc_ptr->uc_mcontext.__reserved;
+   if (fp_ptr->head.magic == FPSIMD_MAGIC) {
+@@ -409,9 +409,9 @@ bool ExceptionHandler::HandleSignal(int sig, siginfo_t* info, void* uc) {
+   }
+ #elif !defined(__ARM_EABI__)  && !defined(__mips__)
+   // FP state is not part of user ABI on ARM Linux.
+-  // In case of MIPS Linux FP state is already part of struct ucontext
++  // In case of MIPS Linux FP state is already part of ucontext_t
+   // and 'float_state' is not a member of CrashContext.
+-  struct ucontext *uc_ptr = (struct ucontext*)uc;
++  ucontext_t *uc_ptr = (ucontext_t*)uc;
+   if (uc_ptr->uc_mcontext.fpregs) {
+     memcpy(&context.float_state,
+            uc_ptr->uc_mcontext.fpregs,
+@@ -435,7 +435,7 @@ bool ExceptionHandler::SimulateSignalDelivery(int sig) {
+   // ExceptionHandler::HandleSignal().
+   siginfo.si_code = SI_USER;
+   siginfo.si_pid = getpid();
+-  struct ucontext context;
++  ucontext_t context;
+   getcontext(&context);
+   return HandleSignal(sig, &siginfo, &context);
+ }
+diff --git a/src/client/linux/handler/exception_handler.h b/src/client/linux/handler/exception_handler.h
+index bb88b95..b1ef4f5 100644
+--- a/src/client/linux/handler/exception_handler.h
++++ b/src/client/linux/handler/exception_handler.h
+@@ -193,7 +193,7 @@ class ExceptionHandler {
+   struct CrashContext {
+     siginfo_t siginfo;
+     pid_t tid;  // the crashing thread.
+-    struct ucontext context;
++    ucontext_t context;
+ #if !defined(__ARM_EABI__) && !defined(__mips__)
+     // #ifdef this out because FP state is not part of user ABI for Linux ARM.
+     // In case of MIPS Linux FP state is already part of struct
+diff --git a/src/client/linux/minidump_writer/minidump_writer.cc b/src/client/linux/minidump_writer/minidump_writer.cc
+index 86cec55..478cd88 100644
+--- a/src/client/linux/minidump_writer/minidump_writer.cc
++++ b/src/client/linux/minidump_writer/minidump_writer.cc
+@@ -277,7 +277,7 @@ void CPUFillFromThreadInfo(MDRawContextAMD64 *out,
+   my_memcpy(&out->flt_save.xmm_registers, &info.fpregs.xmm_space, 16 * 16);
+ }
+ 
+-void CPUFillFromUContext(MDRawContextAMD64 *out, const ucontext *uc,
++void CPUFillFromUContext(MDRawContextAMD64 *out, const ucontext_t *uc,
+                          const struct _libc_fpstate* fpregs) {
+   const greg_t* regs = uc->uc_mcontext.gregs;
+ 
+@@ -1805,7 +1805,7 @@ class MinidumpWriter {
+   const int fd_;  // File descriptor where the minidum should be written.
+   const char* path_;  // Path to the file where the minidum should be written.
+ 
+-  const struct ucontext* const ucontext_;  // also from the signal handler
++  const ucontext_t* const ucontext_;  // also from the signal handler
+ #if !defined(__ARM_EABI__) && !defined(__mips__)
+   const google_breakpad::fpstate_t* const float_state_;  // ditto
+ #endif
+diff --git a/src/common/android/include/sys/ucontext.h b/src/common/android/include/sys/ucontext.h
+index 8014928..25a16e8 100644
+--- a/src/common/android/include/sys/ucontext.h
++++ b/src/common/android/include/sys/ucontext.h
+@@ -53,9 +53,9 @@ typedef struct sigcontext mcontext_t;
+ // The ARM kernel uses a 64-bit signal mask.
+ typedef uint32_t  kernel_sigmask_t[2];
+ 
+-typedef struct ucontext {
++typedef ucontext_t {
+   uint32_t uc_flags;
+-  struct ucontext* uc_link;
++  ucontext_t* uc_link;
+   stack_t uc_stack;
+   mcontext_t uc_mcontext;
+   kernel_sigmask_t uc_sigmask;
+@@ -67,9 +67,9 @@ typedef struct ucontext {
+ #include <asm/sigcontext.h>
+ typedef struct sigcontext mcontext_t;
+ 
+-typedef struct ucontext {
++typedef ucontext_t {
+   unsigned long uc_flags;
+-  struct ucontext *uc_link;
++  ucontext_t *uc_link;
+   stack_t uc_stack;
+   sigset_t uc_sigmask;
+   char __padding[128 - sizeof(sigset_t)];
+@@ -131,9 +131,9 @@ enum {
+ // The i386 kernel uses a 64-bit signal mask.
+ typedef uint32_t kernel_sigmask_t[2];
+ 
+-typedef struct ucontext {
++typedef ucontext_t {
+   uint32_t uc_flags;
+-  struct ucontext* uc_link;
++  ucontext_t* uc_link;
+   stack_t uc_stack;
+   mcontext_t uc_mcontext;
+   kernel_sigmask_t uc_sigmask;
+@@ -166,9 +166,9 @@ typedef struct {
+ // The MIPS kernel uses a 128-bit signal mask.
+ typedef uint32_t kernel_sigmask_t[4];
+ 
+-typedef struct ucontext {
++typedef ucontext_t {
+   uint32_t uc_flags;
+-  struct ucontext* uc_link;
++  ucontext_t* uc_link;
+   stack_t uc_stack;
+   mcontext_t uc_mcontext;
+   kernel_sigmask_t uc_sigmask;
+@@ -232,9 +232,9 @@ typedef struct {
+   uint64_t __reserved1[8];
+ } mcontext_t;
+ 
+-typedef struct ucontext {
++typedef ucontext_t {
+   unsigned long uc_flags;
+-  struct ucontext* uc_link;
++  ucontext_t* uc_link;
+   stack_t uc_stack;
+   mcontext_t uc_mcontext;
+   sigset_t uc_sigmask;
+-- 
+2.19.2
+

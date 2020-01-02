@@ -1,0 +1,213 @@
+diff -upr a/include/linux/ppp_defs.h b/include/linux/ppp_defs.h
+--- a/include/linux/ppp_defs.h	2014-08-09 05:31:39.000000000 -0700
++++ b/include/linux/ppp_defs.h	2018-02-09 08:14:08.251522303 -0800
+@@ -50,6 +50,10 @@
+ #ifndef _PPP_DEFS_H_
+ #define _PPP_DEFS_H_
+ 
++#ifndef __P
++# define __P(x) x
++#endif
++
+ /*
+  * The basic PPP frame.
+  */
+diff -upr a/include/net/ppp_defs.h b/include/net/ppp_defs.h
+--- a/include/net/ppp_defs.h	2014-08-09 05:31:39.000000000 -0700
++++ b/include/net/ppp_defs.h	2018-02-09 08:14:08.267522352 -0800
+@@ -38,6 +38,8 @@
+ #ifndef _PPP_DEFS_H_
+ #define _PPP_DEFS_H_
+ 
++#include <sys/time.h>
++
+ /*
+  * The basic PPP frame.
+  */
+diff -upr a/linux/Makefile.top b/linux/Makefile.top
+--- a/linux/Makefile.top	2014-08-09 05:31:39.000000000 -0700
++++ b/linux/Makefile.top	2018-02-09 08:16:09.867890067 -0800
+@@ -29,6 +29,8 @@ install-etcppp: $(ETCDIR) $(ETCDIR)/opti
+ 	$(ETCDIR)/chap-secrets
+ 
+ install-devel:
++	mkdir -p $(INCDIR)/net
++	$(INSTALL) -c -m 644 include/net/ppp_defs.h $(INCDIR)/net
+ 	cd pppd; $(MAKE) $(MFLAGS) install-devel
+ 
+ $(ETCDIR)/options:
+diff -upr a/pppd/magic.h b/pppd/magic.h
+--- a/pppd/magic.h	2014-08-09 05:31:39.000000000 -0700
++++ b/pppd/magic.h	2018-02-09 08:14:08.267522352 -0800
+@@ -42,6 +42,10 @@
+  * $Id: magic.h,v 1.5 2003/06/11 23:56:26 paulus Exp $
+  */
+ 
++#ifndef __P
++# define __P(x) x
++#endif
++
+ void magic_init __P((void));	/* Initialize the magic number generator */
+ u_int32_t magic __P((void));	/* Returns the next magic number */
+ 
+diff -upr a/pppd/Makefile.linux b/pppd/Makefile.linux
+--- a/pppd/Makefile.linux	2014-08-09 05:31:39.000000000 -0700
++++ b/pppd/Makefile.linux	2018-02-09 08:14:08.267522352 -0800
+@@ -126,7 +126,7 @@ LIBS	+= -lcrypt
+ endif
+ 
+ ifdef USE_LIBUTIL
+-CFLAGS	+= -DHAVE_LOGWTMP=1
++#CFLAGS	+= -DHAVE_LOGWTMP=1
+ LIBS	+= -lutil
+ endif
+ 
+diff -upr a/pppd/plugins/pppol2tp/openl2tp.c b/pppd/plugins/pppol2tp/openl2tp.c
+--- a/pppd/plugins/pppol2tp/openl2tp.c	2014-08-09 05:31:39.000000000 -0700
++++ b/pppd/plugins/pppol2tp/openl2tp.c	2018-02-09 08:14:08.267522352 -0800
+@@ -47,7 +47,6 @@
+ #include <linux/if_ether.h>
+ #include <linux/ppp_defs.h>
+ #include <linux/if_ppp.h>
+-#include <linux/if_pppox.h>
+ #include <linux/if_pppol2tp.h>
+ 
+ #include "l2tp_event.h"
+diff -upr a/pppd/plugins/pppol2tp/pppol2tp.c b/pppd/plugins/pppol2tp/pppol2tp.c
+--- a/pppd/plugins/pppol2tp/pppol2tp.c	2014-08-09 05:31:39.000000000 -0700
++++ b/pppd/plugins/pppol2tp/pppol2tp.c	2018-02-09 08:14:08.267522352 -0800
+@@ -46,7 +46,6 @@
+ #include <linux/if_ether.h>
+ #include <linux/ppp_defs.h>
+ #include <linux/if_ppp.h>
+-#include <linux/if_pppox.h>
+ #include <linux/if_pppol2tp.h>
+ 
+ /* should be added to system's socket.h... */
+diff -upr a/pppd/plugins/rp-pppoe/config.h b/pppd/plugins/rp-pppoe/config.h
+--- a/pppd/plugins/rp-pppoe/config.h	2014-08-09 05:31:39.000000000 -0700
++++ b/pppd/plugins/rp-pppoe/config.h	2018-02-09 08:14:08.267522352 -0800
+@@ -101,9 +101,6 @@
+ /* Define if you have the <netpacket/packet.h> header file.  */
+ #define HAVE_NETPACKET_PACKET_H 1
+ 
+-/* Define if you have the <sys/cdefs.h> header file.  */
+-#define HAVE_SYS_CDEFS_H 1
+-
+ /* Define if you have the <sys/dlpi.h> header file.  */
+ /* #undef HAVE_SYS_DLPI_H */
+ 
+diff -upr a/pppd/plugins/rp-pppoe/if.c b/pppd/plugins/rp-pppoe/if.c
+--- a/pppd/plugins/rp-pppoe/if.c	2014-08-09 05:31:39.000000000 -0700
++++ b/pppd/plugins/rp-pppoe/if.c	2018-02-09 08:14:08.267522352 -0800
+@@ -30,10 +30,6 @@ static char const RCSID[] =
+ #include <linux/if_packet.h>
+ #endif
+ 
+-#ifdef HAVE_NET_ETHERNET_H
+-#include <net/ethernet.h>
+-#endif
+-
+ #ifdef HAVE_ASM_TYPES_H
+ #include <asm/types.h>
+ #endif
+diff -upr a/pppd/plugins/rp-pppoe/plugin.c b/pppd/plugins/rp-pppoe/plugin.c
+--- a/pppd/plugins/rp-pppoe/plugin.c	2014-08-09 05:31:39.000000000 -0700
++++ b/pppd/plugins/rp-pppoe/plugin.c	2018-02-09 08:14:08.267522352 -0800
+@@ -46,7 +46,6 @@ static char const RCSID[] =
+ #include <unistd.h>
+ #include <fcntl.h>
+ #include <signal.h>
+-#include <net/ethernet.h>
+ #include <net/if_arp.h>
+ #include <linux/ppp_defs.h>
+ #include <linux/if_pppox.h>
+diff -upr a/pppd/plugins/rp-pppoe/pppoe-discovery.c b/pppd/plugins/rp-pppoe/pppoe-discovery.c
+--- a/pppd/plugins/rp-pppoe/pppoe-discovery.c	2014-08-09 05:31:39.000000000 -0700
++++ b/pppd/plugins/rp-pppoe/pppoe-discovery.c	2018-02-09 08:14:08.267522352 -0800
+@@ -27,10 +27,6 @@
+ #include <linux/if_packet.h>
+ #endif
+ 
+-#ifdef HAVE_NET_ETHERNET_H
+-#include <net/ethernet.h>
+-#endif
+-
+ #ifdef HAVE_ASM_TYPES_H
+ #include <asm/types.h>
+ #endif
+@@ -55,6 +51,8 @@ void die(int status)
+ 	exit(status);
+ }
+ 
++#define error(x...) fprintf(stderr, x)
++
+ /* Initialize frame types to RFC 2516 values.  Some broken peers apparently
+    use different frame types... sigh... */
+ 
+diff -upr a/pppd/plugins/rp-pppoe/pppoe.h b/pppd/plugins/rp-pppoe/pppoe.h
+--- a/pppd/plugins/rp-pppoe/pppoe.h	2014-08-09 05:31:39.000000000 -0700
++++ b/pppd/plugins/rp-pppoe/pppoe.h	2018-02-09 08:15:24.727753561 -0800
+@@ -39,10 +39,6 @@
+ #error Unknown method for accessing raw Ethernet frames
+ #endif
+ 
+-#ifdef HAVE_SYS_CDEFS_H
+-#include <sys/cdefs.h>
+-#endif
+-
+ #ifdef HAVE_SYS_SOCKET_H
+ #include <sys/socket.h>
+ #endif
+@@ -86,19 +82,6 @@ typedef unsigned long UINT32_t;
+ 
+ #include <netinet/in.h>
+ 
+-#ifdef HAVE_NETINET_IF_ETHER_H
+-#include <sys/types.h>
+-
+-#ifdef HAVE_SYS_SOCKET_H
+-#include <sys/socket.h>
+-#endif
+-#ifndef HAVE_SYS_DLPI_H
+-#include <netinet/if_ether.h>
+-#endif
+-#endif
+-
+-
+-
+ /* Ethernet frame types according to RFC 2516 */
+ #define ETH_PPPOE_DISCOVERY 0x8863
+ #define ETH_PPPOE_SESSION   0x8864
+diff -upr a/pppd/sys-linux.c b/pppd/sys-linux.c
+--- a/pppd/sys-linux.c	2014-08-09 05:31:39.000000000 -0700
++++ b/pppd/sys-linux.c	2018-02-09 08:14:08.267522352 -0800
+@@ -73,7 +73,7 @@
+ #include <sys/types.h>
+ #include <sys/socket.h>
+ #include <sys/time.h>
+-#include <sys/errno.h>
++#include <errno.h>
+ #include <sys/file.h>
+ #include <sys/stat.h>
+ #include <sys/utsname.h>
+@@ -102,19 +102,11 @@
+ #define MAX_ADDR_LEN 7
+ #endif
+ 
+-#if __GLIBC__ >= 2
+ #include <asm/types.h>		/* glibc 2 conflicts with linux/types.h */
+ #include <net/if.h>
+ #include <net/if_arp.h>
+ #include <net/route.h>
+ #include <netinet/if_ether.h>
+-#else
+-#include <linux/types.h>
+-#include <linux/if.h>
+-#include <linux/if_arp.h>
+-#include <linux/route.h>
+-#include <linux/if_ether.h>
+-#endif
+ #include <netinet/in.h>
+ #include <arpa/inet.h>
+ 

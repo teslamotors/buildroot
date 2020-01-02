@@ -1,0 +1,30 @@
+From f44fdc58881ba89e5086877b5f940d8b8ebb81cb Mon Sep 17 00:00:00 2001
+Date: Thu, 10 Oct 2019 12:31:44 -0700
+Subject: [PATCH] package/kexec: Disable kexec_test build
+
+Prevent kexec_test intermittent issue detecting the wrong architecture:
+
+ERROR: architecture for "/usr/lib/kexec-tools/kexec_test" is
+"Intel 80386", should be "Advanced Micro Devices X86-64"
+
+tesla-internal: SW-211483
+---
+ kexec_test/Makefile | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/kexec_test/Makefile b/kexec_test/Makefile
+index fec6210..0574c47 100644
+--- a/kexec_test/Makefile
++++ b/kexec_test/Makefile
+@@ -15,6 +15,8 @@ ifeq ($(ARCH),x86_64)
+ BUILD_KEXEC_TEST = yes
+ endif
+ 
++BUILD_KEXEC_TEST = no
++
+ ifeq ($(BUILD_KEXEC_TEST),yes)
+ 
+ KEXEC_TEST_OBJS = $(call objify, $(KEXEC_TEST_SRCS))
+-- 
+2.19.1
+

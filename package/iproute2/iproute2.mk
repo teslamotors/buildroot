@@ -43,6 +43,7 @@ define IPROUTE2_BUILD_CMDS
 endef
 
 define IPROUTE2_INSTALL_TARGET_CMDS
+	mkdir -p $(TARGET_DIR)/sbin
 	$(TARGET_MAKE_ENV) DESTDIR="$(TARGET_DIR)" $(MAKE) -C $(@D) install
 endef
 

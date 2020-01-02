@@ -1,0 +1,43 @@
+Start each log file with fixed line, or write that line when
+svlogd first starts, in case the current file was not rotated.
+
+--- runit-2.1.1/src/svlogd.c
++++ runit-2.1.2/src/svlogd.c
+@@ -98,6 +98,7 @@ struct logdir {
+   unsigned int udponly;
+   stralloc prefix;
+   stralloc first;
++  int firstcomplete;
+ } *dir;
+ unsigned int dirn =0;
+ 
+@@ -459,6 +460,7 @@ unsigned int logdir_open(struct logdir *ld, const char *fn) {
+   ld->udponly =0;
+   while (! stralloc_copys(&ld->prefix, "")) pause_nomem();
+   while (! stralloc_copys(&ld->first, "")) pause_nomem();
++  ld->firstcomplete =1;
+   while (! stralloc_copys(&ld->inst, "")) pause_nomem();
+   while (! stralloc_copys(&ld->processor, "")) pause_nomem();
+ 
+@@ -544,6 +546,7 @@ unsigned int logdir_open(struct logdir *ld, const char *fn) {
+         if (len > 1) {
+           while (! stralloc_copys(&ld->first, &sa.s[i +1])) pause_nomem();
+           while (! stralloc_0(&ld->first)) pause_nomem();
++          ld->firstcomplete =0;
+         }
+         break;
+       }
+@@ -833,11 +836,12 @@ int main(int argc, const char **argv) {
+     if (exitasap && ! data.p) break; /* data buffer is empty */
+     for (i =0; i < dirn; ++i)
+       if (dir[i].fddir != -1) {
+-        if (dir[i].first.len && (dir[i].size == 0)) {
++        if (dir[i].first.len && (dir[i].size == 0 || dir[i].firstcomplete == 0)) {
+           if (timestamp) buffer_puts(&dir[i].b, stamp);
+           if (dir[i].prefix.len) buffer_puts(&dir[i].b, dir[i].prefix.s);
+           buffer_puts(&dir[i].b, dir[i].first.s);
+           buffer_put(&dir[i].b, "\n", 1);
++          dir[i].firstcomplete =1;
+         }
+         if (dir[i].inst.len) logmatch(&dir[i]);
+         if (dir[i].matcherr == 'e') {

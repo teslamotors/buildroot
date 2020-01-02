@@ -22,6 +22,11 @@ endif
 # architectures x86, x64 and ARMv7 and disable it for all others.
 ifeq ($(BR2_i386)$(BR2_x86_64)$(BR2_ARM_CPU_ARMV7A),y)
 WAVPACK_CONF_OPTS += --enable-asm
+# It seems wavpack does not create a PT_GNU_STACK segment within its assembly
+# files, thus creating an executable stack.  Make sure we disable this, as it
+# is a security flaw.  See https://www.airs.com/blog/archives/518 for more
+# details.
+WAVPACK_CONF_OPTS += LDFLAGS="$(TARGET_LDFLAGS) -Wl,-z,noexecstack"
 else
 WAVPACK_CONF_OPTS += --disable-asm
 endif

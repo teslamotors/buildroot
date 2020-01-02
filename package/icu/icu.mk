@@ -18,6 +18,9 @@ ICU_CONF_OPTS = \
 	--disable-samples \
 	--disable-tests
 
+ICU_INSTALL_TARGET_OPTS = --jobs=1 DESTDIR=$(TARGET_DIR) install
+HOST_ICU_INSTALL_OPTS   = --jobs=1 install
+
 # When available, icu prefers to use C++11 atomics, which rely on the
 # __atomic builtins. On certain architectures, this requires linking
 # with libatomic starting from gcc 4.8.
@@ -53,6 +56,7 @@ define ICU_REMOVE_DEV_FILES
 	rm -f $(addprefix $(TARGET_DIR)/usr/bin/,derb genbrk gencfu gencnval gendict genrb icuinfo makeconv uconv)
 	rm -f $(addprefix $(TARGET_DIR)/usr/sbin/,genccode gencmn gennorm2 gensprep icupkg)
 	rm -rf $(TARGET_DIR)/usr/share/icu
+	rm -rf $(TARGET_DIR)/usr/lib/icu
 endef
 ICU_POST_INSTALL_TARGET_HOOKS += ICU_REMOVE_DEV_FILES
 

@@ -1,0 +1,97 @@
+SW-106712: Add -L (lossy) option to svlogd
+
+When -L is specified, svlogd will drop log messages on the floor
+if it is unable to write to current and other space-making remedies
+have failed.
+
+
+--- runit-2.1.2/doc/svlogd.8.html	2014-08-10 11:22:36.000000000 -0700
++++ runit-2.1.2/doc/svlogd.8.html	2017-06-21 18:07:45.737449048 -0700
+@@ -12,7 +12,7 @@
+ svlogd - runit&rsquo;s service logging daemon 
+ <h2><a name='sect1'>Synopsis</a></h2>
+ <b>svlogd</b> [-tttv] [-r <i>c]</i> [-R
+-<i>xyz]</i> [-l <i>len]</i> [-b <i>buflen]</i> <i>logs</i> 
++<i>xyz]</i> [-l <i>len]</i> [-b <i>buflen]</i> [-L] <i>logs</i> 
+ <h2><a name='sect2'>Description</a></h2>
+ <i>logs</i> consists of one or more arguments,
+ each specifying a directory. <p>
+@@ -216,6 +216,10 @@
+ instances that process a lot of data in short time, the buffer size should
+ be increased to improve performance. </dd>
+ 
++<dt><b>-L</b> </dt>
++<dd>Lossy.  If <i>current</i> can not be written due to <i>ENOSPC</i>
++and other remedies have failed, discard log lines. </dd>
++
+ <dt><b>-v</b> </dt>
+ <dd>verbose. Print verbose messages to
+ standard error. </dd>
+--- runit-2.1.2/man/svlogd.8	2014-08-10 11:22:34.000000000 -0700
++++ runit-2.1.2/man/svlogd.8	2017-06-21 18:12:33.408832620 -0700
+@@ -8,6 +8,7 @@
+ .I xyz\fR] [\-l
+ .I len\fR] [\-b
+ .I buflen\fR]
++[\-L]
+ .I logs
+ .SH DESCRIPTION
+ .I logs
+@@ -400,6 +401,14 @@
+ characters of a log message only.
+ Default is 1000.
+ .TP
++.B \-L
++lossy.
++If
++.I current
++can not be written due to
++.I ENOSPC
++and other remedies have failed, discard log lines.
++.TP
+ .B \-b \fIbuflen
+ buffer size.
+ Set the size of the buffer
+--- runit-2.1.2/src/svlogd.c	2014-08-10 11:22:34.000000000 -0700
++++ runit-2.1.2/src/svlogd.c	2017-06-21 17:57:55.014726065 -0700
+@@ -47,6 +47,7 @@
+ unsigned int timestamp =0;
+ unsigned long linemax =1000;
+ unsigned long buflen =1024;
++unsigned int lossy =0;
+ unsigned long linelen;
+ 
+ const char *replace ="";
+@@ -353,7 +354,12 @@
+             pause1("unable to change to initial working directory");
+         }
+     }
+-    if (errno) pause2("unable to write to current", (dir +n)->name);
++    if (errno) {
++      if ((errno == ENOSPC) && lossy) {
++        return(len);
++      }
++      pause2("unable to write to current", (dir +n)->name);
++    }
+   }
+ 
+   (dir +n)->size +=i;
+@@ -667,7 +673,7 @@
+
+   progname =*argv;
+
+-  while ((opt =getopt(argc, argv, "R:r:l:b:tvV")) != opteof) {
++  while ((opt =getopt(argc, argv, "R:r:l:b:tvLV")) != opteof) {
+     switch(opt) {
+     case 'R':
+       replace =optarg;
+@@ -691,6 +697,9 @@
+     case 'v':
+       ++verbose;
+       break;
++    case 'L':
++      ++lossy;
++      break;
+     case 'V': strerr_warn1(VERSION, 0);
+     case '?': usage();
+     }

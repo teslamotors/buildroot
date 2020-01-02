@@ -1,0 +1,46 @@
+From bd4957fcd78a0e64d26459e94ab3b84c91cd6f5f Mon Sep 17 00:00:00 2001
+From: Beniamino Galvani <bgalvani@redhat.com>
+Date: Fri, 29 Mar 2019 09:13:59 +0100
+Subject: [PATCH] build: fix searching dlopen in configure
+
+The 4th argument of AC_SEARCH_LIBS is a list of additional libraries,
+not the name of the variable to hold the result which is always
+ac_cv_search_$function. Also, we should ignore the result when it is
+"none required".
+
+Fixes: 1f2eeb85d80d ('build: rename $(LIBDL) to $(DL_LIBS) and modify detection')
+---
+ configure.ac | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 334d9272db..fc09bd4617 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -240,8 +240,9 @@ AM_CONDITIONAL(WITH_IWD, test x"${ac_with_iwd}" = x"yes")
+ dnl
+ dnl Checks for libdl - on certain platforms its part of libc
+ dnl
+-AC_SEARCH_LIBS([dlopen], [dl dld], [], [ac_cv_search_dlopen=])
+-AC_SUBST([DL_LIBS], "$ac_cv_search_dlopen")
++AC_SEARCH_LIBS([dlopen], [dl dld],
++   [test "$ac_cv_search_dlopen" = "none required" || AC_SUBST([DL_LIBS], "$ac_cv_search_dlopen"]),
++   [])
+ 
+ PKG_CHECK_MODULES(GLIB, [gio-unix-2.0 >= 2.37.6 gmodule-2.0],
+                   [AC_SUBST(LOG_DRIVER, '$(top_srcdir)/build-aux/tap-driver.sh')
+--- a/configure
++++ b/configure
+@@ -21738,12 +21738,9 @@
+ ac_res=$ac_cv_search_dlopen
+ if test "$ac_res" != no; then :
+   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+-
+-else
+-  ac_cv_search_dlopen=
++  test "$ac_cv_search_dlopen" = "none required" || DL_LIBS="$ac_cv_search_dlopen"
+ fi
+ 
+-DL_LIBS="$ac_cv_search_dlopen"
+ 
+ 

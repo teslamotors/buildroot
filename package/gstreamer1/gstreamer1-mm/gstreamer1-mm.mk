@@ -21,4 +21,10 @@ GSTREAMER1_MM_CONF_OPTS += \
 	--enable-unittests=no \
 	--disable-deprecated-api
 
+define GSTREAMER1_MM_INSTALL_TARGET_FIXUP
+	rm -rf $(TARGET_DIR)/usr/lib/gstreamermm-*
+endef
+
+GSTREAMER1_MM_POST_INSTALL_TARGET_HOOKS += GSTREAMER1_MM_INSTALL_TARGET_FIXUP
+
 $(eval $(autotools-package))

@@ -111,6 +111,7 @@ $(eval $(generic-package))
 $(eval $(host-generic-package))
 
 define PERL_FINALIZE_TARGET
+	rm -rf $(TARGET_DIR)/usr/lib/perl5/$(PERL_VERSION)/Encode
 	rm -rf $(TARGET_DIR)/usr/lib/perl5/$(PERL_VERSION)/pod
 	rm -rf $(TARGET_DIR)/usr/lib/perl5/$(PERL_VERSION)/$(PERL_ARCHNAME)/CORE
 	find $(TARGET_DIR)/usr/lib/perl5/ -name 'extralibs.ld' -print0 | xargs -0 rm -f

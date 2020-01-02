@@ -5,7 +5,7 @@
 ################################################################################
 
 NETWORK_MANAGER_VERSION_MAJOR = 1.10
-NETWORK_MANAGER_VERSION = $(NETWORK_MANAGER_VERSION_MAJOR).8
+NETWORK_MANAGER_VERSION = $(NETWORK_MANAGER_VERSION_MAJOR).14
 NETWORK_MANAGER_SOURCE = NetworkManager-$(NETWORK_MANAGER_VERSION).tar.xz
 NETWORK_MANAGER_SITE = http://ftp.gnome.org/pub/GNOME/sources/NetworkManager/$(NETWORK_MANAGER_VERSION_MAJOR)
 NETWORK_MANAGER_INSTALL_STAGING = YES
@@ -13,6 +13,8 @@ NETWORK_MANAGER_DEPENDENCIES = host-pkgconf udev dbus-glib libnl gnutls \
 	libgcrypt wireless_tools util-linux host-intltool readline libndp libgudev
 NETWORK_MANAGER_LICENSE = GPL-2.0+ (app), LGPL-2.0+ (libnm-util)
 NETWORK_MANAGER_LICENSE_FILES = COPYING libnm-util/COPYING
+
+NETWORK_MANAGER_AUTORECONF = YES
 
 NETWORK_MANAGER_CONF_ENV = \
 	ac_cv_path_LIBGCRYPT_CONFIG=$(STAGING_DIR)/usr/bin/libgcrypt-config \
@@ -85,6 +87,15 @@ endif
 # uClibc by default doesn't have backtrace support, so don't use it
 ifeq ($(BR2_TOOLCHAIN_USES_UCLIBC),y)
 NETWORK_MANAGER_CONF_OPTS += --disable-crashtrace
+endif
+
+ifeq ($(BR2_TOOLCHAIN_USES_MUSL),y)
+# patch is a modified version of
+# https://github.com/gentoo/musl/blob/master/net-misc/networkmanager/files/0001-Support-musl-libc.patch
+define NETWORK_MANAGER_MUSL_PRE_PATCH_HOOKS
+	$(APPLY_PATCHES) $(@D) package/network-manager/musl \*.patch || exit 1
+endef
+NETWORK_MANAGER_PRE_PATCH_HOOKS += NETWORK_MANAGER_MUSL_PRE_PATCH_HOOKS
 endif
 
 define NETWORK_MANAGER_INSTALL_INIT_SYSV

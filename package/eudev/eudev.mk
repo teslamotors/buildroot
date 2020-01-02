@@ -4,19 +4,32 @@
 #
 ################################################################################
 
+ifeq ($(BR2_PACKAGE_EUDEV_3_2_2),y)
+EUDEV_VERSION = 3.2.2
+else
 EUDEV_VERSION = 3.2.7
+endif
+
 EUDEV_SITE = http://dev.gentoo.org/~blueness/eudev
 EUDEV_LICENSE = GPL-2.0+ (programs), LGPL-2.1+ (libraries)
 EUDEV_LICENSE_FILES = COPYING
 EUDEV_INSTALL_STAGING = YES
+
+ifeq ($(BR2_PACKAGE_EUDEV_3_2_2),y)
+# mq_getattr is in librt
+EUDEV_CONF_ENV += LIBS=-lrt
+endif
 
 EUDEV_CONF_OPTS = \
 	--disable-manpages \
 	--sbindir=/sbin \
 	--libexecdir=/lib \
 	--disable-introspection \
-	--enable-kmod \
-	--enable-blkid
+	--enable-kmod
+
+ifeq ($(BR2_PACKAGE_EUDEV_3_2_2),y)
+	EUDEV_CONF_OPTS += --enable-blkid
+endif
 
 EUDEV_DEPENDENCIES = host-gperf host-pkgconf util-linux kmod
 EUDEV_PROVIDES = udev

@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PYTHON_AIOFILES
+	bool "python-aiofiles"
+	depends on BR2_PACKAGE_PYTHON3
+	help
+	  Python package - File support for asyncio
+
+	  https://pypi.org/project/aiofiles/

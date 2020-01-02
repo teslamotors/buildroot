@@ -253,6 +253,8 @@ endif
 # so we have to strip "$(HOST_DIR)/" from the paths that contain it.
 define TOOLCHAIN_CMAKE_INSTALL_FILES
 	@mkdir -p $(HOST_DIR)/share/buildroot
+	( \
+	flock -w 30 9; \
 	sed \
 		-e 's#@@STAGING_SUBDIR@@#$(call qstrip,$(STAGING_SUBDIR))#' \
 		-e 's#@@TARGET_CFLAGS@@#$(call qstrip,$(TARGET_CFLAGS))#' \
@@ -264,9 +266,10 @@ define TOOLCHAIN_CMAKE_INSTALL_FILES
 		-e 's#@@TARGET_FC@@#$(subst $(HOST_DIR)/,,$(call qstrip,$(TARGET_FC)))#' \
 		-e 's#@@CMAKE_SYSTEM_PROCESSOR@@#$(call qstrip,$(CMAKE_SYSTEM_PROCESSOR))#' \
 		-e 's#@@TOOLCHAIN_HAS_FORTRAN@@#$(if $(BR2_TOOLCHAIN_HAS_FORTRAN),1,0)#' \
-		-e 's#@@CMAKE_BUILD_TYPE@@#$(if $(BR2_ENABLE_DEBUG),Debug,Release)#' \
+		-e 's#@@CMAKE_BUILD_TYPE@@#Release#' \
 		$(TOPDIR)/support/misc/toolchainfile.cmake.in \
-		> $(HOST_DIR)/share/buildroot/toolchainfile.cmake
+		> $(HOST_DIR)/share/buildroot/toolchainfile.cmake \
+	) 9> $(BUILD_DIR)/.br2_pkg_cmake_lock
 	$(Q)$(INSTALL) -D -m 0644 support/misc/Buildroot.cmake \
 		$(HOST_DIR)/share/buildroot/Platform/Buildroot.cmake
 endef

@@ -1,0 +1,8 @@
+config BR2_PACKAGE_FLUIDSYNTH
+	bool "fluidsynth"
+	select BR2_PACKAGE_ALSA_LIB_RAWMINI
+	select BR2_PACKAGE_ALSA_LIB_SEQ
+	select BR2_PACKAGE_ALSA_LIB_HWDEP
+	select BR2_PACKAGE_ALSA_LIB
+	help
+	  Fluidsynth is a real-time soundfont software synthesizer

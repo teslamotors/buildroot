@@ -299,6 +299,11 @@ define LINUX_FIXUP_CONFIG_ENDIANNESS
 endef
 endif
 
+# Enable the initramfs package to be built before the linux package
+ifeq ($(BR2_LINUX_KERNEL_EXT_INITRAMFS),y)
+    LINUX_DEPENDENCIES += $(call qstrip,$(BR2_LINUX_KERNEL_EXT_INITRAMFS_PKG))
+endif
+
 define LINUX_KCONFIG_FIXUP_CMDS
 	$(if $(LINUX_NEEDS_MODULES),
 		$(call KCONFIG_ENABLE_OPT,CONFIG_MODULES,$(@D)/.config))
@@ -311,6 +316,10 @@ define LINUX_KCONFIG_FIXUP_CMDS
 		$(call KCONFIG_ENABLE_OPT,CONFIG_AEABI,$(@D)/.config))
 	$(if $(BR2_TARGET_ROOTFS_CPIO),
 		$(call KCONFIG_ENABLE_OPT,CONFIG_BLK_DEV_INITRD,$(@D)/.config))
+	$(if $(BR2_LINUX_KERNEL_EXT_INITRAMFS),
+		$(call KCONFIG_SET_OPT,CONFIG_INITRAMFS_SOURCE,"$${BR_BINARIES_DIR}/$(call qstrip,$(BR2_LINUX_KERNEL_EXT_INITRAMFS_LOCATION))",$(@D)/.config)
+		$(call KCONFIG_SET_OPT,CONFIG_INITRAMFS_ROOT_UID,0,$(@D)/.config)
+		$(call KCONFIG_SET_OPT,CONFIG_INITRAMFS_ROOT_GID,0,$(@D)/.config))
 	# As the kernel gets compiled before root filesystems are
 	# built, we create a fake cpio file. It'll be
 	# replaced later by the real cpio archive, and the kernel will be
@@ -438,6 +447,8 @@ define LINUX_BUILD_CMDS
 	$(foreach dts,$(call qstrip,$(BR2_LINUX_KERNEL_CUSTOM_DTS_PATH)), \
 		cp -f $(dts) $(LINUX_ARCH_PATH)/boot/dts/
 	)
+	$(if $(BR2_LINUX_KERNEL_SHOW_EXTRA_KERNEL_VERSION),
+		echo -g$(shell echo $(BR2_LINUX_KERNEL_VERSION) | cut -c 1-10) > $(@D)/localversion-tesla)
 	$(LINUX_MAKE_ENV) $(MAKE) $(LINUX_MAKE_FLAGS) -C $(@D) $(LINUX_TARGET_NAME)
 	@if grep -q "CONFIG_MODULES=y" $(@D)/.config; then \
 		$(LINUX_MAKE_ENV) $(MAKE) $(LINUX_MAKE_FLAGS) -C $(@D) modules ; \

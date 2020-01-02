@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PYTHON_ATTRDICT
+	bool "python-attrdict"
+	help
+	  Python Package - A dict with attribute-style access
+
+	  https://pypi.org/project/attrdict/

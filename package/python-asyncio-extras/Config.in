@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PYTHON_ASYNCIO_EXTRAS
+	bool "python-asyncio-extras"
+	depends on BR2_PACKAGE_PYTHON3
+	help
+	  Python Package - Asynchronous generators, context managers and more for asyncio
+
+	  https://pypi.org/project/asyncio_extras/

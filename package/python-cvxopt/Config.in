@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PYTHON_CVXOPT
+        bool "python-cvxopt"
+        help
+          CVXOPT is a free software package for convex optimization based on the 
+          Python programming language.
+
+          http://cvxopt.org

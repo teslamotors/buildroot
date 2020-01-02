@@ -10,12 +10,15 @@ LIBVA_SITE = https://github.com/intel/libva/releases/download/$(LIBVA_VERSION)
 LIBVA_LICENSE = MIT
 LIBVA_LICENSE_FILES = COPYING
 LIBVA_INSTALL_STAGING = YES
+LIBVA_INSTALL_TARGET = YES
 LIBVA_DEPENDENCIES = host-pkgconf libdrm
 
 # libdrm is a hard-dependency
 LIBVA_CONF_OPTS = \
 	--enable-drm \
-	--with-drivers-path="/usr/lib/va"
+	--disable-dummy-driver \
+	--prefix=/usr \
+	--prefix=/usr/lib64
 
 ifeq ($(BR2_PACKAGE_XORG7),y)
 LIBVA_DEPENDENCIES += xlib_libX11 xlib_libXext xlib_libXfixes
@@ -35,5 +38,11 @@ LIBVA_CONF_OPTS += --enable-wayland
 else
 LIBVA_CONF_OPTS += --disable-wayland
 endif
+
+define LIBVA_INSTALL_TARGET_FIXUP
+	rm -rf $(TARGET_DIR)/usr/lib/include/va
+endef
+
+LIBVA_POST_INSTALL_TARGET_HOOKS += LIBVA_INSTALL_TARGET_FIXUP
 
 $(eval $(autotools-package))

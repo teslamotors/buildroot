@@ -1,0 +1,30 @@
+From c485ce305b93d20c17d3cda86447a8b40b0dfcc3 Mon Sep 17 00:00:00 2001
+Date: Wed, 24 Apr 2019 13:55:02 -0700
+Subject: [PATCH] openssl: Don't build executable stacks!
+
+Pass in "-z noexecstack" on linux builds to prevent
+libcrypto getting compiled with an executable stack.
+---
+ Configurations/10-main.conf | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Configurations/10-main.conf b/Configurations/10-main.conf
+index 5cf345d..a945391 100644
+--- a/Configurations/10-main.conf
++++ b/Configurations/10-main.conf
+@@ -636,10 +636,10 @@ my %targets = (
+         inherit_from     => [ "BASE_unix" ],
+         CC               => "gcc",
+         CXX              => "g++",
+-        CFLAGS           => picker(default => "-Wall",
++        CFLAGS           => picker(default => "-Wall  -z noexecstack",
+                                    debug   => "-O0 -g",
+                                    release => "-O3"),
+-        CXXFLAGS         => picker(default => "-Wall",
++        CXXFLAGS         => picker(default => "-Wall -z noexecstack",
+                                    debug   => "-O0 -g",
+                                    release => "-O3"),
+         cflags           => threads("-pthread"),
+-- 
+2.19.2
+

@@ -1,0 +1,4 @@
+# md5, sha256 from https://pypi.python.org/pypi/asyncio-extras/json
+md5 c5c2ab2b173562beb45a968e17a41804 asyncio_extras-1.3.0.tar.gz
+sha256 8f2bf0edc37530e0dafcb2c0a8d8303a4ab965febff36bf056baffb6ac939ce9 asyncio_extras-1.3.0.tar.gz
+sha256 6163f7987dfb38d6bc320ce2b70b2f02b862bc41126516d552ef1cd43247e758 LICENSE

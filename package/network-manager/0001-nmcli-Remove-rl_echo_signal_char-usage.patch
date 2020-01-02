@@ -1,0 +1,102 @@
+From a5de9ad5df59af945cdae16b670dd3951015aeb8 Mon Sep 17 00:00:00 2001
+Date: Thu, 30 May 2019 16:14:36 -0700
+Subject: [PATCH] nmcli: Remove rl_echo_signal_char usage
+
+This function is only present in the GPLv3 version of readline.
+Delete it in favor of outputting the intended string using a different
+readline function.
+---
+ clients/cli/common.c  |  3 ++-
+ configure             | 40 ----------------------------------------
+ m4/ax_lib_readline.m4 | 10 ----------
+ 3 files changed, 2 insertions(+), 51 deletions(-)
+
+diff --git a/clients/cli/common.c b/clients/cli/common.c
+index 0f5aea5..fb82208 100644
+--- a/clients/cli/common.c
++++ b/clients/cli/common.c
+@@ -811,7 +811,8 @@ read_again:
+ 
+ 	/* If Ctrl-C was detected, complete the line */
+ 	if (nmc_seen_sigint ()) {
+-		rl_echo_signal_char (SIGINT);
++                void _rl_output_some_chars (const char *, int);
++                _rl_output_some_chars ("^C", 2);
+ 		if (!rl_got_line) {
+ 			rl_stuff_char ('\n');
+ 			rl_callback_read_char ();
+diff --git a/configure b/configure
+index e55a1bb..3e861ad 100755
+--- a/configure
++++ b/configure
+@@ -26671,46 +26671,6 @@ fi
+ 
+ done
+ 
+-
+-  # check rl_echo_signal_char()
+-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether readline supports rl_echo_signal_char()" >&5
+-$as_echo_n "checking whether readline supports rl_echo_signal_char()... " >&6; }
+-if ${ax_cv_lib_readline_echo_signal_char+:} false; then :
+-  $as_echo_n "(cached) " >&6
+-else
+-
+-    ax_cv_lib_readline_echo_signal_char="no"
+-    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+-/* end confdefs.h.  */
+-
+-/* Override any GCC internal prototype to avoid an error.
+-   Use char because int might match the return type of a GCC
+-   builtin and then its argument prototype would still apply.  */
+-#ifdef __cplusplus
+-extern "C"
+-#endif
+-char rl_echo_signal_char ();
+-int
+-main ()
+-{
+-return rl_echo_signal_char ();
+-  ;
+-  return 0;
+-}
+-_ACEOF
+-if ac_fn_c_try_link "$LINENO"; then :
+-  ax_cv_lib_readline_echo_signal_char="yes"
+-fi
+-rm -f core conftest.err conftest.$ac_objext \
+-    conftest$ac_exeext conftest.$ac_ext
+-
+-fi
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ax_cv_lib_readline_echo_signal_char" >&5
+-$as_echo "$ax_cv_lib_readline_echo_signal_char" >&6; }
+-  if test "$ax_cv_lib_readline_echo_signal_char" != "yes"; then
+-    as_fn_error $? "rl_echo_signal_char() is required (install readline6?)" "$LINENO" 5
+-  fi
+-
+   LIBS="$ORIG_LIBS"
+   READLINE_LIBS="$ax_cv_lib_readline"
+ 
+diff --git a/m4/ax_lib_readline.m4 b/m4/ax_lib_readline.m4
+index af32fda..bd91012 100644
+--- a/m4/ax_lib_readline.m4
++++ b/m4/ax_lib_readline.m4
+@@ -105,16 +105,6 @@ AC_DEFUN([AX_LIB_READLINE], [
+   fi
+   AC_CHECK_HEADERS(history.h readline/history.h)
+ 
+-  # check rl_echo_signal_char()
+-  AC_CACHE_CHECK([whether readline supports rl_echo_signal_char()],
+-                 ax_cv_lib_readline_echo_signal_char, [
+-    ax_cv_lib_readline_echo_signal_char="no"
+-    AC_TRY_LINK_FUNC(rl_echo_signal_char, ax_cv_lib_readline_echo_signal_char="yes")
+-  ])
+-  if test "$ax_cv_lib_readline_echo_signal_char" != "yes"; then
+-    AC_MSG_ERROR(rl_echo_signal_char() is required (install readline6?))
+-  fi
+-
+   LIBS="$ORIG_LIBS"
+   READLINE_LIBS="$ax_cv_lib_readline"
+   AC_SUBST(READLINE_LIBS)
+-- 
+2.19.2
+

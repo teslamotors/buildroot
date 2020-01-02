@@ -1,0 +1,110 @@
+diff -uprN a/libnm-core/nm-utils.h b/libnm-core/nm-utils.h
+--- a/libnm-core/nm-utils.h	2017-12-11 17:50:14.000000000 -0800
++++ b/libnm-core/nm-utils.h	2018-02-08 09:31:43.717205098 -0800
+@@ -30,7 +30,11 @@
+ #include <netinet/in.h>
+ 
+ /* For ETH_ALEN and INFINIBAND_ALEN */
++#if defined(__GLIBC__)
+ #include <linux/if_ether.h>
++#else
++#define ETH_ALEN	6		/* Octets in one ethernet addr	 */
++#endif
+ #include <linux/if_infiniband.h>
+ 
+ #include "nm-core-enum-types.h"
+diff -uprN a/Makefile.in b/Makefile.in
+--- a/Makefile.in	2017-12-11 17:50:50.000000000 -0800
++++ b/Makefile.in	2018-02-08 12:01:49.094811079 -0800
+@@ -3165,6 +3165,9 @@ DHCPCD_PATH = @DHCPCD_PATH@
+ DISTRO_NETWORK_SERVICE = @DISTRO_NETWORK_SERVICE@
+ DLLTOOL = @DLLTOOL@
+ DL_LIBS = @DL_LIBS@
++ifeq ($(DL_LIBS), none required)
++DL_LIBS =
++endif
+ DNSMASQ_PATH = @DNSMASQ_PATH@
+ DNSSEC_TRIGGER_SCRIPT = @DNSSEC_TRIGGER_SCRIPT@
+ DSYMUTIL = @DSYMUTIL@
+diff -uprN a/src/platform/wifi/wifi-utils.h b/src/platform/wifi/wifi-utils.h
+--- a/src/platform/wifi/wifi-utils.h	2017-11-10 07:46:25.000000000 -0800
++++ b/src/platform/wifi/wifi-utils.h	2018-02-08 09:31:43.737205158 -0800
+@@ -22,7 +22,11 @@
+ #ifndef __WIFI_UTILS_H__
+ #define __WIFI_UTILS_H__
+ 
++#if defined(__GLIBC__)
+ #include <net/ethernet.h>
++#else /* musl libc */
++#define ETH_ALEN	6		/* Octets in one ethernet addr	 */
++#endif
+ 
+ #include "nm-dbus-interface.h"
+ 
+diff -uprN a/src/systemd/sd-adapt/nm-sd-adapt.h b/src/systemd/sd-adapt/nm-sd-adapt.h
+--- a/src/systemd/sd-adapt/nm-sd-adapt.h	2017-11-10 07:46:25.000000000 -0800
++++ b/src/systemd/sd-adapt/nm-sd-adapt.h	2018-02-08 09:38:42.650458427 -0800
+@@ -134,7 +134,7 @@ G_STMT_START { \
+ #  ifdef HAVE___SECURE_GETENV
+ #    define secure_getenv __secure_getenv
+ #  else
+-#    error neither secure_getenv nor __secure_getenv is available
++#    define secure_getenv getenv
+ #  endif
+ #endif
+ 
+diff -uprN a/src/systemd/src/basic/process-util.c b/src/systemd/src/basic/process-util.c
+--- a/src/systemd/src/basic/process-util.c	2017-11-10 07:46:25.000000000 -0800
++++ b/src/systemd/src/basic/process-util.c	2018-02-08 10:34:42.796364960 -0800
+@@ -1042,7 +1042,7 @@ pid_t getpid_cached(void) {
+ 
+                 new_pid = getpid();
+ 
+-                if (__register_atfork(NULL, NULL, reset_cached_pid, __dso_handle) != 0) {
++                if (pthread_atfork(NULL, NULL, reset_cached_pid) != 0) {
+                         /* OOM? Let's try again later */
+                         cached_pid = CACHED_PID_UNSET;
+                         return new_pid;
+diff -uprN a/src/systemd/src/basic/socket-util.h b/src/systemd/src/basic/socket-util.h
+--- a/src/systemd/src/basic/socket-util.h	2017-11-10 07:46:25.000000000 -0800
++++ b/src/systemd/src/basic/socket-util.h	2018-02-08 09:31:43.737205158 -0800
+@@ -29,6 +29,11 @@
+ #include <linux/netlink.h>
+ #include <linux/if_infiniband.h>
+ #include <linux/if_packet.h>
++#if !defined(__GLIBC__)
++/* SIOCGSTAMPNS from linux/asm-generic.h 
++ * for src/systemd/src/libsystemd-network/sd-lldp.c */
++#include <linux/sockios.h>
++#endif
+ 
+ #include "macro.h"
+ #include "missing.h"
+diff -uprN a/src/systemd/src/basic/stdio-util.h b/src/systemd/src/basic/stdio-util.h
+--- a/src/systemd/src/basic/stdio-util.h	2017-11-10 07:46:25.000000000 -0800
++++ b/src/systemd/src/basic/stdio-util.h	2018-02-08 09:31:43.737205158 -0800
+@@ -19,7 +19,9 @@
+   along with systemd; If not, see <http://www.gnu.org/licenses/>.
+ ***/
+ 
++#if defined(__GLIBC__)
+ #include <printf.h>
++#endif
+ #include <stdarg.h>
+ #include <stdio.h>
+ #include <sys/types.h>
+diff -uprN a/src/systemd/src/basic/util.h b/src/systemd/src/basic/util.h
+--- a/src/systemd/src/basic/util.h	2017-11-10 07:46:25.000000000 -0800
++++ b/src/systemd/src/basic/util.h	2018-02-08 09:31:43.737205158 -0800
+@@ -46,6 +46,11 @@
+ #include "missing.h"
+ #include "time-util.h"
+ 
++#if !defined(__GLIBC__)
++typedef int (*__compar_fn_t) (const void*, const void*);
++typedef __compar_fn_t comparison_fn_t;
++#endif
++
+ size_t page_size(void) _pure_;
+ #define PAGE_ALIGN(l) ALIGN_TO((l), page_size())
+ 

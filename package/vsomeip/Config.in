@@ -1,0 +1,13 @@
+config BR2_PACKAGE_VSOMEIP
+       bool "SOME/IP"
+       select BR2_PACKAGE_BOOST_SYSTEM
+       select BR2_PACKAGE_BOOST_THREAD
+       select BR2_PACKAGE_BOOST_LOG
+       select BR2_PACKAGE_BOOST
+       select BR2_INSTALL_LIBSTDCPP
+       select BR2_USE_WCHAR
+       help
+         An implementation of Scalable service-Oriented MiddlewarE over IP
+
+         https://github.com/GENIVI/vsomeip/
+         http://some-ip.com

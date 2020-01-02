@@ -1,0 +1,26 @@
+From 325d70a543b9851f6e6c0cc7b27454a2606df08b Mon Sep 17 00:00:00 2001
+From: Bernd Gassmann <bernd.gassmann@intel.com>
+Date: Thu, 10 Dec 2015 17:11:12 +0100
+Subject: [PATCH 4/6] Use monotonic clock
+
+Change-Id: If01ce66d804d9b33a91741cfb037ea78d1d1b660
+---
+ src/CommonAPI/MainLoopContext.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/CommonAPI/MainLoopContext.cpp b/src/CommonAPI/MainLoopContext.cpp
+index 65346a6..b7d25b9 100644
+--- a/src/CommonAPI/MainLoopContext.cpp
++++ b/src/CommonAPI/MainLoopContext.cpp
+@@ -8,7 +8,7 @@
+ namespace CommonAPI {
+ 
+ int64_t getCurrentTimeInMs() {
+-   return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
++   return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+ }
+ 
+ const std::string &MainLoopContext::getName() const {
+-- 
+2.1.0
+

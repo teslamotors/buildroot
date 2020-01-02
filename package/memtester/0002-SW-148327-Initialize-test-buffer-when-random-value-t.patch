@@ -1,0 +1,136 @@
+From f49684c514c911d36c408a9a8996b7c5e0f28652 Mon Sep 17 00:00:00 2001
+Date: Thu, 28 Jun 2018 13:03:53 -0700
+Subject: [PATCH] SW-148327: Initialize test buffer when random value test was
+ skipped
+
+"Random Value" sets up the default value for other tests.
+When this test is skipped, RAM contents are the byproducts
+from "Stuck Address" test.
+In this case, all other memory tests fail because there is no
+default value to compare against. Fill the test buffer with
+toggling patterns of 0x55 and 0xAA before running the rest of the
+tests.
+
+"Stuck Address" test takes too long time as it repeats the same test
+16 times by default. The number of tests can be set with the environment
+variable MEMTESTER_STUCK_ADDR_LOOPS.
+---
+ memtester.c | 22 +++++++++++++++++++++-
+ tests.c     | 15 +++++++++++++--
+ tests.h     |  3 ++-
+ 3 files changed, 36 insertions(+), 4 deletions(-)
+
+diff --git a/memtester.c b/memtester.c
+index 3db2ad4..fb9378e 100644
+--- a/memtester.c
++++ b/memtester.c
+@@ -126,6 +126,8 @@ int main(int argc, char **argv) {
+     int device_specified = 0;
+     char *env_testmask = 0;
+     ul testmask = 0;
++    char *env_stuckaddr_loops = 0;
++    unsigned int stuckaddr_loops = 16;
+ 
+     printf("memtester version " __version__ " (%d-bit)\n", UL_LEN);
+     printf("Copyright (C) 2001-2012 Charles Cazabon.\n");
+@@ -150,6 +152,17 @@ int main(int argc, char **argv) {
+         printf("using testmask 0x%lx\n", testmask);
+     }
+ 
++    if (env_stuckaddr_loops = getenv("MEMTESTER_STUCK_ADDR_LOOPS")) {
++        errno = 0;
++        stuckaddr_loops = strtoul(env_stuckaddr_loops, 0, 0);
++        if (errno) {
++            fprintf(stderr, "error parsing MEMTESTER_STUCK_ADDR_LOOPS %s: %s\n",
++                    env_stuckaddr_loops, strerror(errno));
++            usage(argv[0]); /* doesn't return */
++        }
++        printf("using stuckaddr_loops %d\n", stuckaddr_loops);
++    }
++
+     while ((opt = getopt(argc, argv, "p:d:")) != -1) {
+         switch (opt) {
+             case 'p':
+@@ -372,7 +385,7 @@ int main(int argc, char **argv) {
+         printf(":\n");
+         printf("  %-20s: ", "Stuck Address");
+         fflush(stdout);
+-        if (!test_stuck_address(aligned, bufsize / sizeof(ul))) {
++        if (!test_stuck_address(aligned, bufsize / sizeof(ul), stuckaddr_loops)) {
+              printf("ok\n");
+         } else {
+             exit_code |= EXIT_FAIL_ADDRESSLINES;
+@@ -383,6 +396,13 @@ int main(int argc, char **argv) {
+                bit corresponding to this test was set by the user.
+              */
+             if (testmask && (!((1 << i) & testmask))) {
++                /* "Random Value" sets up the default value for other tests.
++                   When this test is skipped, RAM contents are the byproducts
++                   from "Stuck Address" test.
++                 */
++                if (i == 0) {
++                    fill_buffer(bufa, bufb, count);
++                }
+                 continue;
+             }
+             printf("  %-20s: ", tests[i].name);
+diff --git a/tests.c b/tests.c
+index be1b350..3c4e019 100644
+--- a/tests.c
++++ b/tests.c
+@@ -56,7 +56,7 @@ int compare_regions(ulv *bufa, ulv *bufb, size_t count) {
+     return r;
+ }
+ 
+-int test_stuck_address(ulv *bufa, size_t count) {
++int test_stuck_address(ulv *bufa, size_t count, unsigned int stuckaddr_loops) {
+     ulv *p1 = bufa;
+     unsigned int j;
+     size_t i;
+@@ -64,7 +64,7 @@ int test_stuck_address(ulv *bufa, size_t count) {
+ 
+     printf("           ");
+     fflush(stdout);
+-    for (j = 0; j < 16; j++) {
++    for (j = 0; j < stuckaddr_loops; j++) {
+         printf("\b\b\b\b\b\b\b\b\b\b\b");
+         p1 = (ulv *) bufa;
+         printf("setting %3u", j);
+@@ -523,3 +523,14 @@ int test_16bit_wide_random(ulv* bufa, ulv* bufb, size_t count) {
+     return 0;
+ }
+ #endif
++
++void fill_buffer(ulv* bufa, ulv* bufb, size_t count) {
++    ulv *p1 = bufa;
++    ulv *p2 = bufb;
++    size_t i;
++    const ul patterns[] = {0x5555555555555555, 0xAAAAAAAAAAAAAAAA};
++
++    for (i = 0; i < count; i++) {
++        *p1++ = *p2++ = patterns[i & 1];
++    }
++}
+\ No newline at end of file
+diff --git a/tests.h b/tests.h
+index eccd47c..0aaff6a 100644
+--- a/tests.h
++++ b/tests.h
+@@ -16,7 +16,7 @@
+ 
+ /* Function declaration. */
+ 
+-int test_stuck_address(unsigned long volatile *bufa, size_t count);
++int test_stuck_address(unsigned long volatile *bufa, size_t count, unsigned int stuckaddr_loops);
+ int test_random_value(unsigned long volatile *bufa, unsigned long volatile *bufb, size_t count);
+ int test_xor_comparison(unsigned long volatile *bufa, unsigned long volatile *bufb, size_t count);
+ int test_sub_comparison(unsigned long volatile *bufa, unsigned long volatile *bufb, size_t count);
+@@ -36,4 +36,5 @@ int test_bitflip_comparison(unsigned long volatile *bufa, unsigned long volatile
+ int test_8bit_wide_random(unsigned long volatile *bufa, unsigned long volatile *bufb, size_t count);
+ int test_16bit_wide_random(unsigned long volatile *bufa, unsigned long volatile *bufb, size_t count);
+ #endif
++void fill_buffer(unsigned long volatile *bufa, unsigned long volatile *bufb, size_t count);
+ 
+-- 
+2.17.1
+

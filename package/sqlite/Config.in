@@ -9,6 +9,42 @@ config BR2_PACKAGE_SQLITE
 
 if BR2_PACKAGE_SQLITE
 
+config BR2_PACKAGE_SQLITE_MAX_PAGE_COUNT
+	bool "Maximum database size (in 1KB pages)"
+	default 1073741823
+	help
+	  SQLite is able to limit the size of a database file to prevent
+	  the database file from growing too large and consuming too
+	  much disk space. The SQLITE_MAX_PAGE_COUNT parameter, which
+	  is normally set to 1073741823, is the maximum number of pages
+	  allowed in a single database file. An attempt to insert new
+	  data that would cause the database file to grow larger than
+	  this will return SQLITE_FULL.
+
+	  The largest possible setting for SQLITE_MAX_PAGE_COUNT is
+	  2147483646. When used with the maximum page size of 65536, this
+	  gives a maximum SQLite database size of about 140 terabytes.
+
+config BR2_PACKAGE_SQLITE_RTREE
+	bool "Enable SQLite R*Tree module"
+	default n
+	help
+	  An R-Tree is a special index that is designed for doing range
+	  queries. R-Trees are most commonly used in geospatial systems
+	  where each entry is a rectangle with minimum and maximum X
+	  and Y coordinates.
+
+config BR2_PACKAGE_SQLITE_MEMSYS5
+	bool "Include memsys5 allocator in build"
+	default n
+	help
+	  When SQLite is compiled with the SQLITE_ENABLE_MEMSYS5 option,
+	  an alternative memory allocator that does not use malloc()
+	  is included in the build.
+
+	  The memsys5 allocator is designed for use on embedded systems,
+	  though there is nothing to prevent its use on workstations.
+
 config BR2_PACKAGE_SQLITE_STAT3
 	bool "Additional query optimizations (stat3)"
 	help

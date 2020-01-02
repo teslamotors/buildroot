@@ -16,6 +16,12 @@ IPTABLES_LICENSE_FILES = COPYING
 IPTABLES_CONF_OPTS = --libexecdir=/usr/lib --with-kernel=$(STAGING_DIR)/usr \
 	$(if $(BR2_STATIC_LIBS),,--disable-static)
 
+# Disable full RELRO in this package, given that libxtables does not seem
+# to play nicely with it.
+IPTABLES_CONF_OPTS += CFLAGS="$(TARGET_CFLAGS) -Wl,-z,lazy"
+IPTABLES_CONF_OPTS += CXXFLAGS="$(TARGET_CXXFLAGS) -Wl,-z,lazy"
+IPTABLES_CONF_OPTS += LDFLAGS="$(TARGET_LDFLAGS) -z lazy"
+
 # For connlabel match
 ifeq ($(BR2_PACKAGE_LIBNETFILTER_CONNTRACK),y)
 IPTABLES_DEPENDENCIES += libnetfilter_conntrack

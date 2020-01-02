@@ -1,0 +1,17 @@
+diff --git a/numpy/core/src/multiarray/numpyos.c b/numpy/core/src/multiarray/numpyos.c
+index 0cfb9e66b..7a385f8e1 100644
+--- a/numpy/core/src/multiarray/numpyos.c
++++ b/numpy/core/src/multiarray/numpyos.c
+@@ -15,8 +15,12 @@
+ 
+ #ifdef HAVE_STRTOLD_L
+ #include <stdlib.h>
++#if defined(__GLIBC__)
++#if __GLIBC_MINOR__ < 26
+ #include <xlocale.h>
+ #endif
++#endif
++#endif
+ 
+ 
+ 

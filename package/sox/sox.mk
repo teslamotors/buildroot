@@ -12,6 +12,7 @@ SOX_CONF_OPTS = --with-distro="Buildroot" --without-ffmpeg --disable-gomp \
 	$(if $(BR2_TOOLCHAIN_HAS_SSP),,--disable-stack-protector)
 SOX_LICENSE = GPL-2.0+ (sox binary), LGPL-2.1+ (libraries)
 SOX_LICENSE_FILES = LICENSE.GPL LICENSE.LGPL
+SOX_INSTALL_STAGING = YES
 
 # MIPS Codescape toolchains don't support stack-smashing protection
 # despite of using glibc.
@@ -108,5 +109,7 @@ SOX_DEPENDENCIES += wavpack
 else
 SOX_CONF_OPTS += --without-wavpack
 endif
+
+SOX_AUTORECONF = YES
 
 $(eval $(autotools-package))

@@ -28,6 +28,11 @@ menuconfig BR2_PACKAGE_FFMPEG
 
 if BR2_PACKAGE_FFMPEG
 
+config BR2_PACKAGE_FFMPEG_1_2_12
+       bool "ffmpeg-1.2.12"
+       help
+          Build version 1.2.12
+
 config BR2_PACKAGE_FFMPEG_GPL
 	bool "Enable GPL code"
 	help

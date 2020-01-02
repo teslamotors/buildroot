@@ -14,6 +14,11 @@ NETTLE_LICENSE_FILES = COPYING.LESSERv3 COPYINGv2
 # with static linking
 NETTLE_CONF_OPTS = --disable-openssl
 
+
+ifeq ($(BR2_PACKAGE_OPENSSL),y)
+NETTLE_DEPENDENCIES += openssl
+endif
+
 # ARM assembly requires v6+ ISA
 ifeq ($(BR2_ARM_CPU_ARMV4)$(BR2_ARM_CPU_ARMV5)$(BR2_ARM_CPU_ARMV7M),y)
 NETTLE_CONF_OPTS += --disable-assembler

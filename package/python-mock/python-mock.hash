@@ -1,0 +1,4 @@
+# md5, sha256 from https://pypi.python.org/pypi/mock/json
+md5 0febfafd14330c9dcaa40de2d82d40ad mock-2.0.0.tar.gz
+sha256 b158b6df76edd239b8208d481dc46b6afd45a846b7812ff0ce58971cf5bc8bba mock-2.0.0.tar.gz
+sha256 5831ee149d3850b28df8ff02fb7bd07cecda81e85cc8435c20827d3922202d34 LICENSE.txt

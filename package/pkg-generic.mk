@@ -66,18 +66,21 @@ define step_pkg_size_inner
 	@touch $(BUILD_DIR)/.files-list$(3).stat
 	@touch $(BUILD_DIR)/packages-file-list$(3).txt
 	$(SED) '/^$(1),/d' $(BUILD_DIR)/packages-file-list$(3).txt
+	( \
+	flock -w 30 9; \
 	cd $(2); \
 	LC_ALL=C find . \( -type f -o -type l \) -printf '%T@:%i:%#m:%y:%s,%p\n' \
-		| LC_ALL=C sort > $(BUILD_DIR)/.files-list$(3).new
+		| LC_ALL=C sort > $(BUILD_DIR)/.files-list$(3).new; \
 	LC_ALL=C comm -13 \
 		$(BUILD_DIR)/.files-list$(3).stat \
 		$(BUILD_DIR)/.files-list$(3).new \
-		> $($(PKG)_BUILDDIR)/.files-list$(3).txt
+		> $($(PKG)_BUILDDIR)/.files-list$(3).txt; \
 	sed -r -e 's/^[^,]+/$(1)/' \
 		$($(PKG)_BUILDDIR)/.files-list$(3).txt \
-		>> $(BUILD_DIR)/packages-file-list$(3).txt
+		>> $(BUILD_DIR)/packages-file-list$(3).txt; \
 	mv $(BUILD_DIR)/.files-list$(3).new \
-		$(BUILD_DIR)/.files-list$(3).stat
+		$(BUILD_DIR)/.files-list$(3).stat \
+	) 9> $(BUILD_DIR)/.br2_step_pkg_size_lock
 endef
 
 define step_pkg_size
@@ -294,6 +297,8 @@ $(BUILD_DIR)/%/.stamp_staging_installed:
 				$(addprefix $(STAGING_DIR)/usr/bin/,$($(PKG)_CONFIG_SCRIPTS)) ;\
 	fi
 	@$(call MESSAGE,"Fixing libtool files")
+	( \
+	flock -w 30 -e 9 || exit 0; \
 	for la in $$(find $(STAGING_DIR)/usr/lib* -name "*.la"); do \
 		cp -a "$${la}" "$${la}.fixed" && \
 		$(SED) "s:$(BASE_DIR):@BASE_DIR@:g" \
@@ -311,7 +316,7 @@ $(BUILD_DIR)/%/.stamp_staging_installed:
 		else \
 			mv "$${la}.fixed" "$${la}"; \
 		fi || exit 1; \
-	done
+	done ) 9>"$(STAGING_DIR)/.br2_staging_libtool_lockfile"
 	@$(call step_end,install-staging)
 	$(Q)touch $@
 

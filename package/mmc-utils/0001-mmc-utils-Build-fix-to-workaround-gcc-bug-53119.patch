@@ -1,0 +1,27 @@
+From 6d0f7e5916aa1e34625cff4947e79bfb8975c262 Mon Sep 17 00:00:00 2001
+Date: Wed, 15 May 2019 14:50:34 -0700
+Subject: [PATCH] mmc-utils: Build fix to workaround gcc bug 53119
+
+Without this workaround, some versions of gcc may complain about
+"missing braces around initializer" in function do_rpmb_op.
+
+---
+ mmc_cmds.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/mmc_cmds.c b/mmc_cmds.c
+index 19a9da1..838e8c3 100644
+--- a/mmc_cmds.c
++++ b/mmc_cmds.c
+@@ -1883,7 +1883,7 @@ static int do_rpmb_op(int fd,
+ 	u_int16_t rpmb_type;
+ 	struct mmc_ioc_multi_cmd *mioc;
+ 	struct mmc_ioc_cmd *ioc;
+-	struct rpmb_frame frame_status = {0};
++	struct rpmb_frame frame_status = {{0}};
+ 
+ 	if (!frame_in || !frame_out || !out_cnt)
+ 		return -EINVAL;
+-- 
+2.17.2
+

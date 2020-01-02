@@ -1,6 +1,5 @@
 config BR2_PACKAGE_PYTHON_CHEETAH
 	bool "python-cheetah"
-	depends on BR2_PACKAGE_PYTHON
 	help
 	  Cheetah is an open source template engine and code
 	  generation tool.

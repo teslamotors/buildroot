@@ -48,6 +48,15 @@ ifeq ($(BR2_PACKAGE_PPPD_OVERWRITE_RESOLV_CONF),y)
 PPPD_POST_EXTRACT_HOOKS += PPPD_SET_RESOLV_CONF
 endif
 
+ifeq ($(BR2_TOOLCHAIN_USES_MUSL),y)
+# patch is a modified version of
+# https://github.com/gentoo/musl/blob/master/net-dialup/ppp/files/ppp-2.4.7-musl.patch
+define PPPD_MUSL_POST_PATCH_HOOKS
+	$(APPLY_PATCHES) $(@D) package/pppd/musl \*.patch || exit 1
+endef
+PPPD_POST_PATCH_HOOKS += PPPD_MUSL_POST_PATCH_HOOKS
+endif
+
 define PPPD_CONFIGURE_CMDS
 	$(SED) 's/FILTER=y/#FILTER=y/' $(PPPD_DIR)/pppd/Makefile.linux
 	$(SED) 's/ifneq ($$(wildcard \/usr\/include\/pcap-bpf.h),)/ifdef FILTER/' $(PPPD_DIR)/*/Makefile.linux

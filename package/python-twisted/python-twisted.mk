@@ -12,4 +12,14 @@ PYTHON_TWISTED_LICENSE = MIT
 PYTHON_TWISTED_LICENSE_FILES = LICENSE
 PYTHON_TWISTED_DEPENDENCIES = python-incremental host-python-incremental
 
+define PYTHON_TWISTED_INSTALL_TARGET_FIXUP
+	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/twisted/internet/iocpreactor/iocpsupport/*.h
+	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/twisted/internet/iocpreactor/iocpsupport/*.c
+	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/twisted/python/*.c
+	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/twisted/runner/*.c
+	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/twisted/test/*.c
+endef
+
+PYTHON_TWISTED_POST_INSTALL_TARGET_HOOKS += PYTHON_TWISTED_INSTALL_TARGET_FIXUP
+
 $(eval $(python-package))

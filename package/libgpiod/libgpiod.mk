@@ -24,15 +24,6 @@ else
 LIBGPIOD_CONF_OPTS += --disable-bindings-cxx
 endif
 
-ifeq ($(BR2_PACKAGE_PYTHON3),y)
-LIBGPIOD_CONF_OPTS += --enable-bindings-python
-LIBGPIOD_DEPENDENCIES += python3
-LIBGPIOD_CONF_ENV += \
-	PYTHON=$(HOST_DIR)/bin/python3 \
-	PYTHON_CPPFLAGS="`$(STAGING_DIR)/usr/bin/python3-config --includes`" \
-	PYTHON_LIBS="`$(STAGING_DIR)/usr/bin/python3-config --ldflags`"
-else
 LIBGPIOD_CONF_OPTS += --disable-bindings-python
-endif
 
 $(eval $(autotools-package))

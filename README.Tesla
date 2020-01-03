@@ -1,0 +1,36 @@
+Tesla buildroot repository
+
+This is an externally published version of the Tesla buildroot repository. It
+reflects the contents of corresponding internal branches used to build the
+platform code for corresponding products.
+
+The current branch is buildroot-2019.02, which contains default configs to build
+packages for the Tesla Infotainment and Autopilot platforms:
+ ap-hw2_defconfig
+ ap-hw2_model3_defconfig
+ ap-hw25b_defconfig
+ ap-hw3_defconfig
+ ap-hw3_model3_defconfig
+ ap-hw3r_defconfig
+ ice-elk_defconfig
+ ice-elk_modelsx_info2_defconfig
+ ice-mrb_defconfig
+ ice-mrb_modelsx_info2_defconfig
+ ice-mrbi_defconfig
+ mcu-cid_defconfig
+
+There are also separate defconfigs used to build the initramfs images used with
+the kernel built by the above configs:
+ ap-hw2i_defconfig
+ ap-hw3i_defconfig
+ ice-mrbi_defconfig
+
+Note that this repository does not contain the Tesla proprietary infotainment
+or autopilot software, which are userspace programs built and running on top of
+the system images assembled from these packages.
+
+There is a separate repository for the Linux kernel sources used by the above
+configurations at https://github.com/teslamotors/linux, and the configs above
+reference those sources.
+
+For more information, see https://tesla.com/opensource/

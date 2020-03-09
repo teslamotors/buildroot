@@ -1,6 +1,7 @@
+# LEGO Mindstorms EV3 on Tesla Model 3
+www.amiedd.com
 
-#LEGO Mindstorms EV3 on Tesla Model 3
-
+Project goals to be able to access LEGO mindstorm EV3 motor for my Tesla Model 3
 
 Buildroot is a simple, efficient and easy-to-use tool to generate embedded
 Linux systems through cross-compilation.

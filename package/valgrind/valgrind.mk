@@ -4,18 +4,16 @@
 #
 ################################################################################
 
-VALGRIND_VERSION = 3.14.0
-VALGRIND_SITE = ftp://sourceware.org/pub/valgrind
+VALGRIND_VERSION = 3.16.1
+VALGRIND_SITE = https://sourceware.org/pub/valgrind
 VALGRIND_SOURCE = valgrind-$(VALGRIND_VERSION).tar.bz2
 VALGRIND_LICENSE = GPL-2.0, GFDL-1.2
 VALGRIND_LICENSE_FILES = COPYING COPYING.DOCS
+VALGRIND_CPE_ID_VENDOR = valgrind
 VALGRIND_CONF_OPTS = \
 	--disable-ubsan \
 	--without-mpicc
 VALGRIND_INSTALL_STAGING = YES
-# Patch 0003-configure.ac-disable-gcc-march-mips64r2-detection.patch
-# touches configure.ac
-VALGRIND_AUTORECONF = YES
 
 # Valgrind must be compiled with no stack protection, so forcefully
 # pass -fno-stack-protector to override what Buildroot may have in

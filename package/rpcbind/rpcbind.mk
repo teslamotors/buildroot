@@ -4,11 +4,12 @@
 #
 ################################################################################
 
-RPCBIND_VERSION = 0.2.3
+RPCBIND_VERSION = 1.2.5
 RPCBIND_SITE = http://downloads.sourceforge.net/project/rpcbind/rpcbind/$(RPCBIND_VERSION)
 RPCBIND_SOURCE = rpcbind-$(RPCBIND_VERSION).tar.bz2
 RPCBIND_LICENSE = BSD-3-Clause
 RPCBIND_LICENSE_FILES = COPYING
+RPCBIND_CPE_ID_VENDOR = rpcbind_project
 
 RPCBIND_CONF_ENV += \
 	CFLAGS="$(TARGET_CFLAGS) `$(PKG_CONFIG_HOST_BINARY) --cflags libtirpc`"
@@ -17,6 +18,7 @@ RPCBIND_CONF_OPTS += --with-rpcuser=root
 
 ifeq ($(BR2_INIT_SYSTEMD),y)
 RPCBIND_CONF_OPTS += --with-systemdsystemunitdir=/usr/lib/systemd/system
+RPCBIND_DEPENDENCIES += systemd
 else
 RPCBIND_CONF_OPTS += --with-systemdsystemunitdir=no
 endif
@@ -26,9 +28,6 @@ define RPCBIND_INSTALL_INIT_SYSTEMD
 		$(TARGET_DIR)/usr/lib/systemd/system/rpcbind.service
 	$(INSTALL) -m 0644 -D package/rpcbind/rpcbind.socket \
 		$(TARGET_DIR)/usr/lib/systemd/system/rpcbind.socket
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/sockets.target.wants
-	ln -fs ../../../../usr/lib/systemd/system/rpcbind.socket \
-		$(TARGET_DIR)/etc/systemd/system/sockets.target.wants/rpcbind.socket
 endef
 
 define RPCBIND_INSTALL_INIT_SYSV

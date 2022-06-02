@@ -4,11 +4,13 @@
 #
 ################################################################################
 
-JPEG_TURBO_VERSION = 2.0.1
+JPEG_TURBO_VERSION = 2.0.6
 JPEG_TURBO_SOURCE = libjpeg-turbo-$(JPEG_TURBO_VERSION).tar.gz
 JPEG_TURBO_SITE = https://downloads.sourceforge.net/project/libjpeg-turbo/$(JPEG_TURBO_VERSION)
 JPEG_TURBO_LICENSE = IJG (libjpeg), BSD-3-Clause (TurboJPEG), Zlib (SIMD)
 JPEG_TURBO_LICENSE_FILES = LICENSE.md README.ijg
+JPEG_TURBO_CPE_ID_VENDOR = libjpeg-turbo
+JPEG_TURBO_CPE_ID_PRODUCT = libjpeg-turbo
 JPEG_TURBO_INSTALL_STAGING = YES
 JPEG_TURBO_PROVIDES = jpeg
 JPEG_TURBO_DEPENDENCIES = host-pkgconf
@@ -31,10 +33,21 @@ else
 JPEG_TURBO_CONF_OPTS += -DWITH_SIMD=OFF
 endif
 
-define JPEG_TURBO_REMOVE_USELESS_TOOLS
+# Ensure that jpeg-turbo is compiled with -fPIC to allow linking the static
+# libraries with dynamically linked programs. This is not a requirement
+# for most architectures but is mandatory for ARM.
+# This allow to avoid link issues with BR2_SSP_ALL:
+# jsimd_none.c.o: relocation R_AARCH64_ADR_PREL_PG_HI21 against external symbol `__stack_chk_guard@@GLIBC_2.17'
+# can not be used when making a shared object; recompile with -fPIC
+ifeq ($(BR2_STATIC_LIBS),)
+JPEG_TURBO_CONF_OPTS += -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+endif
+
+ifeq ($(BR2_PACKAGE_JPEG_TURBO_TOOLS),)
+define JPEG_TURBO_REMOVE_TOOLS
 	rm -f $(addprefix $(TARGET_DIR)/usr/bin/,cjpeg djpeg jpegtran rdjpgcom tjbench wrjpgcom)
 endef
-
-JPEG_TURBO_POST_INSTALL_TARGET_HOOKS += JPEG_TURBO_REMOVE_USELESS_TOOLS
+JPEG_TURBO_POST_INSTALL_TARGET_HOOKS += JPEG_TURBO_REMOVE_TOOLS
+endif
 
 $(eval $(cmake-package))

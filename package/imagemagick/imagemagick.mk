@@ -4,11 +4,11 @@
 #
 ################################################################################
 
-IMAGEMAGICK_VERSION = 7.0.7-39
-IMAGEMAGICK_SOURCE = $(IMAGEMAGICK_VERSION).tar.gz
-IMAGEMAGICK_SITE = https://github.com/ImageMagick/ImageMagick/archive
+IMAGEMAGICK_VERSION = 7.0.10-62
+IMAGEMAGICK_SITE = $(call github,ImageMagick,ImageMagick,$(IMAGEMAGICK_VERSION))
 IMAGEMAGICK_LICENSE = Apache-2.0
 IMAGEMAGICK_LICENSE_FILES = LICENSE
+IMAGEMAGICK_CPE_ID_VENDOR = imagemagick
 
 IMAGEMAGICK_INSTALL_STAGING = YES
 IMAGEMAGICK_CONFIG_SCRIPTS = \
@@ -18,10 +18,13 @@ ifeq ($(BR2_INSTALL_LIBSTDCPP)$(BR2_USE_WCHAR),yy)
 IMAGEMAGICK_CONFIG_SCRIPTS += Magick++-config
 endif
 
-IMAGEMAGICK_CONF_ENV = ac_cv_sys_file_offset_bits=64
+IMAGEMAGICK_CONF_ENV = \
+	ac_cv_sys_file_offset_bits=64 \
+	ax_cv_check_cl_libcl=no
 
 IMAGEMAGICK_CONF_OPTS = \
 	--program-transform-name='s,,,' \
+	--disable-opencl \
 	--disable-openmp \
 	--without-djvu \
 	--without-dps \
@@ -29,9 +32,12 @@ IMAGEMAGICK_CONF_OPTS = \
 	--without-fpx \
 	--without-gslib \
 	--without-gvc \
+	--without-heic \
 	--without-jbig \
+	--without-jxl \
 	--without-lqr \
 	--without-openexr \
+	--without-openjp2 \
 	--without-perl \
 	--without-raqm \
 	--without-wmf \
@@ -39,6 +45,14 @@ IMAGEMAGICK_CONF_OPTS = \
 	--with-gs-font-dir=/usr/share/fonts/gs
 
 IMAGEMAGICK_DEPENDENCIES = host-pkgconf
+
+ifeq ($(BR2_TOOLCHAIN_USES_UCLIBC),y)
+# Like postgreSQL, imagemagick does not build against uClibc with
+# locales enabled, due to an uClibc bug, see
+# http://lists.uclibc.org/pipermail/uclibc/2014-April/048326.html
+# so overwrite automatic detection and disable locale support
+IMAGEMAGICK_CONF_ENV += ac_cv_func_newlocale=no
+endif
 
 ifeq ($(BR2_PACKAGE_FONTCONFIG),y)
 IMAGEMAGICK_CONF_OPTS += --with-fontconfig
@@ -77,6 +91,13 @@ else
 IMAGEMAGICK_CONF_OPTS += --without-png
 endif
 
+ifeq ($(BR2_PACKAGE_LIBRAW),y)
+IMAGEMAGICK_CONF_OPTS += --with-raw
+IMAGEMAGICK_DEPENDENCIES += libraw
+else
+IMAGEMAGICK_CONF_OPTS += --without-raw
+endif
+
 ifeq ($(BR2_PACKAGE_LIBRSVG),y)
 IMAGEMAGICK_CONF_OPTS += --with-rsvg
 IMAGEMAGICK_DEPENDENCIES += librsvg
@@ -90,6 +111,20 @@ IMAGEMAGICK_CONF_ENV += ac_cv_path_xml2_config=$(STAGING_DIR)/usr/bin/xml2-confi
 IMAGEMAGICK_DEPENDENCIES += libxml2
 else
 IMAGEMAGICK_CONF_OPTS += --without-xml
+endif
+
+ifeq ($(BR2_PACKAGE_LIBZIP),y)
+IMAGEMAGICK_CONF_OPTS += --with-zip
+IMAGEMAGICK_DEPENDENCIES += libzip
+else
+IMAGEMAGICK_CONF_OPTS += --without-zip
+endif
+
+ifeq ($(BR2_PACKAGE_ZSTD),y)
+IMAGEMAGICK_CONF_OPTS += --with-zstd
+IMAGEMAGICK_DEPENDENCIES += zstd
+else
+IMAGEMAGICK_CONF_OPTS += --without-zstd
 endif
 
 ifeq ($(BR2_PACKAGE_PANGO),y)
@@ -144,6 +179,7 @@ IMAGEMAGICK_CONF_OPTS += --without-bzlib
 endif
 
 HOST_IMAGEMAGICK_CONF_OPTS = \
+	--disable-opencl \
 	--disable-openmp \
 	--without-djvu \
 	--without-dps \
@@ -151,33 +187,62 @@ HOST_IMAGEMAGICK_CONF_OPTS = \
 	--without-fpx \
 	--without-gslib \
 	--without-gvc \
+	--without-heic \
 	--without-jbig \
+	--without-jxl \
 	--without-lqr \
 	--without-openexr \
+	--without-openjp2 \
 	--without-perl \
 	--without-raqm \
+	--without-raw \
 	--without-wmf \
 	--without-x \
+	--without-zip \
+	--without-zstd \
 	--without-bzlib \
 	--without-fftw \
-	--without-fontconfig \
-	--without-freetype \
 	--without-lcms \
 	--without-lzma \
-	--without-pango \
-	--without-rsvg \
 	--without-tiff \
 	--without-webp \
-	--without-xml \
 	--with-jpeg \
 	--with-png \
 	--with-zlib
+
+# uses clock_gettime, which was provided by librt in glibc < 2.17
+HOST_IMAGEMAGICK_CONF_ENV = \
+	LIBS="-lrt" \
+	ax_cv_check_cl_libcl=no
 
 HOST_IMAGEMAGICK_DEPENDENCIES = \
 	host-libjpeg \
 	host-libpng \
 	host-pkgconf \
 	host-zlib
+
+ifeq ($(BR2_PACKAGE_HOST_IMAGEMAGICK_SVG),y)
+HOST_IMAGEMAGICK_DEPENDENCIES += \
+	host-fontconfig \
+	host-freetype \
+	host-librsvg \
+	host-libxml2 \
+	host-pango
+HOST_IMAGEMAGICK_CONF_ENV += ac_cv_path_xml2_config=$(HOST_DIR)/bin/xml2-config
+HOST_IMAGEMAGICK_CONF_OPTS += \
+	--with-fontconfig \
+	--with-freetype \
+	--with-pango \
+	--with-rsvg \
+	--with-xml
+else
+HOST_IMAGEMAGICK_CONF_OPTS += \
+	--without-fontconfig \
+	--without-freetype \
+	--without-pango \
+	--without-rsvg \
+	--without-xml
+endif
 
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))

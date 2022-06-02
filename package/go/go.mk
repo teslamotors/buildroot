@@ -4,12 +4,33 @@
 #
 ################################################################################
 
-GO_VERSION = 1.11.5
+GO_VERSION = 1.15.12
 GO_SITE = https://storage.googleapis.com/golang
 GO_SOURCE = go$(GO_VERSION).src.tar.gz
 
 GO_LICENSE = BSD-3-Clause
 GO_LICENSE_FILES = LICENSE
+GO_CPE_ID_VENDOR = golang
+
+HOST_GO_DEPENDENCIES = host-go-bootstrap
+HOST_GO_GOPATH = $(HOST_DIR)/usr/share/go-path
+HOST_GO_HOST_CACHE = $(HOST_DIR)/usr/share/host-go-cache
+HOST_GO_ROOT = $(HOST_DIR)/lib/go
+HOST_GO_TARGET_CACHE = $(HOST_DIR)/usr/share/go-cache
+
+# We pass an empty GOBIN, otherwise "go install: cannot install
+# cross-compiled binaries when GOBIN is set"
+HOST_GO_COMMON_ENV = \
+	GO111MODULE=on \
+	GOFLAGS=-mod=vendor \
+	GOROOT="$(HOST_GO_ROOT)" \
+	GOPATH="$(HOST_GO_GOPATH)" \
+	GOPROXY=off \
+	PATH=$(BR_PATH) \
+	GOBIN= \
+	CGO_ENABLED=$(HOST_GO_CGO_ENABLED)
+
+ifeq ($(BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS),y)
 
 ifeq ($(BR2_arm),y)
 GO_GOARCH = arm
@@ -18,6 +39,10 @@ GO_GOARM = 5
 else ifeq ($(BR2_ARM_CPU_ARMV6),y)
 GO_GOARM = 6
 else ifeq ($(BR2_ARM_CPU_ARMV7A),y)
+GO_GOARM = 7
+else ifeq ($(BR2_ARM_CPU_ARMV8A),y)
+# Go doesn't support 32-bit GOARM=8 (https://github.com/golang/go/issues/29373)
+# but can still benefit from armv7 optimisations
 GO_GOARM = 7
 endif
 else ifeq ($(BR2_aarch64),y)
@@ -34,23 +59,21 @@ else ifeq ($(BR2_mips64),y)
 GO_GOARCH = mips64
 else ifeq ($(BR2_mips64el),y)
 GO_GOARCH = mips64le
+else ifeq ($(BR2_s390x),y)
+GO_GOARCH = s390x
 endif
-
-HOST_GO_DEPENDENCIES = host-go-bootstrap
-HOST_GO_HOST_CACHE = $(HOST_DIR)/usr/share/host-go-cache
-HOST_GO_ROOT = $(HOST_DIR)/lib/go
-HOST_GO_TARGET_CACHE = $(HOST_DIR)/usr/share/go-cache
 
 # For the convienience of target packages.
 HOST_GO_TOOLDIR = $(HOST_GO_ROOT)/pkg/tool/linux_$(GO_GOARCH)
 HOST_GO_TARGET_ENV = \
-	GO111MODULE=off \
+	$(HOST_GO_COMMON_ENV) \
 	GOARCH=$(GO_GOARCH) \
 	GOCACHE="$(HOST_GO_TARGET_CACHE)" \
-	GOROOT="$(HOST_GO_ROOT)" \
-	CGO_ENABLED=$(HOST_GO_CGO_ENABLED) \
 	CC="$(TARGET_CC)" \
 	CXX="$(TARGET_CXX)" \
+	CGO_CFLAGS="$(TARGET_CFLAGS)" \
+	CGO_CXXFLAGS="$(TARGET_CXXFLAGS)" \
+	CGO_LDFLAGS="$(TARGET_LDFLAGS)" \
 	GOTOOLDIR="$(HOST_GO_TOOLDIR)"
 
 # The go compiler's cgo support uses threads.  If BR2_TOOLCHAIN_HAS_THREADS is
@@ -63,6 +86,31 @@ else
 HOST_GO_CGO_ENABLED = 0
 endif
 
+HOST_GO_CROSS_ENV = \
+	CC_FOR_TARGET="$(TARGET_CC)" \
+	CXX_FOR_TARGET="$(TARGET_CXX)" \
+	GOARCH=$(GO_GOARCH) \
+	$(if $(GO_GOARM),GOARM=$(GO_GOARM)) \
+	GO_ASSUME_CROSSCOMPILING=1
+
+else # !BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS
+# host-go can still be used to build packages for the host. No need to set all
+# the arch stuff since we will not be cross-compiling.
+HOST_GO_CGO_ENABLED = 1
+endif # BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS
+
+# For the convenience of host golang packages
+HOST_GO_HOST_ENV = \
+	$(HOST_GO_COMMON_ENV) \
+	GOARCH="" \
+	GOCACHE="$(HOST_GO_HOST_CACHE)" \
+	CC="$(HOSTCC_NOCCACHE)" \
+	CXX="$(HOSTCXX_NOCCACHE)" \
+	CGO_CFLAGS="$(HOST_CFLAGS)" \
+	CGO_CXXFLAGS="$(HOST_CXXFLAGS)" \
+	CGO_LDFLAGS="$(HOST_LDFLAGS)"
+
+# The go build system is not compatible with ccache, so use
 # HOSTCC_NOCCACHE.  See https://github.com/golang/go/issues/11685.
 HOST_GO_MAKE_ENV = \
 	GO111MODULE=off \
@@ -72,21 +120,15 @@ HOST_GO_MAKE_ENV = \
 	GOROOT="$(@D)" \
 	CGO_ENABLED=$(HOST_GO_CGO_ENABLED) \
 	GOBIN="$(@D)/bin" \
-	GOARCH=$(GO_GOARCH) \
-	$(if $(GO_GOARM),GOARM=$(GO_GOARM)) \
 	GOOS=linux \
 	CC=$(HOSTCC_NOCCACHE) \
 	CXX=$(HOSTCXX_NOCCACHE) \
-	GO_ASSUME_CROSSCOMPILING=1
-
-HOST_GO_TARGET_CC = \
-	CC_FOR_TARGET="$(TARGET_CC)" \
-	CXX_FOR_TARGET="$(TARGET_CXX)"
+	CGO_ENABLED=$(HOST_GO_CGO_ENABLED) \
+	$(HOST_GO_CROSS_ENV)
 
 define HOST_GO_BUILD_CMDS
 	cd $(@D)/src && \
-		$(HOST_GO_MAKE_ENV) $(HOST_GO_TARGET_CC) CGO_ENABLED=$(HOST_GO_CGO_ENABLED) \
-		./make.bash $(if $(VERBOSE),-v)
+		$(HOST_GO_MAKE_ENV) ./make.bash $(if $(VERBOSE),-v)
 endef
 
 define HOST_GO_INSTALL_CMDS

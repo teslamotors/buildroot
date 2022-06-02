@@ -16,11 +16,35 @@ endif
 TOOLCHAIN_WRAPPER_ARGS = $($(PKG)_TOOLCHAIN_WRAPPER_ARGS)
 TOOLCHAIN_WRAPPER_ARGS += -DBR_SYSROOT='"$(STAGING_SUBDIR)"'
 
+TOOLCHAIN_WRAPPER_OPTS = \
+	$(ARCH_TOOLCHAIN_WRAPPER_OPTS) \
+	$(call qstrip,$(BR2_SSP_OPTION)) \
+	$(call qstrip,$(BR2_TARGET_OPTIMIZATION))
+
+ifeq ($(BR2_REPRODUCIBLE),y)
+TOOLCHAIN_WRAPPER_OPTS += -Wl,--build-id=none
+ifeq ($(BR2_TOOLCHAIN_GCC_AT_LEAST_8),y)
+TOOLCHAIN_WRAPPER_OPTS += -ffile-prefix-map=$(BASE_DIR)=buildroot
+else
+TOOLCHAIN_WRAPPER_OPTS += -D__FILE__=\"\" -D__BASE_FILE__=\"\" -Wno-builtin-macro-redefined
+endif
+ifeq ($(BR2_TOOLCHAIN_GCC_AT_LEAST_7),)
+TOOLCHAIN_WRAPPER_OPTS += -DBR_NEED_SOURCE_DATE_EPOCH
+endif
+endif
+
+# Disable -ftree-loop-distribute-patterns on microblaze to
+# workaround a compiler bug with gcc 10 and -O2, -Os or -O3.
+# https://gcc.gnu.org/git/?p=gcc.git;a=commitdiff;h=5879ab5fafedc8f6f9bfe95a4cf8501b0df90edd
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=97208
+ifeq ($(BR2_TOOLCHAIN_GCC_AT_LEAST_10)$(BR2_microblaze),yy)
+TOOLCHAIN_WRAPPER_OPTS += -fno-tree-loop-distribute-patterns
+endif
+
 # We create a list like '"-mfoo", "-mbar", "-mbarfoo"' so that each flag is a
 # separate argument when used in execv() by the toolchain wrapper.
-TOOLCHAIN_WRAPPER_OPTS = \
-	$(foreach f,$(call qstrip,$(BR2_TARGET_OPTIMIZATION)),"$(f)"$(comma))
-TOOLCHAIN_WRAPPER_ARGS += -DBR_ADDITIONAL_CFLAGS='$(TOOLCHAIN_WRAPPER_OPTS)'
+TOOLCHAIN_WRAPPER_ARGS += \
+	-DBR_ADDITIONAL_CFLAGS='$(foreach f,$(TOOLCHAIN_WRAPPER_OPTS),"$(f)"$(comma))'
 
 ifeq ($(BR2_CCACHE),y)
 TOOLCHAIN_WRAPPER_ARGS += -DBR_CCACHE
@@ -45,18 +69,14 @@ ifeq ($(BR2_CCACHE_USE_BASEDIR),y)
 TOOLCHAIN_WRAPPER_ARGS += -DBR_CCACHE_BASEDIR='"$(BASE_DIR)"'
 endif
 
+ifeq ($(BR2_PIC_PIE),y)
+TOOLCHAIN_WRAPPER_ARGS += -DBR2_PIC_PIE
+endif
+
 ifeq ($(BR2_RELRO_PARTIAL),y)
 TOOLCHAIN_WRAPPER_ARGS += -DBR2_RELRO_PARTIAL
 else ifeq ($(BR2_RELRO_FULL),y)
 TOOLCHAIN_WRAPPER_ARGS += -DBR2_RELRO_FULL
-endif
-
-ifeq ($(BR2_SSP_REGULAR),y)
-TOOLCHAIN_WRAPPER_ARGS += -DBR_SSP_REGULAR
-else ifeq ($(BR2_SSP_STRONG),y)
-TOOLCHAIN_WRAPPER_ARGS += -DBR_SSP_STRONG
-else ifeq ($(BR2_SSP_ALL),y)
-TOOLCHAIN_WRAPPER_ARGS += -DBR_SSP_ALL
 endif
 
 define TOOLCHAIN_WRAPPER_BUILD

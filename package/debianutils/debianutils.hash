@@ -1,2 +1,4 @@
-# From http://ftp.de.debian.org/debian/pool/main/d/debianutils/debianutils_4.8.1.dsc
-sha256	2c395c0bdcfe89de30828b1d25cc5549ded5225a6d3625fbcb2cc0881ef5f026	debianutils_4.8.1.tar.xz
+# From http://snapshot.debian.org/archive/debian/20200525T145753Z/pool/main/d/debianutils/debianutils_4.11.dsc
+sha256 bb5ce6290696b0d623377521ed217f484aa98f7346c5f7c48f9ae3e1acfb7151 debianutils_4.11.tar.xz
+# Locally calculated
+sha256 3c8b5112cb8f74ba959233291908d73f527afa6f1d96f93649aeb912b5884567 debian/copyright

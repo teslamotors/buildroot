@@ -4,11 +4,12 @@
 #
 ################################################################################
 
-SPICE_VERSION = 0.14.1
+SPICE_VERSION = 0.14.3
 SPICE_SOURCE = spice-$(SPICE_VERSION).tar.bz2
 SPICE_SITE = http://www.spice-space.org/download/releases/spice-server
 SPICE_LICENSE = LGPL-2.1+
 SPICE_LICENSE_FILES = COPYING
+SPICE_CPE_ID_VENDOR = spice_project
 SPICE_INSTALL_STAGING = YES
 SPICE_DEPENDENCIES = \
 	host-pkgconf \
@@ -25,16 +26,10 @@ SPICE_CONF_OPTS = \
 	--disable-opengl \
 	--disable-smartcard \
 	--without-sasl \
-	--disable-manual
+	--disable-manual \
+	--disable-tests
 
 SPICE_DEPENDENCIES += host-pkgconf
-
-ifeq ($(BR2_PACKAGE_CELT051),y)
-SPICE_CONF_OPTS += --enable-celt051
-SPICE_DEPENDENCIES += celt051
-else
-SPICE_CONF_OPTS += --disable-celt051
-endif
 
 ifeq ($(BR2_PACKAGE_LZ4),y)
 SPICE_CONF_OPTS += --enable-lz4

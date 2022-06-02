@@ -4,41 +4,41 @@
 #
 ################################################################################
 
-SYSKLOGD_VERSION = 1.5.1
-SYSKLOGD_SITE = http://www.infodrom.org/projects/sysklogd/download
-SYSKLOGD_LICENSE = GPL-2.0+
-SYSKLOGD_LICENSE_FILES = COPYING
+SYSKLOGD_VERSION = 2.2.3
+SYSKLOGD_SITE = https://github.com/troglobit/sysklogd/releases/download/v$(SYSKLOGD_VERSION)
+SYSKLOGD_LICENSE = BSD-3-Clause
+SYSKLOGD_LICENSE_FILES = LICENSE
+SYSKLOGD_CPE_ID_VENDOR = sysklogd_project
 
-# Override SKFLAGS which is used as CFLAGS.
-define SYSKLOGD_BUILD_CMDS
-	$(MAKE) $(TARGET_CONFIGURE_OPTS) SKFLAGS="$(TARGET_CFLAGS) -DSYSV" \
-		-C $(@D)
-endef
+# Busybox install logger in /usr/bin, and syslogd in /sbin, so install in
+# the same locations so that busybox does not install its applets in there.
+SYSKLOGD_CONF_OPTS = \
+	--bindir=/usr/bin \
+	--sbindir=/sbin \
+	--with-suspend-time=$(BR2_PACKAGE_SYSKLOGD_REMOTE_DELAY)
 
-define SYSKLOGD_INSTALL_TARGET_CMDS
-	$(INSTALL) -D -m 0500 $(@D)/syslogd $(TARGET_DIR)/sbin/syslogd
-	$(INSTALL) -D -m 0500 $(@D)/klogd $(TARGET_DIR)/sbin/klogd
-	$(INSTALL) -D -m 0644 package/sysklogd/syslog.conf \
+# Disable/Enable utilities
+ifeq ($(BR2_PACKAGE_SYSKLOGD_LOGGER),y)
+SYSKLOGD_CONF_OPTS += --with-logger
+else
+SYSKLOGD_CONF_OPTS += --without-logger
+endif
+
+define SYSKLOGD_INSTALL_SAMPLE_CONFIG
+	$(INSTALL) -D -m 0644 $(@D)/syslog.conf \
 		$(TARGET_DIR)/etc/syslog.conf
 endef
+
+SYSKLOGD_POST_INSTALL_TARGET_HOOKS += SYSKLOGD_INSTALL_SAMPLE_CONFIG
 
 define SYSKLOGD_INSTALL_INIT_SYSV
 	$(INSTALL) -m 755 -D package/sysklogd/S01syslogd \
 		$(TARGET_DIR)/etc/init.d/S01syslogd
-	$(INSTALL) -m 755 -D package/sysklogd/S02klogd \
-		$(TARGET_DIR)/etc/init.d/S02klogd
 endef
 
 define SYSKLOGD_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -D -m 644 $(SYSKLOGD_PKGDIR)/syslogd.service \
 		$(TARGET_DIR)/usr/lib/systemd/system/syslogd.service
-	$(INSTALL) -D -m 644 $(SYSKLOGD_PKGDIR)/klogd.service \
-		$(TARGET_DIR)/usr/lib/systemd/system/klogd.service
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
-	ln -sf ../../../../usr/lib/systemd/system/syslogd.service \
-		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/syslogd.service
-	ln -sf ../../../usr/lib/systemd/system/syslogd.service \
-		$(TARGET_DIR)/etc/systemd/system/syslog.service
 endef
 
-$(eval $(generic-package))
+$(eval $(autotools-package))

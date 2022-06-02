@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-XSERVER_XORG_SERVER_VERSION = $(call qstrip,$(BR2_PACKAGE_XSERVER_XORG_SERVER_VERSION))
+XSERVER_XORG_SERVER_VERSION = 1.20.11
 XSERVER_XORG_SERVER_SOURCE = xorg-server-$(XSERVER_XORG_SERVER_VERSION).tar.bz2
 XSERVER_XORG_SERVER_SITE = https://xorg.freedesktop.org/archive/individual/xserver
 XSERVER_XORG_SERVER_LICENSE = MIT
@@ -20,6 +20,7 @@ XSERVER_XORG_SERVER_DEPENDENCIES = \
 	xlib_libXdmcp \
 	xlib_libXext \
 	xlib_libXfixes \
+	xlib_libXfont2 \
 	xlib_libXi \
 	xlib_libXrender \
 	xlib_libXres \
@@ -47,6 +48,7 @@ XSERVER_XORG_SERVER_CONF_OPTS = \
 	--disable-xnest \
 	--disable-xephyr \
 	--disable-dmx \
+	--disable-unit-tests \
 	--with-builder-addr=buildroot@buildroot.org \
 	CFLAGS="$(TARGET_CFLAGS) -I$(STAGING_DIR)/usr/include/pixman-1 -O2" \
 	--with-fontrootdir=/usr/share/fonts/X11/ \
@@ -88,56 +90,21 @@ endif
 ifeq ($(BR2_PACKAGE_XSERVER_XORG_SERVER_KDRIVE),y)
 XSERVER_XORG_SERVER_CONF_OPTS += \
 	--enable-kdrive \
-	--enable-xfbdev \
 	--disable-glx \
-	--disable-dri \
-	--disable-xsdl
-define XSERVER_CREATE_X_SYMLINK
-	ln -f -s Xfbdev $(TARGET_DIR)/usr/bin/X
-endef
-XSERVER_XORG_SERVER_POST_INSTALL_TARGET_HOOKS += XSERVER_CREATE_X_SYMLINK
-
-ifeq ($(BR2_PACKAGE_XSERVER_XORG_SERVER_KDRIVE_EVDEV),y)
-XSERVER_XORG_SERVER_CONF_OPTS += --enable-kdrive-evdev
-else
-XSERVER_XORG_SERVER_CONF_OPTS += --disable-kdrive-evdev
-endif
-
-ifeq ($(BR2_PACKAGE_XSERVER_XORG_SERVER_KDRIVE_KBD),y)
-XSERVER_XORG_SERVER_CONF_OPTS += --enable-kdrive-kbd
-else
-XSERVER_XORG_SERVER_CONF_OPTS += --disable-kdrive-kbd
-endif
-
-ifeq ($(BR2_PACKAGE_XSERVER_XORG_SERVER_KDRIVE_MOUSE),y)
-XSERVER_XORG_SERVER_CONF_OPTS += --enable-kdrive-mouse
-else
-XSERVER_XORG_SERVER_CONF_OPTS += --disable-kdrive-mouse
-endif
+	--disable-dri
 
 else # modular
-XSERVER_XORG_SERVER_CONF_OPTS += --disable-kdrive --disable-xfbdev
+XSERVER_XORG_SERVER_CONF_OPTS += --disable-kdrive
 endif
 
-ifeq ($(BR2_PACKAGE_MESA3D_DRI_DRIVER),y)
-XSERVER_XORG_SERVER_CONF_OPTS += --enable-dri --enable-glx-tls
-XSERVER_XORG_SERVER_DEPENDENCIES += mesa3d
+ifeq ($(BR2_PACKAGE_HAS_LIBGL),y)
+XSERVER_XORG_SERVER_CONF_OPTS += --enable-dri --enable-glx
+XSERVER_XORG_SERVER_DEPENDENCIES += libgl
 else
 XSERVER_XORG_SERVER_CONF_OPTS += --disable-dri --disable-glx
 endif
 
-ifeq ($(BR2_PACKAGE_XSERVER_XORG_SERVER_AIGLX),y)
-XSERVER_XORG_SERVER_CONF_OPTS += --enable-aiglx
-else
-XSERVER_XORG_SERVER_CONF_OPTS += --disable-aiglx
-endif
-
 # Optional packages
-ifeq ($(BR2_PACKAGE_TSLIB),y)
-XSERVER_XORG_SERVER_DEPENDENCIES += tslib
-XSERVER_XORG_SERVER_CONF_OPTS += --enable-tslib LDFLAGS="-lts"
-endif
-
 ifeq ($(BR2_PACKAGE_HAS_UDEV),y)
 XSERVER_XORG_SERVER_DEPENDENCIES += udev
 XSERVER_XORG_SERVER_CONF_OPTS += --enable-config-udev
@@ -163,14 +130,6 @@ XSERVER_XORG_SERVER_DEPENDENCIES += libunwind
 XSERVER_XORG_SERVER_CONF_OPTS += --enable-libunwind
 else
 XSERVER_XORG_SERVER_CONF_OPTS += --disable-libunwind
-endif
-
-ifeq ($(BR2_PACKAGE_XLIB_LIBXFONT2),y)
-XSERVER_XORG_SERVER_DEPENDENCIES += xlib_libXfont2
-endif
-
-ifeq ($(BR2_PACKAGE_XLIB_LIBXFONT),y)
-XSERVER_XORG_SERVER_DEPENDENCIES += xlib_libXfont
 endif
 
 ifneq ($(BR2_PACKAGE_XLIB_LIBXVMC),y)
@@ -223,9 +182,17 @@ XSERVER_XORG_SERVER_CONF_OPTS += --with-sha1=libsha1
 XSERVER_XORG_SERVER_DEPENDENCIES += libsha1
 endif
 
+define XSERVER_XORG_SERVER_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -D -m 0644 package/x11r7/xserver_xorg-server/xorg.service \
+		$(TARGET_DIR)/usr/lib/systemd/system/xorg.service
+endef
+
+# init script conflicts with S90nodm
+ifneq ($(BR2_PACKAGE_NODM),y)
 define XSERVER_XORG_SERVER_INSTALL_INIT_SYSV
 	$(INSTALL) -D -m 755 package/x11r7/xserver_xorg-server/S40xorg \
 		$(TARGET_DIR)/etc/init.d/S40xorg
 endef
+endif
 
 $(eval $(autotools-package))

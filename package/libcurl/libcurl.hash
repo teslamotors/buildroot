@@ -1,5 +1,5 @@
 # Locally calculated after checking pgp signature
-# https://curl.haxx.se/download/curl-7.64.1.tar.xz.asc
-# with key 27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2
-sha256 9252332a7f871ce37bfa7f78bdd0a0e3924d8187cc27cb57c76c9474a7168fb3  curl-7.64.1.tar.xz
-sha256 8c8824f50e73a021f5dde1fccbf69685939247399a33a32abab1fa448c9ddabb  COPYING
+# https://curl.haxx.se/download/curl-7.76.1.tar.xz.asc
+# signed with key 27EDEAF22F3ABCEB50DB9A125CC908FDB71E12C2
+sha256  64bb5288c39f0840c07d077e30d9052e1cbb9fa6c2dc52523824cc859e679145  curl-7.76.1.tar.xz
+sha256  6fd1a1c008b5ef4c4741dd188c3f8af6944c14c25afa881eb064f98fb98358e7  COPYING

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 
 Utility for building Buildroot packages for existing PyPI packages
@@ -96,10 +96,10 @@ def pkg_buildroot_name(pkg_name):
     Keyword arguments:
     pkg_name -- String to rename
     """
-    name = re.sub('[^\w-]', '', pkg_name.lower())
+    name = re.sub(r'[^\w-]', '', pkg_name.lower())
     name = name.replace('_', '-')
     prefix = 'python-'
-    pattern = re.compile('^(?!' + prefix + ')(.+?)$')
+    pattern = re.compile(r'^(?!' + prefix + ')(.+?)$')
     name = pattern.sub(r'python-\1', name)
     return name
 
@@ -337,7 +337,7 @@ class BuildrootPackage():
             self.pkg_req = None
             return set()
         self.pkg_req = self.setup_metadata['install_requires']
-        self.pkg_req = [re.sub('([-.\w]+).*', r'\1', req)
+        self.pkg_req = [re.sub(r'([-.\w]+).*', r'\1', req)
                         for req in self.pkg_req]
 
         # get rid of commented lines and also strip the package strings
@@ -451,7 +451,7 @@ class BuildrootPackage():
                 "Mozilla Public License 2.0": "MPL-2.0",
                 "Zope Public License": "ZPL"
                 }
-            regexp = re.compile('^License :* *.* *:+ (.*)( \(.*\))?$')
+            regexp = re.compile(r'^License :* *.* *:+ (.*)( \(.*\))?$')
             classifiers_licenses = [regexp.sub(r"\1", lic)
                                     for lic in self.metadata['info']['classifiers']
                                     if regexp.match(lic)]
@@ -461,6 +461,7 @@ class BuildrootPackage():
                       ' likely wrong, please change it if need be'.format(
                           license=', '.join(licenses)))
                 licenses = [self.metadata['info']['license']]
+            licenses = set(licenses)
             license_line = '{name}_LICENSE = {license}\n'.format(
                 name=self.mk_name,
                 license=', '.join(licenses))
@@ -473,6 +474,7 @@ class BuildrootPackage():
                     license_names.append(match.license.id)
                 else:
                     license_names.append("FIXME: license id couldn't be detected")
+            license_names = set(license_names)
 
             if len(license_names) > 0:
                 license_line = ('{name}_LICENSE ='
@@ -566,12 +568,12 @@ class BuildrootPackage():
             hash_header = '# md5, sha256 from {url}\n'.format(
                 url=self.metadata_url)
             lines.append(hash_header)
-            hash_line = '{method}\t{digest}  {filename}\n'.format(
+            hash_line = '{method}  {digest}  {filename}\n'.format(
                 method='md5',
                 digest=self.used_url['digests']['md5'],
                 filename=self.filename)
             lines.append(hash_line)
-            hash_line = '{method}\t{digest}  {filename}\n'.format(
+            hash_line = '{method}  {digest}  {filename}\n'.format(
                 method='sha256',
                 digest=self.used_url['digests']['sha256'],
                 filename=self.filename)
@@ -587,7 +589,7 @@ class BuildrootPackage():
                     if not data:
                         break
                     sha256.update(data)
-            hash_line = '{method}\t{digest}  {filename}\n'.format(
+            hash_line = '{method}  {digest}  {filename}\n'.format(
                 method='sha256',
                 digest=sha256.hexdigest(),
                 filename=license_file.replace(self.tmp_extract, '')[1:])
@@ -610,6 +612,7 @@ class BuildrootPackage():
         bool_line = '\tbool "{name}"\n'.format(name=self.buildroot_name)
         lines.append(bool_line)
         if self.pkg_req:
+            self.pkg_req.sort()
             for dep in self.pkg_req:
                 dep_line = '\tselect BR2_PACKAGE_{req} # runtime\n'.format(
                     req=dep.upper().replace('-', '_'))
@@ -739,6 +742,8 @@ def main():
             package.create_hash_file()
 
             package.create_config_in()
+            print("NOTE: Remember to also make an update to the DEVELOPERS file")
+            print("      and include an entry for the pkg in packages/Config.in")
             print()
             # printing an empty line for visual confort
     finally:

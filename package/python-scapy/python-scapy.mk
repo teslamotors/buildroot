@@ -4,11 +4,13 @@
 #
 ################################################################################
 
-PYTHON_SCAPY_VERSION = 2.4.0
+PYTHON_SCAPY_VERSION = 2.4.4
 PYTHON_SCAPY_SOURCE = scapy-$(PYTHON_SCAPY_VERSION).tar.gz
-PYTHON_SCAPY_SITE = https://files.pythonhosted.org/packages/68/01/b9943984447e7ea6f8948e90c1729b78161c2bb3eef908430638ec3f7296
+PYTHON_SCAPY_SITE = https://files.pythonhosted.org/packages/c6/8f/438d4d0bab4c8e22906a7401dd082b4c0f914daf2bbdc7e7e8390d81a5c3
+PYTHON_SCAPY_SETUP_TYPE = setuptools
 PYTHON_SCAPY_LICENSE = GPL-2.0
-PYTHON_SCAPY_LICENSE_FILES = PKG-INFO
-PYTHON_SCAPY_SETUP_TYPE = distutils
+PYTHON_SCAPY_LICENSE_FILES = LICENSE
+PYTHON_SCAPY_CPE_ID_VENDOR = scapy
+PYTHON_SCAPY_CPE_ID_PRODUCT = scapy
 
 $(eval $(python-package))

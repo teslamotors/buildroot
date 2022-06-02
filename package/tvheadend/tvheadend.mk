@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-TVHEADEND_VERSION = 17dff3e5ffbd67174b6c0d7b49f5488e19ec1ead
+TVHEADEND_VERSION = febcf9818d7c37fec8a98d424934edcb3243d5e4
 TVHEADEND_SITE = $(call github,tvheadend,tvheadend,$(TVHEADEND_VERSION))
 TVHEADEND_LICENSE = GPL-3.0+
 TVHEADEND_LICENSE_FILES = LICENSE.md
@@ -92,6 +92,10 @@ TVHEADEND_DEPENDENCIES += pcre
 TVHEADEND_CONF_OPTS += --enable-pcre
 else
 TVHEADEND_CONF_OPTS += --disable-pcre
+endif
+
+ifeq ($(BR2_TOOLCHAIN_SUPPORTS_PIE),)
+TVHEADEND_CONF_OPTS += --disable-pie
 endif
 
 TVHEADEND_DEPENDENCIES += dtv-scan-tables

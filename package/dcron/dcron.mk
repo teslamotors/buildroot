@@ -4,10 +4,10 @@
 #
 ################################################################################
 
-DCRON_VERSION = 4.5
-DCRON_SITE = http://www.jimpryor.net/linux/releases
-# The source code does not specify the version of the GPL that is used.
-DCRON_LICENSE = GPL
+DCRON_VERSION = 1ba33c3325df48de46263276a43ed76cf9d81518
+DCRON_SITE = $(call github,dubiousjim,dcron,$(DCRON_VERSION))
+DCRON_LICENSE = GPL-2.0+
+DCRON_LICENSE_FILES = COPYING
 
 define DCRON_BUILD_CMDS
 	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) $(TARGET_CONFIGURE_OPTS)
@@ -31,9 +31,6 @@ endef
 define DCRON_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -D -m 644 package/dcron/dcron.service \
 		$(TARGET_DIR)/usr/lib/systemd/system/dcron.service
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
-	ln -sf ../../../../usr/lib/systemd/system/dcron.service \
-		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/dcron.service
 endef
 
 $(eval $(generic-package))

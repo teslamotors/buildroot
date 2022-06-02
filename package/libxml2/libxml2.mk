@@ -4,11 +4,18 @@
 #
 ################################################################################
 
-LIBXML2_VERSION = 2.9.9
-LIBXML2_SITE = ftp://xmlsoft.org/libxml2
+LIBXML2_VERSION = 2.9.10
+LIBXML2_SITE = http://xmlsoft.org/sources
 LIBXML2_INSTALL_STAGING = YES
 LIBXML2_LICENSE = MIT
 LIBXML2_LICENSE_FILES = COPYING
+# 0001-Fix-infinite-loop-in-xmlStringLenDecodeEntities.patch
+LIBXML2_IGNORE_CVES += CVE-2020-7595
+# 0002-Fix-memory-leak-in-xmlSchemaValidateStream.patch
+LIBXML2_IGNORE_CVES += CVE-2019-20388
+# 0003-Fix-out-of-bounds-read-with-xmllint--htmlout.patch
+LIBXML2_IGNORE_CVES += CVE-2020-24977
+LIBXML2_CPE_ID_VENDOR = xmlsoft
 LIBXML2_CONFIG_SCRIPTS = xml2-config
 
 # relocation truncated to fit: R_68K_GOT16O
@@ -44,6 +51,11 @@ LIBXML2_CONF_OPTS += --with-iconv
 else
 LIBXML2_CONF_OPTS += --without-iconv
 endif
+
+define LIBXML2_CLEANUP_XML2CONF
+	rm -f $(TARGET_DIR)/usr/lib/xml2Conf.sh
+endef
+LIBXML2_POST_INSTALL_TARGET_HOOKS += LIBXML2_CLEANUP_XML2CONF
 
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))

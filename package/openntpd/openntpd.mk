@@ -8,6 +8,8 @@ OPENNTPD_VERSION = 6.2p3
 OPENNTPD_SITE = http://ftp.openbsd.org/pub/OpenBSD/OpenNTPD
 OPENNTPD_LICENSE = MIT-like, BSD-2-Clause, BSD-3-Clause
 OPENNTPD_LICENSE_FILES = COPYING
+OPENNTPD_CPE_ID_VENDOR = openntpd
+OPENNTPD_DEPENDENCIES = host-bison
 # Need to autoreconf for our libtool patch to apply properly
 OPENNTPD_AUTORECONF = YES
 
@@ -24,9 +26,6 @@ OPENNTPD_CONF_ENV += CFLAGS="$(TARGET_CFLAGS) -pthread"
 define OPENNTPD_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -D -m 0644 package/openntpd/ntpd.service \
 		$(TARGET_DIR)/usr/lib/systemd/system/ntpd.service
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
-	ln -fs ../../../../usr/lib/systemd/system/ntpd.service \
-		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/ntpd.service
 endef
 
 define OPENNTPD_INSTALL_INIT_SYSV

@@ -77,8 +77,10 @@ config BR2_aarch64_be
 
 config BR2_csky
 	bool "csky"
-	select BR2_ARCH_HAS_NO_TOOLCHAIN_BUILDROOT
 	select BR2_ARCH_HAS_MMU_MANDATORY
+	# Most variants are supported by gcc-9+, except one that is
+	# handled as a special exception in package/gcc/Config.in.host
+	select BR2_ARCH_NEEDS_GCC_AT_LEAST_9
 	help
 	  csky is processor IP from china.
 	  http://www.c-sky.com/
@@ -154,6 +156,14 @@ config BR2_mips64el
 	  http://www.mips.com/
 	  http://en.wikipedia.org/wiki/MIPS_Technologies
 
+config BR2_nds32
+	bool "nds32"
+	select BR2_ARCH_HAS_NO_TOOLCHAIN_BUILDROOT
+	select BR2_ARCH_HAS_MMU_MANDATORY
+	help
+	  nds32 is a 32-bit architecture developed by Andes Technology.
+	  https://en.wikipedia.org/wiki/Andes_Technology
+
 config BR2_nios2
 	bool "Nios II"
 	select BR2_ARCH_HAS_MMU_MANDATORY
@@ -208,6 +218,15 @@ config BR2_riscv
 	  and promoted by RISC-V Foundation.
 	  https://riscv.org/
 	  https://en.wikipedia.org/wiki/RISC-V
+
+config BR2_s390x
+	bool "s390x"
+	select BR2_ARCH_IS_64
+	select BR2_ARCH_HAS_MMU_MANDATORY
+	help
+	  s390x is a big-endian architecture made by IBM.
+	  http://www.ibm.com/
+	  http://en.wikipedia.org/wiki/IBM_System/390
 
 config BR2_sh
 	bool "SuperH"
@@ -293,6 +312,14 @@ config BR2_ARCH_NEEDS_GCC_AT_LEAST_7
 config BR2_ARCH_NEEDS_GCC_AT_LEAST_8
 	bool
 	select BR2_ARCH_NEEDS_GCC_AT_LEAST_7
+
+config BR2_ARCH_NEEDS_GCC_AT_LEAST_9
+	bool
+	select BR2_ARCH_NEEDS_GCC_AT_LEAST_8
+
+config BR2_ARCH_NEEDS_GCC_AT_LEAST_10
+	bool
+	select BR2_ARCH_NEEDS_GCC_AT_LEAST_9
 
 # The following string values are defined by the individual
 # Config.in.$ARCH files
@@ -419,6 +446,10 @@ if BR2_mips || BR2_mips64 || BR2_mipsel || BR2_mips64el
 source "arch/Config.in.mips"
 endif
 
+if BR2_nds32
+source "arch/Config.in.nds32"
+endif
+
 if BR2_nios2
 source "arch/Config.in.nios2"
 endif
@@ -433,6 +464,10 @@ endif
 
 if BR2_riscv
 source "arch/Config.in.riscv"
+endif
+
+if BR2_s390x
+source "arch/Config.in.s390x"
 endif
 
 if BR2_sh

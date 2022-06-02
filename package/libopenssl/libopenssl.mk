@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LIBOPENSSL_VERSION = 1.1.1a
+LIBOPENSSL_VERSION = 1.1.1k
 LIBOPENSSL_SITE = https://www.openssl.org/source
 LIBOPENSSL_SOURCE = openssl-$(LIBOPENSSL_VERSION).tar.gz
 LIBOPENSSL_LICENSE = OpenSSL or SSLeay
@@ -12,9 +12,11 @@ LIBOPENSSL_LICENSE_FILES = LICENSE
 LIBOPENSSL_INSTALL_STAGING = YES
 LIBOPENSSL_DEPENDENCIES = zlib host-perl
 HOST_LIBOPENSSL_DEPENDENCIES = host-zlib
-LIBOPENSSL_TARGET_ARCH = generic32
+LIBOPENSSL_TARGET_ARCH = $(call qstrip,$(BR2_PACKAGE_LIBOPENSSL_TARGET_ARCH))
 LIBOPENSSL_CFLAGS = $(TARGET_CFLAGS)
 LIBOPENSSL_PROVIDES = openssl
+LIBOPENSSL_CPE_ID_VENDOR = $(LIBOPENSSL_PROVIDES)
+LIBOPENSSL_CPE_ID_PRODUCT = $(LIBOPENSSL_PROVIDES)
 
 ifeq ($(BR2_m68k_cf),y)
 # relocation truncated to fit: R_68K_GOT16O
@@ -39,7 +41,7 @@ endif
 #   ./libcrypto.so: undefined reference to `makecontext'
 #
 # - uclibc:
-#   crypto/async/arch/../arch/async_posix.h:32:5: error: unknown type name ‘ucontext_t’
+#   crypto/async/arch/../arch/async_posix.h:32:5: error: unknown type name 'ucontext_t'
 #
 
 ifeq ($(BR2_TOOLCHAIN_USES_MUSL),y)
@@ -47,30 +49,6 @@ LIBOPENSSL_CFLAGS += -DOPENSSL_NO_ASYNC
 endif
 ifeq ($(BR2_TOOLCHAIN_HAS_UCONTEXT),)
 LIBOPENSSL_CFLAGS += -DOPENSSL_NO_ASYNC
-endif
-
-# Some architectures are optimized in OpenSSL
-# Doesn't work for thumb-only (Cortex-M?)
-ifeq ($(BR2_ARM_CPU_HAS_ARM),y)
-LIBOPENSSL_TARGET_ARCH = armv4
-endif
-ifeq ($(ARCH),aarch64)
-LIBOPENSSL_TARGET_ARCH = aarch64
-endif
-ifeq ($(ARCH),powerpc)
-# 4xx cores seem to have trouble with openssl's ASM optimizations
-ifeq ($(BR2_powerpc_401)$(BR2_powerpc_403)$(BR2_powerpc_405)$(BR2_powerpc_405fp)$(BR2_powerpc_440)$(BR2_powerpc_440fp),)
-LIBOPENSSL_TARGET_ARCH = ppc
-endif
-endif
-ifeq ($(ARCH),powerpc64)
-LIBOPENSSL_TARGET_ARCH = ppc64
-endif
-ifeq ($(ARCH),powerpc64le)
-LIBOPENSSL_TARGET_ARCH = ppc64le
-endif
-ifeq ($(ARCH),x86_64)
-LIBOPENSSL_TARGET_ARCH = x86_64
 endif
 
 define HOST_LIBOPENSSL_CONFIGURE_CMDS
@@ -85,7 +63,7 @@ define HOST_LIBOPENSSL_CONFIGURE_CMDS
 		shared \
 		zlib-dynamic \
 	)
-	$(SED) "s#-O[0-9s]#$(HOST_CFLAGS)#" $(@D)/Makefile
+	$(SED) "s#-O[0-9sg]#$(HOST_CFLAGS)#" $(@D)/Makefile
 endef
 
 define LIBOPENSSL_CONFIGURE_CMDS
@@ -93,7 +71,7 @@ define LIBOPENSSL_CONFIGURE_CMDS
 		$(TARGET_CONFIGURE_ARGS) \
 		$(TARGET_CONFIGURE_OPTS) \
 		./Configure \
-			linux-$(LIBOPENSSL_TARGET_ARCH) \
+			$(LIBOPENSSL_TARGET_ARCH) \
 			--prefix=/usr \
 			--openssldir=/etc/ssl \
 			$(if $(BR2_TOOLCHAIN_HAS_LIBATOMIC),-latomic) \
@@ -110,7 +88,7 @@ define LIBOPENSSL_CONFIGURE_CMDS
 			$(if $(BR2_STATIC_LIBS),no-dso) \
 	)
 	$(SED) "s#-march=[-a-z0-9] ##" -e "s#-mcpu=[-a-z0-9] ##g" $(@D)/Makefile
-	$(SED) "s#-O[0-9s]#$(LIBOPENSSL_CFLAGS)#" $(@D)/Makefile
+	$(SED) "s#-O[0-9sg]#$(LIBOPENSSL_CFLAGS)#" $(@D)/Makefile
 	$(SED) "s# build_tests##" $(@D)/Makefile
 endef
 

@@ -1,2 +1,6 @@
-# Locally calculated from download (no sig, hash)
-sha256	5166c185ae23c92e8b9feee66a6e3d0bc944bf673112f53e3ecf62e08ce7c201	sysklogd-1.5.1.tar.gz
+# Upstream .md5 and .sha256 from GitHub
+md5 2c6749c49f52b8c5dad18e9a9315e7dd  sysklogd-2.2.3.tar.gz
+sha256 e7ea09c15511a63c430e84f65ce3bf55a0386ee419ab52e9341c4a9fabae59ad  sysklogd-2.2.3.tar.gz
+
+# Locally calculated
+sha256  7a71d7603a7c4456df441463e54da35acf151c1be0879246de63544f1f34f477  LICENSE

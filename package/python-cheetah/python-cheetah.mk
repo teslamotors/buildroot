@@ -4,10 +4,12 @@
 #
 ################################################################################
 
-PYTHON_CHEETAH_VERSION = 3.2.3
+# Please keep in sync with package/python3-cheetah/python3-cheetah.mk
+PYTHON_CHEETAH_VERSION = 3.2.4
 PYTHON_CHEETAH_SOURCE = Cheetah3-$(PYTHON_CHEETAH_VERSION).tar.gz
-PYTHON_CHEETAH_SITE = https://files.pythonhosted.org/packages/3e/16/c711180492c9f40fb64dffb436fe1b91e3031637b478edb8de3c4b74097a
+PYTHON_CHEETAH_SITE = https://files.pythonhosted.org/packages/4e/72/e6a7d92279e3551db1b68fd336fd7a6e3d2f2ec742bf486486e6150d77d2
 PYTHON_CHEETAH_LICENSE = MIT
+PYTHON_CHEETAH_LICENSE_FILES = LICENSE
 PYTHON_CHEETAH_SETUP_TYPE = setuptools
 
 $(eval $(python-package))

@@ -4,13 +4,17 @@
 #
 ################################################################################
 
-NETSNMP_VERSION = 5.8
+NETSNMP_VERSION = 5.9
 NETSNMP_SITE = https://downloads.sourceforge.net/project/net-snmp/net-snmp/$(NETSNMP_VERSION)
 NETSNMP_SOURCE = net-snmp-$(NETSNMP_VERSION).tar.gz
 NETSNMP_LICENSE = Various BSD-like
 NETSNMP_LICENSE_FILES = COPYING
+NETSNMP_CPE_ID_VENDOR = net-snmp
+NETSNMP_CPE_ID_PRODUCT = $(NETSNMP_CPE_ID_VENDOR)
 NETSNMP_INSTALL_STAGING = YES
-NETSNMP_CONF_ENV = ac_cv_NETSNMP_CAN_USE_SYSCTL=no
+NETSNMP_CONF_ENV = \
+	ac_cv_NETSNMP_CAN_USE_SYSCTL=no \
+	ac_cv_path_PSPROG=/bin/ps
 NETSNMP_CONF_OPTS = \
 	--with-persistent-directory=/var/lib/snmp \
 	--with-defaults \
@@ -30,7 +34,6 @@ NETSNMP_CONF_OPTS = \
 	--with-sys-location="Unknown" \
 	--with-mib-modules="$(call qstrip,$(BR2_PACKAGE_NETSNMP_WITH_MIB_MODULES))" \
 	--with-out-mib-modules="$(call qstrip,$(BR2_PACKAGE_NETSNMP_WITHOUT_MIB_MODULES))" \
-	--with-out-transports="Unix" \
 	--disable-manuals
 NETSNMP_INSTALL_STAGING_OPTS = DESTDIR=$(STAGING_DIR) LIB_LDCONFIG_CMD=true install
 NETSNMP_INSTALL_TARGET_OPTS = DESTDIR=$(TARGET_DIR) LIB_LDCONFIG_CMD=true install
@@ -53,15 +56,12 @@ endif
 
 # OpenSSL
 ifeq ($(BR2_PACKAGE_OPENSSL),y)
-NETSNMP_DEPENDENCIES += openssl
+NETSNMP_DEPENDENCIES += host-pkgconf openssl
 NETSNMP_CONF_OPTS += \
 	--with-openssl=$(STAGING_DIR)/usr/include/openssl \
 	--with-security-modules="tsm,usm" \
 	--with-transports="DTLSUDP,TLSTCP"
-ifeq ($(BR2_STATIC_LIBS),y)
-# openssl uses zlib, so we need to explicitly link with it when static
-NETSNMP_CONF_ENV += LIBS=-lz
-endif
+NETSNMP_CONF_ENV += LIBS=`$(PKG_CONFIG_HOST_BINARY) --libs openssl`
 else ifeq ($(BR2_PACKAGE_NETSNMP_OPENSSL_INTERNAL),y)
 NETSNMP_CONF_OPTS += --with-openssl=internal
 else

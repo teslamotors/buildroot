@@ -9,8 +9,56 @@ NCURSES_SITE = $(BR2_GNU_MIRROR)/ncurses
 NCURSES_INSTALL_STAGING = YES
 NCURSES_DEPENDENCIES = host-ncurses
 NCURSES_LICENSE = MIT with advertising clause
-NCURSES_LICENSE_FILES = README
+NCURSES_LICENSE_FILES = COPYING
+NCURSES_CPE_ID_VENDOR = gnu
+# Commit 4b21273d71d09 added upstream (security) patches up to 20200118
+NCURSES_IGNORE_CVES += CVE-2018-10754
+NCURSES_IGNORE_CVES += CVE-2018-19211
+NCURSES_IGNORE_CVES += CVE-2018-19217
+NCURSES_IGNORE_CVES += CVE-2019-17594
+NCURSES_IGNORE_CVES += CVE-2019-17595
 NCURSES_CONFIG_SCRIPTS = ncurses$(NCURSES_LIB_SUFFIX)6-config
+NCURSES_PATCH = \
+	$(addprefix https://invisible-mirror.net/archives/ncurses/$(NCURSES_VERSION)/, \
+		ncurses-6.1-20190609-patch.sh.bz2 \
+		ncurses-6.1-20190615.patch.gz \
+		ncurses-6.1-20190623.patch.gz \
+		ncurses-6.1-20190630.patch.gz \
+		ncurses-6.1-20190706.patch.gz \
+		ncurses-6.1-20190713.patch.gz \
+		ncurses-6.1-20190720.patch.gz \
+		ncurses-6.1-20190727.patch.gz \
+		ncurses-6.1-20190728.patch.gz \
+		ncurses-6.1-20190803.patch.gz \
+		ncurses-6.1-20190810.patch.gz \
+		ncurses-6.1-20190817.patch.gz \
+		ncurses-6.1-20190824.patch.gz \
+		ncurses-6.1-20190831.patch.gz \
+		ncurses-6.1-20190907.patch.gz \
+		ncurses-6.1-20190914.patch.gz \
+		ncurses-6.1-20190921.patch.gz \
+		ncurses-6.1-20190928.patch.gz \
+		ncurses-6.1-20191005.patch.gz \
+		ncurses-6.1-20191012.patch.gz \
+		ncurses-6.1-20191015.patch.gz \
+		ncurses-6.1-20191019.patch.gz \
+		ncurses-6.1-20191026.patch.gz \
+		ncurses-6.1-20191102.patch.gz \
+		ncurses-6.1-20191109.patch.gz \
+		ncurses-6.1-20191116.patch.gz \
+		ncurses-6.1-20191123.patch.gz \
+		ncurses-6.1-20191130.patch.gz \
+		ncurses-6.1-20191207.patch.gz \
+		ncurses-6.1-20191214.patch.gz \
+		ncurses-6.1-20191221.patch.gz \
+		ncurses-6.1-20191228.patch.gz \
+		ncurses-6.1-20200104.patch.gz \
+		ncurses-6.1-20200111.patch.gz \
+		ncurses-6.1-20200118.patch.gz \
+	)
+
+# ncurses-6.1-20191012.patch.gz
+NCURSES_IGNORE_CVES += CVE-2019-17594 CVE-2019-17595
 
 NCURSES_CONF_OPTS = \
 	--without-cxx \
@@ -145,6 +193,9 @@ define HOST_NCURSES_BUILD_CMDS
 	$(HOST_MAKE_ENV) $(MAKE1) -C $(@D) sources
 	$(HOST_MAKE_ENV) $(MAKE) -C $(@D)/progs tic
 endef
+
+HOST_NCURSES_CONF_ENV = \
+	ac_cv_path_LDCONFIG=""
 
 HOST_NCURSES_CONF_OPTS = \
 	--with-shared \

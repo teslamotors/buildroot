@@ -1,4 +1,4 @@
-# Verified from https://ftp.isc.org/isc/bind9/9.11.5-P4/bind-9.11.5-P4.tar.gz.asc
-# with key BE0E9748B718253A28BB89FFF1B11BF05CF02E57
-sha256 7e8c08192bcbaeb6e9f2391a70e67583b027b90e8c4bc1605da6eb126edde434 bind-9.11.5-P4.tar.gz
-sha256 cd02c93b8dcda794f55dfd1231828d69633072a98eee4874f9cf732d22d9dcde COPYRIGHT
+# Verified from https://ftp.isc.org/isc/bind9/9.11.31/bind-9.11.31.tar.gz.asc
+# with key 2455774D42FDFE6B9C383EB8FE1002BC5970811F
+sha256  f5f24457f42b2e86870d887596e47500e4d40521a098dcb96f3a06f18adfa36a  bind-9.11.31.tar.gz
+sha256  cad49daa42654bc241762cd998630168a2542c8fd6fad3881e2eac1510bb6fcd  COPYRIGHT

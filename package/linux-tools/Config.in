@@ -45,6 +45,7 @@ config BR2_PACKAGE_LINUX_TOOLS_PCI
 
 config BR2_PACKAGE_LINUX_TOOLS_PERF
 	bool "perf"
+	depends on BR2_TOOLCHAIN_HAS_SYNC_4
 	select BR2_PACKAGE_LINUX_TOOLS
 	help
 	  perf (sometimes "Perf Events" or perf tools, originally
@@ -81,10 +82,17 @@ config BR2_PACKAGE_LINUX_TOOLS_SELFTESTS
 	bool"selftests"
 	depends on BR2_PACKAGE_BUSYBOX_SHOW_OTHERS # bash
 	depends on BR2_USE_MMU  # bash
+	depends on !BR2_STATIC_LIBS
 	select BR2_PACKAGE_LINUX_TOOLS
 	select BR2_PACKAGE_BASH # runtime
+	select BR2_PACKAGE_NCURSES
+	select BR2_PACKAGE_NCURSES_TARGET_PROGS # runtime (tput)
+	select BR2_PACKAGE_KMOD
+	select BR2_PACKAGE_KMOD_TOOLS # runtime (modprobe -n)
 	select BR2_PACKAGE_POPT
 	select BR2_PACKAGE_LIBCAP_NG
+	select BR2_PACKAGE_UTIL_LINUX
+	select BR2_PACKAGE_UTIL_LINUX_SCHEDUTILS # runtime (taskset)
 	help
 	  Build and install (to /usr/lib/kselftests) kernel selftests.
 
@@ -96,9 +104,9 @@ config BR2_PACKAGE_LINUX_TOOLS_SELFTESTS
 	  This is very much a use at your risk option and may not work
 	  for every setup or every architecture.
 
-comment "selftests needs BR2_PACKAGE_BUSYBOX_SHOW_OTHERS"
+comment "selftests needs BR2_PACKAGE_BUSYBOX_SHOW_OTHERS and a toolchain w/ dynamic library"
 	depends on BR2_USE_MMU
-	depends on !BR2_PACKAGE_BUSYBOX_SHOW_OTHERS
+	depends on !BR2_PACKAGE_BUSYBOX_SHOW_OTHERS || BR2_STATIC_LIBS
 
 config BR2_PACKAGE_LINUX_TOOLS_TMON
 	bool "tmon"
@@ -107,5 +115,43 @@ config BR2_PACKAGE_LINUX_TOOLS_TMON
 	help
 	  tmon is a terminal-based tool (using curses) that allows the
 	  user to access thermal information about the system.
+
+config BR2_PACKAGE_LINUX_TOOLS_HV
+	bool "hv"
+	depends on BR2_i386 || BR2_x86_64
+	select BR2_PACKAGE_LINUX_TOOLS
+	select BR2_PACKAGE_LINUX_TOOLS_HV_KVP_DAEMON if !BR2_PACKAGE_LINUX_TOOLS_HV_HAS_ONE
+	help
+	  Microsoft HyperV integration services
+
+	  Relevant kernel configuration options: CONFIG_HYPERV,
+	  CONFIG_HYPERV_UTILS.
+
+if BR2_PACKAGE_LINUX_TOOLS_HV
+
+config BR2_PACKAGE_LINUX_TOOLS_HV_HAS_ONE
+	bool
+
+config BR2_PACKAGE_LINUX_TOOLS_HV_KVP_DAEMON
+	bool "hypervkvpd (hv_kvp_daemon)"
+	help
+	  HyperV uses hypervkvpd (Key/Value Pair daemon) to retrieve
+	  status information from your virtualized guest OS
+
+config BR2_PACKAGE_LINUX_TOOLS_HV_FCOPY_DAEMON
+	bool "hypervfcopyd (hv_fcopy_daemon)"
+	select BR2_PACKAGE_LINUX_TOOLS_HV_HAS_ONE
+	help
+	  HyperV uses hypervfcopyd (File Copy daemon) to easily transfer
+	  files to and from your virtualized guest OS
+
+config BR2_PACKAGE_LINUX_TOOLS_HV_VSS_DAEMON
+	bool "hypervvssd (hv_vss_daemon)"
+	select BR2_PACKAGE_LINUX_TOOLS_HV_HAS_ONE
+	help
+	  HyperV uses hypervvssd (Volume Snapshot Service daemon) to
+	  freeze your filesystems during snapshots and backups
+
+endif # BR2_PACKAGE_LINUX_TOOLS_HV
 
 endmenu

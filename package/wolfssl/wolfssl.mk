@@ -4,19 +4,21 @@
 #
 ################################################################################
 
-WOLFSSL_VERSION = 3.15.7
-WOLFSSL_SITE = https://github.com/wolfSSL/wolfssl/archive
-WOLFSSL_SOURCE = v$(WOLFSSL_VERSION)-stable.tar.gz
+WOLFSSL_VERSION = 4.7.0-stable
+WOLFSSL_SITE = $(call github,wolfSSL,wolfssl,v$(WOLFSSL_VERSION))
 WOLFSSL_INSTALL_STAGING = YES
 
-WOLFSSL_LICENSE = GPL-2.0
+WOLFSSL_LICENSE = GPL-2.0+
 WOLFSSL_LICENSE_FILES = COPYING LICENSING
+WOLFSSL_CPE_ID_VENDOR = wolfssl
 
 WOLFSSL_DEPENDENCIES = host-pkgconf
 
 # wolfssl's source code is released without a configure
 # script, so we need autoreconf
 WOLFSSL_AUTORECONF = YES
+
+WOLFSSL_CONF_OPTS = --disable-examples --disable-crypttests
 
 ifeq ($(BR2_PACKAGE_WOLFSSL_ALL),y)
 WOLFSSL_CONF_OPTS += --enable-all

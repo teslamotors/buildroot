@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-TRANSMISSION_VERSION = 2.94
+TRANSMISSION_VERSION = 3.00
 TRANSMISSION_SITE = https://github.com/transmission/transmission-releases/raw/master
 TRANSMISSION_SOURCE = transmission-$(TRANSMISSION_VERSION).tar.xz
 TRANSMISSION_DEPENDENCIES = \
@@ -20,6 +20,7 @@ TRANSMISSION_CONF_OPTS = \
 	--enable-lightweight
 TRANSMISSION_LICENSE = GPL-2.0 or GPL-3.0 with OpenSSL exception
 TRANSMISSION_LICENSE_FILES = COPYING
+TRANSMISSION_CPE_ID_VENDOR = transmissionbt
 
 ifeq ($(BR2_PACKAGE_LIBMINIUPNPC),y)
 TRANSMISSION_DEPENDENCIES += libminiupnpc
@@ -66,9 +67,6 @@ endef
 define TRANSMISSION_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -D -m 0644 $(@D)/daemon/transmission-daemon.service \
 		$(TARGET_DIR)/usr/lib/systemd/system/transmission-daemon.service
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
-	ln -fs ../../../../usr/lib/systemd/system/transmission-daemon.service \
-		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/transmission-daemon.service
 endef
 
 else

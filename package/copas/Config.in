@@ -1,6 +1,6 @@
 config BR2_PACKAGE_COPAS
 	bool "copas"
-	select BR2_PACKAGE_COXPCALL if BR2_PACKAGE_LUA_5_1 || BR2_PACKAGE_LUAJIT # runtime
+	select BR2_PACKAGE_COXPCALL if BR2_PACKAGE_LUA_5_1 # runtime
 	select BR2_PACKAGE_LUASOCKET # runtime
 	help
 	  Copas is a dispatcher based on coroutines that can be used
@@ -8,4 +8,4 @@ config BR2_PACKAGE_COPAS
 	  servers. But it also features timers and client support for
 	  http(s), ftp and smtp requests.
 
-	  http://www.keplerproject.org/copas/
+	  http://keplerproject.github.io/copas/

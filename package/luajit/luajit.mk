@@ -4,9 +4,8 @@
 #
 ################################################################################
 
-LUAJIT_VERSION = 2.0.5
-LUAJIT_SOURCE = LuaJIT-$(LUAJIT_VERSION).tar.gz
-LUAJIT_SITE = http://luajit.org/download
+LUAJIT_VERSION = 2.1.2
+LUAJIT_SITE = $(call github,moonjit,moonjit,$(LUAJIT_VERSION))
 LUAJIT_LICENSE = MIT
 LUAJIT_LICENSE_FILES = COPYRIGHT
 
@@ -16,12 +15,6 @@ LUAJIT_PROVIDES = luainterpreter
 
 ifeq ($(BR2_PACKAGE_LUAJIT_COMPAT52),y)
 LUAJIT_XCFLAGS += -DLUAJIT_ENABLE_LUA52COMPAT
-endif
-
-ifeq ($(BR2_STATIC_LIBS),y)
-LUAJIT_BUILDMODE = static
-else
-LUAJIT_BUILDMODE = dynamic
 endif
 
 # The luajit build procedure requires the host compiler to have the
@@ -51,7 +44,7 @@ define LUAJIT_BUILD_CMDS
 		HOST_CC="$(LUAJIT_HOST_CC)" \
 		HOST_CFLAGS="$(HOST_CFLAGS)" \
 		HOST_LDFLAGS="$(HOST_LDFLAGS)" \
-		BUILDMODE=$(LUAJIT_BUILDMODE) \
+		BUILDMODE=dynamic \
 		XCFLAGS=$(LUAJIT_XCFLAGS) \
 		-C $(@D) amalg
 endef

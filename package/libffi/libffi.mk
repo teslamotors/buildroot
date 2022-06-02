@@ -4,8 +4,10 @@
 #
 ################################################################################
 
-LIBFFI_VERSION = v3.3-rc0
-LIBFFI_SITE = $(call github,libffi,libffi,$(LIBFFI_VERSION))
+LIBFFI_VERSION = 3.3
+LIBFFI_SITE = $(call github,libffi,libffi,v$(LIBFFI_VERSION))
+LIBFFI_CPE_ID_VERSION = 3.3
+LIBFFI_CPE_ID_UPDATE = rc0
 LIBFFI_LICENSE = MIT
 LIBFFI_LICENSE_FILES = LICENSE
 LIBFFI_INSTALL_STAGING = YES

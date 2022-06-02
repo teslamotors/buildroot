@@ -4,12 +4,13 @@
 #
 ################################################################################
 
-TINI_VERSION = v0.18.0
-TINI_SITE = $(call github,krallin,tini,$(TINI_VERSION))
+TINI_VERSION = 0.19.0
+TINI_SITE = $(call github,krallin,tini,v$(TINI_VERSION))
 TINI_LICENSE = MIT
 TINI_LICENSE_FILES = LICENSE
 
 TINI_CFLAGS = $(TARGET_CFLAGS) \
+	-static \
 	-DTINI_VERSION=\"$(TINI_VERSION)\" \
 	-DTINI_GIT=\"\"
 
@@ -29,6 +30,7 @@ endef
 
 define TINI_INSTALL_TARGET_CMDS
 	$(INSTALL) -D -m 0755 $(@D)/bin/tini $(TARGET_DIR)/usr/bin/tini
+	ln -sf tini $(TARGET_DIR)/usr/bin/docker-init
 endef
 
 # Tini's CMakeLists.txt is not suitable for Buildroot.

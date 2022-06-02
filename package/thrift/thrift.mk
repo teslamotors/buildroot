@@ -4,10 +4,11 @@
 #
 ################################################################################
 
-THRIFT_VERSION = 0.12.0
+THRIFT_VERSION = 0.13.0
 THRIFT_SITE = http://www.us.apache.org/dist/thrift/$(THRIFT_VERSION)
 THRIFT_LICENSE = Apache-2.0
 THRIFT_LICENSE_FILES = LICENSE
+THRIFT_CPE_ID_VENDOR = apache
 
 THRIFT_DEPENDENCIES = host-pkgconf host-thrift boost \
 	libevent openssl zlib
@@ -19,6 +20,7 @@ THRIFT_COMMON_CONF_OPTS = -DBUILD_TUTORIALS=OFF \
 	-DBUILD_TESTING=OFF \
 	-DWITH_PYTHON=OFF \
 	-DWITH_JAVA=OFF \
+	-DWITH_QT4=OFF \
 	-DWITH_QT5=OFF
 
 THRIFT_CONF_OPTS = $(THRIFT_COMMON_CONF_OPTS) -DBUILD_COMPILER=OFF
@@ -31,8 +33,6 @@ endif
 
 # thrift doesn't use the regular flags BUILD_{STATIC,SHARED}_LIBS
 ifeq ($(BR2_STATIC_LIBS),y)
-# openssl uses zlib, so we need to explicitly link with it when static
-THRIFT_CONF_ENV += LIBS=-lz
 THRIFT_CONF_OPTS += -DWITH_STATIC_LIB=ON -DWITH_BOOST_STATIC=ON -DWITH_SHARED_LIB=OFF
 else ifeq ($(BR2_SHARED_LIBS),y)
 THRIFT_CONF_OPTS += -DWITH_STATIC_LIB=OFF -DWITH_BOOST_STATIC=OFF -DWITH_SHARED_LIB=ON

@@ -4,11 +4,12 @@
 #
 ################################################################################
 
-LIBXSLT_VERSION = 1.1.32
-LIBXSLT_SITE = ftp://xmlsoft.org/libxslt
+LIBXSLT_VERSION = 1.1.34
+LIBXSLT_SITE = http://xmlsoft.org/sources
 LIBXSLT_INSTALL_STAGING = YES
 LIBXSLT_LICENSE = MIT
 LIBXSLT_LICENSE_FILES = COPYING
+LIBXSLT_CPE_ID_VENDOR = xmlsoft
 
 LIBXSLT_CONF_OPTS = \
 	--with-gnu-ld \

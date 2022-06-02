@@ -4,8 +4,8 @@
 #
 ################################################################################
 
-VIM_VERSION = v8.1.0133
-VIM_SITE = $(call github,vim,vim,$(VIM_VERSION))
+VIM_VERSION = 8.2.0000
+VIM_SITE = $(call github,vim,vim,v$(VIM_VERSION))
 VIM_DEPENDENCIES = ncurses $(TARGET_NLS_DEPENDENCIES)
 VIM_SUBDIR = src
 VIM_CONF_ENV = \
@@ -23,6 +23,7 @@ VIM_CONF_ENV = \
 VIM_CONF_OPTS = --with-tlib=ncurses --enable-gui=no --without-x
 VIM_LICENSE = Charityware
 VIM_LICENSE_FILES = README.txt
+VIM_CPE_ID_VENDOR = vim
 
 ifeq ($(BR2_PACKAGE_ACL),y)
 VIM_CONF_OPTS += --enable-acl
@@ -80,6 +81,13 @@ VIM_POST_INSTALL_TARGET_HOOKS += VIM_REMOVE_DOCS
 endif
 
 HOST_VIM_DEPENDENCIES = host-ncurses
+HOST_VIM_CONF_OPTS = \
+	--with-tlib=ncurses \
+	--enable-gui=no \
+	--without-x \
+	--disable-acl \
+	--disable-gpm \
+	--disable-selinux
 
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))

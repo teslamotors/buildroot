@@ -4,14 +4,16 @@
 #
 ################################################################################
 
-LTP_TESTSUITE_VERSION = 20190115
+LTP_TESTSUITE_VERSION = 20210121
 LTP_TESTSUITE_SOURCE = ltp-full-$(LTP_TESTSUITE_VERSION).tar.xz
 LTP_TESTSUITE_SITE = https://github.com/linux-test-project/ltp/releases/download/$(LTP_TESTSUITE_VERSION)
+
 LTP_TESTSUITE_LICENSE = GPL-2.0, GPL-2.0+
 LTP_TESTSUITE_LICENSE_FILES = COPYING
 
 LTP_TESTSUITE_CONF_OPTS += \
-	--with-realtime-testsuite --with-open-posix-testsuite
+	--with-realtime-testsuite --with-open-posix-testsuite \
+	--disable-metadata
 
 ifeq ($(BR2_LINUX_KERNEL),y)
 LTP_TESTSUITE_DEPENDENCIES += linux
@@ -51,28 +53,42 @@ LTP_TESTSUITE_CFLAGS += "`$(PKG_CONFIG_HOST_BINARY) --cflags libtirpc`"
 LTP_TESTSUITE_LIBS += "`$(PKG_CONFIG_HOST_BINARY) --libs libtirpc`"
 endif
 
+ifeq ($(BR2_TOOLCHAIN_USES_GLIBC),)
+LTP_TESTSUITE_DEPENDENCIES += musl-fts
+LTP_TESTSUITE_LIBS += -lfts
+endif
+
 LTP_TESTSUITE_CONF_ENV += \
 	CFLAGS="$(LTP_TESTSUITE_CFLAGS)" \
 	CPPFLAGS="$(LTP_TESTSUITE_CPPFLAGS)" \
 	LIBS="$(LTP_TESTSUITE_LIBS)" \
 	SYSROOT="$(STAGING_DIR)"
 
-# Requires uClibc fts and bessel support, normally not enabled
-ifeq ($(BR2_TOOLCHAIN_USES_UCLIBC),y)
-define LTP_TESTSUITE_REMOVE_UNSUPPORTED
-	rm -rf $(@D)/testcases/kernel/controllers/cpuset/
-	rm -rf $(@D)/testcases/misc/math/float/bessel/
-	rm -f $(@D)/testcases/misc/math/float/float_bessel.c
-endef
-LTP_TESTSUITE_POST_PATCH_HOOKS += LTP_TESTSUITE_REMOVE_UNSUPPORTED
-endif
+# uclibc: bessel support normally not enabled
+LTP_TESTSUITE_UNSUPPORTED_TEST_CASES_$(BR2_TOOLCHAIN_USES_UCLIBC) += \
+	testcases/misc/math/float/bessel/ \
+	testcases/misc/math/float/float_bessel.c
+
+LTP_TESTSUITE_UNSUPPORTED_TEST_CASES_$(BR2_TOOLCHAIN_USES_MUSL) += \
+	testcases/kernel/sched/process_stress/process.c \
+	testcases/kernel/syscalls/confstr/confstr01.c \
+	testcases/kernel/syscalls/fmtmsg/fmtmsg01.c \
+	testcases/kernel/syscalls/getcontext/getcontext01.c \
+	testcases/kernel/syscalls/rt_tgsigqueueinfo/rt_tgsigqueueinfo01.c \
+	testcases/kernel/syscalls/timer_create/timer_create01.c \
+	testcases/kernel/syscalls/timer_create/timer_create03.c \
+	utils/benchmark/ebizzy-0.3
 
 # ldd command build system tries to build a shared library unconditionally.
-ifeq ($(BR2_STATIC_LIBS),y)
-define LTP_TESTSUITE_REMOVE_LDD
-	rm -rf $(@D)/testcases/commands/ldd
+LTP_TESTSUITE_UNSUPPORTED_TEST_CASES_$(BR2_STATIC_LIBS) += \
+	testcases/commands/ldd
+
+define LTP_TESTSUITE_REMOVE_UNSUPPORTED_TESTCASES
+	$(foreach f,$(LTP_TESTSUITE_UNSUPPORTED_TEST_CASES_y),
+		rm -rf $(@D)/$(f)
+	)
 endef
-LTP_TESTSUITE_POST_PATCH_HOOKS += LTP_TESTSUITE_REMOVE_LDD
-endif
+
+LTP_TESTSUITE_POST_PATCH_HOOKS += LTP_TESTSUITE_REMOVE_UNSUPPORTED_TESTCASES
 
 $(eval $(autotools-package))

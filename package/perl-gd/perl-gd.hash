@@ -1,6 +1,6 @@
 # retrieved by scancpan from http://cpan.metacpan.org/
-md5    d9596406f64e50b9ecef8d7cfbf0d99b GD-2.70.tar.gz
-sha256 66b26a322e1fd82ef874721dd5274effcc60eb0c0f3481bf88ddf91529b633e2 GD-2.70.tar.gz
+md5  c2bf1ca56d15e33d2432e4d8ba5aeadf  GD-2.73.tar.gz
+sha256  491c9e73238522e2987e66725a20935f4268a3864202ecbaf4659a1691ba322b  GD-2.73.tar.gz
 
 # computed by scancpan
-sha256 1e2250289d6df4ba1c24f7550982d7ffaff2c97cd02e847659406e1afd28e83f LICENSE
+sha256  1e2250289d6df4ba1c24f7550982d7ffaff2c97cd02e847659406e1afd28e83f  LICENSE

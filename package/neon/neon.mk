@@ -8,10 +8,12 @@ NEON_VERSION = 0.30.2
 NEON_SITE = http://www.webdav.org/neon
 NEON_LICENSE = LGPL-2.0+ (library), GPL-2.0+ (manual and tests)
 NEON_LICENSE_FILES = src/COPYING.LIB test/COPYING README
+NEON_CPE_ID_VENDOR = webdav
 NEON_INSTALL_STAGING = YES
 NEON_CONF_OPTS = --without-gssapi --disable-rpath
 NEON_CONFIG_SCRIPTS = neon-config
-NEON_DEPENDENCIES = host-pkgconf
+NEON_DEPENDENCIES = host-pkgconf $(TARGET_NLS_DEPENDENCIES)
+NEON_CONF_ENV = ne_cv_libsfor_bindtextdomain=$(TARGET_NLS_LIBS)
 
 ifeq ($(BR2_PACKAGE_NEON_ZLIB),y)
 NEON_CONF_OPTS += --with-zlib=$(STAGING_DIR)

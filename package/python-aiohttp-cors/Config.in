@@ -1,8 +1,8 @@
 config BR2_PACKAGE_PYTHON_AIOHTTP_CORS
 	bool "python-aiohttp-cors"
 	depends on BR2_PACKAGE_PYTHON3
-	depends on BR2_PACKAGE_PYTHON_AIOHTTP
+	select BR2_PACKAGE_PYTHON_AIOHTTP # runtime
 	help
-	  Python Package - CORS support for aiohttp
+	  CORS support for aiohttp.
 
-	  https://pypi.org/project/aiohttp_cors/
+	  https://github.com/aio-libs/aiohttp-cors

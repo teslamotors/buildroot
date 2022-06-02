@@ -5,14 +5,23 @@
 ################################################################################
 
 XENOMAI_VERSION = $(call qstrip,$(BR2_PACKAGE_XENOMAI_VERSION))
-ifeq ($(XENOMAI_VERSION),)
-XENOMAI_VERSION = 3.0.6
+ifeq ($(BR2_PACKAGE_XENOMAI_CUSTOM_TARBALL),y)
+XENOMAI_TARBALL = $(call qstrip,$(BR2_PACKAGE_XENOMAI_CUSTOM_TARBALL_URL))
+XENOMAI_SOURCE = $(notdir $(XENOMAI_TARBALL))
+XENOMAI_SITE = $(patsubst %/,%,$(dir $(XENOMAI_TARBALL)))
+else ifeq ($(BR2_PACKAGE_XENOMAI_CUSTOM_GIT),y)
+XENOMAI_SITE = $(call qstrip,$(BR2_PACKAGE_XENOMAI_REPOSITORY))
+XENOMAI_SITE_METHOD = git
 else
+XENOMAI_SOURCE = xenomai-$(XENOMAI_VERSION).tar.bz2
+XENOMAI_SITE = http://xenomai.org/downloads/xenomai/stable
+endif
+
+# Exclude all from the hash check, but the latest version.
+ifeq ($(BR2_PACKAGE_XENOMAI)$(BR2_PACKAGE_XENOMAI_LATEST_VERSION),y)
 BR_NO_CHECK_HASH_FOR += $(XENOMAI_SOURCE)
 endif
 
-XENOMAI_SITE = http://xenomai.org/downloads/xenomai/stable
-XENOMAI_SOURCE = xenomai-$(XENOMAI_VERSION).tar.bz2
 XENOMAI_LICENSE = GPL-2.0+ with exception (headers), LGPL-2.1+ (libraries), GPL-2.0+ (kernel), GFDL-1.2+ (docs), GPL-2.0 (ipipe patch, can driver)
 # GFDL is not included but refers to gnu.org
 XENOMAI_LICENSE_FILES = debian/copyright include/COPYING kernel/cobalt/COPYING \
@@ -28,7 +37,7 @@ XENOMAI_INSTALL_STAGING = YES
 XENOMAI_INSTALL_TARGET_OPTS = DESTDIR=$(TARGET_DIR) install-user
 XENOMAI_INSTALL_STAGING_OPTS = DESTDIR=$(STAGING_DIR) install-user
 
-XENOMAI_CONF_OPTS += --includedir=/usr/include/xenomai/ --disable-doc-install
+XENOMAI_CONF_OPTS += --includedir=/usr/include/xenomai/
 
 ifeq ($(BR2_PACKAGE_XENOMAI_MERCURY),y)
 XENOMAI_CONF_OPTS += --with-core=mercury
@@ -62,6 +71,9 @@ define XENOMAI_REMOVE_UNNEEDED_FILES
 	for i in xeno xeno-config xeno-info wrap-link.sh ; do \
 		rm -f $(TARGET_DIR)/usr/bin/$$i ; \
 	done
+	for i in cobalt modechk ; do \
+		rm -f $(TARGET_DIR)/usr/lib/$$i.wrappers ; \
+	done
 	for i in autotune corectl hdb rtnet nomaccfg rtcfg rtifconfig \
 		rtiwconfig rtping rtroute tdmacfg rtps slackspot version; do \
 		rm -f $(TARGET_DIR)/usr/sbin/$$i ; \
@@ -73,7 +85,7 @@ XENOMAI_POST_INSTALL_TARGET_HOOKS += XENOMAI_REMOVE_UNNEEDED_FILES
 ifeq ($(BR2_PACKAGE_XENOMAI_TESTSUITE),)
 define XENOMAI_REMOVE_TESTSUITE
 	rm -rf $(TARGET_DIR)/usr/share/xenomai/
-	for i in clocktest gpiotest latency spitest switchtest \
+	for i in clocktest gpiotest latency smokey spitest switchtest \
 		xeno-test-run-wrapper dohell xeno-test-run xeno-test ; do \
 		rm -f $(TARGET_DIR)/usr/bin/$$i ; \
 	done
@@ -109,28 +121,22 @@ endef
 XENOMAI_POST_INSTALL_TARGET_HOOKS += XENOMAI_REMOVE_ANALOGY
 endif
 
-XENOMAI_REMOVE_SKIN_LIST += $(if $(BR2_PACKAGE_XENOMAI_NATIVE_SKIN),,alchemy)
-XENOMAI_REMOVE_SKIN_LIST += $(if $(BR2_PACKAGE_XENOMAI_POSIX_SKIN),,posix)
-XENOMAI_REMOVE_SKIN_LIST += $(if $(BR2_PACKAGE_XENOMAI_PSOS_SKIN),,psos)
-XENOMAI_REMOVE_SKIN_LIST += $(if $(BR2_PACKAGE_XENOMAI_RTAI_SKIN),,rtai)
-XENOMAI_REMOVE_SKIN_LIST += $(if $(BR2_PACKAGE_XENOMAI_SMOKEY_SKIN),,smokey)
-XENOMAI_REMOVE_SKIN_LIST += $(if $(BR2_PACKAGE_XENOMAI_UITRON_SKIN),,uitron)
-XENOMAI_REMOVE_SKIN_LIST += $(if $(BR2_PACKAGE_XENOMAI_VXWORKS_SKIN),,vxworks)
-XENOMAI_REMOVE_SKIN_LIST += $(if $(BR2_PACKAGE_XENOMAI_VRTX_SKIN),,vrtx)
+XENOMAI_REMOVE_LIBS_LIST += $(if $(BR2_PACKAGE_XENOMAI_NATIVE_SKIN),,alchemy)
+XENOMAI_REMOVE_LIBS_LIST += $(if $(BR2_PACKAGE_XENOMAI_POSIX_SKIN),,posix)
+XENOMAI_REMOVE_LIBS_LIST += $(if $(BR2_PACKAGE_XENOMAI_PSOS_SKIN),,psos)
+XENOMAI_REMOVE_LIBS_LIST += $(if $(BR2_PACKAGE_XENOMAI_RTAI_SKIN),,rtai)
+XENOMAI_REMOVE_LIBS_LIST += $(if $(BR2_PACKAGE_XENOMAI_TESTSUITE),,smokey)
+XENOMAI_REMOVE_LIBS_LIST += $(if $(BR2_PACKAGE_XENOMAI_UITRON_SKIN),,uitron)
+XENOMAI_REMOVE_LIBS_LIST += $(if $(BR2_PACKAGE_XENOMAI_VXWORKS_SKIN),,vxworks)
+XENOMAI_REMOVE_LIBS_LIST += $(if $(BR2_PACKAGE_XENOMAI_VRTX_SKIN),,vrtx)
 
-define XENOMAI_REMOVE_SKINS
-	for i in $(XENOMAI_REMOVE_SKIN_LIST) ; do \
+define XENOMAI_REMOVE_LIBS
+	for i in $(XENOMAI_REMOVE_LIBS_LIST) ; do \
 		rm -f $(TARGET_DIR)/usr/lib/lib$$i.* ; \
-		if [ $$i == "posix" ] ; then \
-			rm -f $(TARGET_DIR)/usr/lib/posix.wrappers ; \
-		fi ; \
-		if [ $$i == "smokey" ] ; then \
-			rm -f $(TARGET_DIR)/usr/bin/smokey* ; \
-		fi ; \
 	done
 endef
 
-XENOMAI_POST_INSTALL_TARGET_HOOKS += XENOMAI_REMOVE_SKINS
+XENOMAI_POST_INSTALL_TARGET_HOOKS += XENOMAI_REMOVE_LIBS
 
 define XENOMAI_DEVICES
 	/dev/rtheap  c  666  0  0  10  254  0  0  -

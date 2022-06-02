@@ -4,27 +4,45 @@
 #
 ################################################################################
 
-HOSTAPD_VERSION = 2.7
+HOSTAPD_VERSION = 2.9
 HOSTAPD_SITE = http://w1.fi/releases
 HOSTAPD_SUBDIR = hostapd
 HOSTAPD_CONFIG = $(HOSTAPD_DIR)/$(HOSTAPD_SUBDIR)/.config
+HOSTAPD_PATCH = \
+	https://w1.fi/security/2020-1/0001-WPS-UPnP-Do-not-allow-event-subscriptions-with-URLs-.patch \
+	https://w1.fi/security/2020-1/0002-WPS-UPnP-Fix-event-message-generation-using-a-long-U.patch \
+	https://w1.fi/security/2020-1/0003-WPS-UPnP-Handle-HTTP-initiation-failures-for-events-.patch
 HOSTAPD_DEPENDENCIES = host-pkgconf
 HOSTAPD_CFLAGS = $(TARGET_CFLAGS)
 HOSTAPD_LICENSE = BSD-3-Clause
 HOSTAPD_LICENSE_FILES = README
+
+# 0001-AP-Silently-ignore-management-frame-from-unexpected-.patch
+HOSTAPD_IGNORE_CVES += CVE-2019-16275
+
+# 0001-WPS-UPnP-Do-not-allow-event-subscriptions-with-URLs-.patch
+HOSTAPD_IGNORE_CVES += CVE-2020-12695
+
+# 0002-ASN.1-Validate-DigestAlgorithmIdentifier-parameters.patch
+HOSTAPD_IGNORE_CVES += CVE-2021-30004
+
+HOSTAPD_CPE_ID_VENDOR = w1.fi
 HOSTAPD_CONFIG_SET =
 
-HOSTAPD_CONFIG_ENABLE = CONFIG_INTERNAL_LIBTOMMATH
+HOSTAPD_CONFIG_ENABLE = \
+	CONFIG_INTERNAL_LIBTOMMATH \
+	CONFIG_DEBUG_FILE \
+	CONFIG_DEBUG_SYSLOG
 
 HOSTAPD_CONFIG_DISABLE =
 
 # Try to use openssl if it's already available
 ifeq ($(BR2_PACKAGE_LIBOPENSSL),y)
-HOSTAPD_DEPENDENCIES += libopenssl
-HOSTAPD_LIBS += $(if $(BR2_STATIC_LIBS),-lcrypto -lz)
+HOSTAPD_DEPENDENCIES += host-pkgconf libopenssl
+HOSTAPD_LIBS += `$(PKG_CONFIG_HOST_BINARY) --libs openssl`
 HOSTAPD_CONFIG_EDITS += 's/\#\(CONFIG_TLS=openssl\)/\1/'
 else
-HOSTAPD_CONFIG_DISABLE += CONFIG_EAP_PWD
+HOSTAPD_CONFIG_DISABLE += CONFIG_EAP_PWD CONFIG_EAP_TEAP
 HOSTAPD_CONFIG_EDITS += 's/\#\(CONFIG_TLS=\).*/\1internal/'
 endif
 
@@ -34,11 +52,6 @@ endif
 
 ifeq ($(BR2_PACKAGE_HOSTAPD_DRIVER_NL80211),)
 HOSTAPD_CONFIG_DISABLE += CONFIG_DRIVER_NL80211
-endif
-
-ifeq ($(BR2_PACKAGE_HOSTAPD_DRIVER_RTW),y)
-HOSTAPD_PATCH += https://github.com/pritambaral/hostapd-rtl871xdrv/raw/master/rtlxdrv.patch
-HOSTAPD_CONFIG_SET += CONFIG_DRIVER_RTW
 endif
 
 ifeq ($(BR2_PACKAGE_HOSTAPD_DRIVER_WIRED),y)
@@ -81,12 +94,24 @@ ifeq ($(BR2_PACKAGE_HOSTAPD_WPS),y)
 HOSTAPD_CONFIG_ENABLE += CONFIG_WPS
 endif
 
+ifeq ($(BR2_PACKAGE_HOSTAPD_WPA3),y)
+HOSTAPD_CONFIG_SET += \
+	CONFIG_DPP \
+	CONFIG_SAE
+HOSTAPD_CONFIG_ENABLE += \
+	CONFIG_OWE
+else
+HOSTAPD_CONFIG_DISABLE += \
+	CONFIG_OWE
+endif
+
 ifeq ($(BR2_PACKAGE_HOSTAPD_VLAN),)
 HOSTAPD_CONFIG_ENABLE += CONFIG_NO_VLAN
 endif
 
 ifeq ($(BR2_PACKAGE_HOSTAPD_VLAN_DYNAMIC),y)
 HOSTAPD_CONFIG_ENABLE += CONFIG_FULL_DYNAMIC_VLAN
+HOSTAPD_CONFIG_SET += NEED_LINUX_IOCTL
 endif
 
 ifeq ($(BR2_PACKAGE_HOSTAPD_VLAN_NETLINK),y)

@@ -4,8 +4,8 @@
 #
 ################################################################################
 
-OPENBLAS_VERSION = v0.2.20
-OPENBLAS_SITE = $(call github,xianyi,OpenBLAS,$(OPENBLAS_VERSION))
+OPENBLAS_VERSION = 0.3.9
+OPENBLAS_SITE = $(call github,xianyi,OpenBLAS,v$(OPENBLAS_VERSION))
 OPENBLAS_LICENSE = BSD-3-Clause
 OPENBLAS_LICENSE_FILES = LICENSE
 OPENBLAS_INSTALL_STAGING = YES
@@ -24,8 +24,18 @@ ifeq ($(BR2_TOOLCHAIN_HAS_FORTRAN),)
 OPENBLAS_MAKE_OPTS += ONLY_CBLAS=1
 endif
 
-# Tesla: Disable threading
+# Enable/Disable multi-threading (not for static-only since it uses dlfcn.h)
+ifeq ($(BR2_PACKAGE_OPENBLAS_USE_THREAD),y)
+OPENBLAS_MAKE_OPTS += USE_THREAD=1
+else
 OPENBLAS_MAKE_OPTS += USE_THREAD=0
+
+ifeq ($(BR2_PACKAGE_OPENBLAS_USE_LOCKING),y)
+OPENBLAS_MAKE_OPTS += USE_LOCKING=1
+else
+# not passing USE_LOCKING=0 as this could be confusing: its effect is implicit
+# in case of USE_THREAD=1.
+endif
 
 # We don't know if OpenMP is available or not, so disable
 OPENBLAS_MAKE_OPTS += USE_OPENMP=0

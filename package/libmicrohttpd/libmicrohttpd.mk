@@ -4,9 +4,10 @@
 #
 ################################################################################
 
-LIBMICROHTTPD_VERSION = 0.9.62
+LIBMICROHTTPD_VERSION = 0.9.72
 LIBMICROHTTPD_SITE = $(BR2_GNU_MIRROR)/libmicrohttpd
 LIBMICROHTTPD_LICENSE_FILES = COPYING
+LIBMICROHTTPD_CPE_ID_VENDOR = gnu
 LIBMICROHTTPD_INSTALL_STAGING = YES
 LIBMICROHTTPD_CONF_OPTS = --disable-curl --disable-examples --disable-doc
 LIBMICROHTTPD_CFLAGS = $(TARGET_CFLAGS) -std=c99
@@ -22,20 +23,10 @@ LIBMICROHTTPD_LICENSE = LGPL-2.1+ or eCos
 LIBMICROHTTPD_CONF_OPTS += --disable-https
 endif
 
-ifeq ($(BR2_PACKAGE_LIBMICROHTTPD_EPOLL),n)
-LIBMICROHTTPD_CONF_OPTS += --disable-epoll
-endif
-
-ifeq ($(BR2_PACKAGE_LIBMICROHTTPD_HTTP_BASIC_AUTH),n)
-LIBMICROHTTPD_CONF_OPTS += --disable-bauth
-endif
-
-ifeq ($(BR2_PACKAGE_LIBMICROHTTPD_HTTP_DIGEST_AUTH),n)
-LIBMICROHTTPD_CONF_OPTS += --disable-dauth
-endif
-
-ifeq ($(BR2_PACKAGE_LIBMICROHTTPD_HTTP_UPGRADE),n)
-LIBMICROHTTPD_CONF_OPTS += --disable-httpupgrade
+ifeq ($(BR2_TOOLCHAIN_HAS_THREADS),y)
+LIBMICROHTTPD_CONF_OPTS += --with-threads=auto
+else
+LIBMICROHTTPD_CONF_OPTS += --with-threads=none
 endif
 
 $(eval $(autotools-package))

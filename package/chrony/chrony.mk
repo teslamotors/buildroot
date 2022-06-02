@@ -4,16 +4,18 @@
 #
 ################################################################################
 
-CHRONY_VERSION = 3.4
+CHRONY_VERSION = 4.0
 CHRONY_SITE = http://download.tuxfamily.org/chrony
 CHRONY_LICENSE = GPL-2.0
 CHRONY_LICENSE_FILES = COPYING
+CHRONY_DEPENDENCIES = host-pkgconf
 
 CHRONY_CONF_OPTS = \
 	--host-system=Linux \
 	--host-machine=$(BR2_ARCH) \
 	--prefix=/usr \
-	--without-tomcrypt
+	--without-tomcrypt \
+	$(if $(BR2_PACKAGE_CHRONY_DEBUG_LOGGING),--enable-debug,--disable-debug)
 
 ifeq ($(BR2_PACKAGE_LIBCAP),y)
 CHRONY_DEPENDENCIES += libcap
@@ -22,7 +24,7 @@ CHRONY_CONF_OPTS += --without-libcap
 endif
 
 ifeq ($(BR2_PACKAGE_LIBNSS),y)
-CHRONY_DEPENDENCIES += host-pkgconf libnss
+CHRONY_DEPENDENCIES += libnss
 else
 CHRONY_CONF_OPTS += --without-nss
 endif
@@ -34,16 +36,28 @@ else
 CHRONY_CONF_OPTS += --without-seccomp
 endif
 
-ifeq ($(BR2_PACKAGE_READLINE),y)
-CHRONY_DEPENDENCIES += readline
+ifeq ($(BR2_PACKAGE_LIBEDIT),y)
+CHRONY_DEPENDENCIES += libedit
 else
-CHRONY_CONF_OPTS += --disable-readline
+CHRONY_CONF_OPTS += --without-editline --disable-readline
 endif
 
 # If pps-tools is available, build it before so the package can use it
 # (HAVE_SYS_TIMEPPS_H).
 ifeq ($(BR2_PACKAGE_PPS_TOOLS),y)
 CHRONY_DEPENDENCIES += pps-tools
+endif
+
+ifeq ($(BR2_PACKAGE_GNUTLS),y)
+CHRONY_DEPENDENCIES += gnutls
+else
+CHRONY_CONF_OPTS += --without-gnutls
+endif
+
+ifeq ($(BR2_PACKAGE_NETTLE),y)
+CHRONY_DEPENDENCIES += nettle
+else
+CHRONY_CONF_OPTS += --without-nettle
 endif
 
 define CHRONY_CONFIGURE_CMDS
@@ -65,9 +79,6 @@ endef
 define CHRONY_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -D -m 644 package/chrony/chrony.service \
 		$(TARGET_DIR)/usr/lib/systemd/system/chrony.service
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
-	ln -sf ../../../../usr/lib/systemd/system/chrony.service \
-		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/chrony.service
 endef
 
 $(eval $(generic-package))

@@ -4,11 +4,13 @@
 #
 ################################################################################
 
-SANE_BACKENDS_VERSION = 1.0.25
-SANE_BACKENDS_SITE = https://alioth.debian.org/frs/download.php/file/4146
+SANE_BACKENDS_VERSION = 1.0.27
+SANE_BACKENDS_SITE = \
+	https://gitlab.com/sane-project/backends/uploads/a3ba9fff29253a94e84074917bff581a
 SANE_BACKENDS_CONFIG_SCRIPTS = sane-config
 SANE_BACKENDS_LICENSE = GPL-2.0+
 SANE_BACKENDS_LICENSE_FILES = COPYING
+SANE_BACKENDS_CPE_ID_VENDOR = sane-backends_project
 SANE_BACKENDS_INSTALL_STAGING = YES
 
 SANE_BACKENDS_CONF_OPTS = \
@@ -23,9 +25,9 @@ endif
 
 ifeq ($(BR2_PACKAGE_LIBUSB),y)
 SANE_BACKENDS_DEPENDENCIES += libusb
-SANE_BACKENDS_CONF_OPTS += --enable-libusb_1_0
+SANE_BACKENDS_CONF_OPTS += --with-usb
 else
-SANE_BACKENDS_CONF_OPTS += --disable-libusb
+SANE_BACKENDS_CONF_OPTS += --without-usb
 endif
 
 ifeq ($(BR2_PACKAGE_JPEG),y)
@@ -65,14 +67,8 @@ endef
 define SANE_BACKENDS_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -m 0644 -D package/sane-backends/saned.socket \
 		$(TARGET_DIR)/usr/lib/systemd/system/saned.socket
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/socket.target.wants
-	ln -sf ../../../../usr/lib/systemd/system/saned.socket \
-		$(TARGET_DIR)/etc/systemd/system/socket.target.wants/saned.socket
 	$(INSTALL) -m 0644 -D package/sane-backends/saned@.service \
 		$(TARGET_DIR)/usr/lib/systemd/system/saned@.service
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
-	ln -sf ../../../../usr/lib/systemd/system/saned@.service \
-		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/saned@.service
 endef
 
 $(eval $(autotools-package))

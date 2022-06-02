@@ -4,10 +4,12 @@
 #
 ################################################################################
 
-LIBOPENH264_VERSION = v1.7.0
-LIBOPENH264_SITE = $(call github,cisco,openh264,$(LIBOPENH264_VERSION))
+LIBOPENH264_VERSION = 2.1.1
+LIBOPENH264_SITE = $(call github,cisco,openh264,v$(LIBOPENH264_VERSION))
 LIBOPENH264_LICENSE = BSD-2-Clause
 LIBOPENH264_LICENSE_FILES = LICENSE
+LIBOPENH264_CPE_ID_VENDOR = cisco
+LIBOPENH264_CPE_ID_PRODUCT = openh264
 LIBOPENH264_INSTALL_STAGING = YES
 
 ifeq ($(BR2_aarch64),y)
@@ -30,7 +32,8 @@ endif
 # architecture don't need it.
 LIBOPENH264_MAKE_OPTS = \
 	ARCH=$(LIBOPENH264_ARCH) \
-	ENABLE64BIT=$(if $(BR2_x86_64),Yes,No)
+	ENABLE64BIT=$(if $(BR2_x86_64),Yes,No) \
+	USE_STACK_PROTECTOR=No
 
 define LIBOPENH264_BUILD_CMDS
 	$(TARGET_MAKE_ENV) $(TARGET_CONFIGURE_OPTS) $(MAKE) -C $(@D) \

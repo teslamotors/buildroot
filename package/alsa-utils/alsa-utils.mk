@@ -4,9 +4,9 @@
 #
 ################################################################################
 
-ALSA_UTILS_VERSION = 1.1.1
+ALSA_UTILS_VERSION = 1.2.4
 ALSA_UTILS_SOURCE = alsa-utils-$(ALSA_UTILS_VERSION).tar.bz2
-ALSA_UTILS_SITE = ftp://ftp.alsa-project.org/pub/utils
+ALSA_UTILS_SITE = https://www.alsa-project.org/files/pub/utils
 ALSA_UTILS_LICENSE = GPL-2.0
 ALSA_UTILS_LICENSE_FILES = COPYING
 ALSA_UTILS_INSTALL_STAGING = YES
@@ -14,10 +14,10 @@ ALSA_UTILS_DEPENDENCIES = host-pkgconf alsa-lib \
 	$(if $(BR2_PACKAGE_NCURSES),ncurses) \
 	$(if $(BR2_PACKAGE_LIBSAMPLERATE),libsamplerate) \
 	$(TARGET_NLS_DEPENDENCIES)
-# Regenerate aclocal.m4 to pick the patched
-# version of alsa.m4 from alsa-lib
-ALSA_UTILS_AUTORECONF = YES
-ALSA_UTILS_GETTEXTIZE = YES
+
+ifeq ($(BR2_PACKAGE_ALSA_UTILS_ALSACTL),y)
+ALSA_UTILS_SELINUX_MODULES += alsa
+endif
 
 ALSA_UTILS_CONF_ENV = \
 	ac_cv_prog_ncurses5_config=$(STAGING_DIR)/usr/bin/$(NCURSES_CONFIG_SCRIPTS) \
@@ -35,7 +35,7 @@ ALSA_UTILS_CONF_OPTS += --disable-alsaloop
 endif
 
 ifneq ($(BR2_PACKAGE_ALSA_UTILS_ALSAMIXER),y)
-ALSA_UTILS_CONF_OPTS += --disable-alsamixer --disable-alsatest
+ALSA_UTILS_CONF_OPTS += --disable-alsamixer
 endif
 
 ifeq ($(BR2_PACKAGE_ALSA_UTILS_BAT),y)
@@ -90,11 +90,12 @@ define ALSA_UTILS_INSTALL_INIT_SYSTEMD
 		$(TARGET_DIR)/usr/lib/systemd/system/alsa-restore.service
 	$(INSTALL) -D -m 0644 $(@D)/alsactl/alsa-state.service \
 		$(TARGET_DIR)/usr/lib/systemd/system/alsa-state.service
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/sound.target.wants
-	ln -sf ../../../../lib/systemd/system/alsa-restore.service \
-		$(TARGET_DIR)/etc/systemd/system/sound.target.wants/alsa-restore.service
-	ln -sf ../../../../lib/systemd/system/alsa-state.service \
-		$(TARGET_DIR)/etc/systemd/system/sound.target.wants/alsa-state.service
+	$(INSTALL) -d -m 0755 $(TARGET_DIR)/usr/lib/systemd/system/alsa-restore.service.d
+	printf '[Install]\nWantedBy=multi-user.target\n' \
+		>$(TARGET_DIR)/usr/lib/systemd/system/alsa-restore.service.d/buildroot-enable.conf
+	$(INSTALL) -d -m 0755 $(TARGET_DIR)/usr/lib/systemd/system/alsa-state.service.d
+	printf '[Install]\nWantedBy=multi-user.target\n' \
+		>$(TARGET_DIR)/usr/lib/systemd/system/alsa-state.service.d/buildroot-enable.conf;
 endef
 endif
 

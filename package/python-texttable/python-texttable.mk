@@ -4,11 +4,11 @@
 #
 ################################################################################
 
-PYTHON_TEXTTABLE_VERSION = 0.9.1
+PYTHON_TEXTTABLE_VERSION = 1.6.3
 PYTHON_TEXTTABLE_SOURCE = texttable-$(PYTHON_TEXTTABLE_VERSION).tar.gz
-PYTHON_TEXTTABLE_SITE = https://pypi.python.org/packages/02/e1/2565e6b842de7945af0555167d33acfc8a615584ef7abd30d1eae00a4d80
-PYTHON_TEXTTABLE_SETUP_TYPE = distutils
-PYTHON_TEXTTABLE_LICENSE = LGPL-3.0+
+PYTHON_TEXTTABLE_SITE = https://files.pythonhosted.org/packages/f5/be/716342325d6d6e05608e3a10e15f192f3723e454a25ce14bc9b9d1332772
+PYTHON_TEXTTABLE_SETUP_TYPE = setuptools
+PYTHON_TEXTTABLE_LICENSE = MIT
 PYTHON_TEXTTABLE_LICENSE_FILES = LICENSE
 
 $(eval $(python-package))

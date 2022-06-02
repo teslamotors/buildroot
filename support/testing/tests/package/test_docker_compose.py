@@ -10,6 +10,7 @@ class TestDockerCompose(infra.basetest.BRTest):
         BR2_x86_core2=y
         BR2_TOOLCHAIN_BUILDROOT_GLIBC=y
         BR2_KERNEL_HEADERS_4_19=y
+        BR2_TOOLCHAIN_BUILDROOT_CXX=y
         BR2_SYSTEM_DHCP="eth0"
         BR2_ROOTFS_POST_BUILD_SCRIPT="{}"
         BR2_ROOTFS_POST_SCRIPT_ARGS="{}"
@@ -19,7 +20,6 @@ class TestDockerCompose(infra.basetest.BRTest):
         BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
         BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="{}"
         BR2_PACKAGE_CA_CERTIFICATES=y
-        BR2_PACKAGE_CGROUPFS_MOUNT=y
         BR2_PACKAGE_DOCKER_CLI=y
         BR2_PACKAGE_DOCKER_COMPOSE=y
         BR2_PACKAGE_DOCKER_ENGINE=y

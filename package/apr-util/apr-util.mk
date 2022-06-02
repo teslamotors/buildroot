@@ -9,11 +9,23 @@ APR_UTIL_SOURCE = apr-util-$(APR_UTIL_VERSION).tar.bz2
 APR_UTIL_SITE = http://archive.apache.org/dist/apr
 APR_UTIL_LICENSE = Apache-2.0
 APR_UTIL_LICENSE_FILES = LICENSE
+APR_UTIL_CPE_ID_VENDOR = apache
+APR_UTIL_CPE_ID_PRODUCT = portable_runtime_utility
 APR_UTIL_INSTALL_STAGING = YES
 APR_UTIL_DEPENDENCIES = apr expat
 APR_UTIL_CONF_OPTS = \
 	--with-apr=$(STAGING_DIR)/usr/bin/apr-1-config
 APR_UTIL_CONFIG_SCRIPTS = apu-1-config
+
+ifeq ($(BR2_PER_PACKAGE_DIRECTORIES),y)
+define APR_UTIL_FIX_RULES_MK_LIBTOOL
+	$(SED) 's,$(PER_PACKAGE_DIR)/apr/,$(PER_PACKAGE_DIR)/apr-util/,g' \
+		$(@D)/build/rules.mk
+	$(SED) 's,$(PER_PACKAGE_DIR)/apr/,$(PER_PACKAGE_DIR)/apr-util/,g' \
+		$(STAGING_DIR)/usr/build-1/libtool
+endef
+APR_UTIL_POST_CONFIGURE_HOOKS += APR_UTIL_FIX_RULES_MK_LIBTOOL
+endif
 
 # When iconv is available, then use it to provide charset conversion
 # features.

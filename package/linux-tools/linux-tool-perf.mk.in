@@ -21,7 +21,6 @@ PERF_MAKE_FLAGS = \
 	DESTDIR=$(TARGET_DIR) \
 	prefix=/usr \
 	WERROR=0 \
-	NO_LIBAUDIT=1 \
 	NO_GTK2=1 \
 	NO_LIBPERL=1 \
 	NO_LIBPYTHON=1 \
@@ -64,6 +63,16 @@ else
 PERF_MAKE_FLAGS += NO_NEWT=1 NO_SLANG=1
 endif
 
+ifeq ($(BR2_PACKAGE_AUDIT),y)
+PERF_DEPENDENCIES += audit
+else
+PERF_MAKE_FLAGS += NO_LIBAUDIT=1
+endif
+
+ifeq ($(BR2_PACKAGE_ZSTD),y)
+PERF_DEPENDENCIES += zstd
+endif
+
 ifeq ($(BR2_PACKAGE_LIBUNWIND),y)
 PERF_DEPENDENCIES += libunwind
 else
@@ -80,6 +89,18 @@ ifeq ($(BR2_PACKAGE_ELFUTILS),y)
 PERF_DEPENDENCIES += elfutils
 else
 PERF_MAKE_FLAGS += NO_LIBELF=1 NO_DWARF=1
+endif
+
+ifeq ($(BR2_PACKAGE_BINUTILS),y)
+PERF_DEPENDENCIES += binutils
+else
+PERF_MAKE_FLAGS += NO_DEMANGLE=1
+endif
+
+ifeq ($(BR2_PACKAGE_OPENSSL),y)
+PERF_DEPENDENCIES += openssl
+else
+PERF_MAKE_FLAGS += NO_LIBCRYPTO=1
 endif
 
 ifeq ($(BR2_PACKAGE_ZLIB),y)
@@ -145,4 +166,8 @@ define PERF_INSTALL_TARGET_CMDS
 		-C $(LINUX_DIR)/tools/perf O=$(LINUX_DIR)/tools/perf/ install
 	$(RM) -rf $(TARGET_DIR)/usr/libexec/perf-core/scripts/
 	$(RM) -rf $(TARGET_DIR)/usr/libexec/perf-core/tests/
+endef
+
+define PERF_LINUX_CONFIG_FIXUPS
+	$(call KCONFIG_ENABLE_OPT,CONFIG_PERF_EVENTS)
 endef

@@ -1,6 +1,7 @@
 config BR2_PACKAGE_PYTHON_PLUGGY
 	bool "python-pluggy"
+	depends on BR2_PACKAGE_PYTHON3
 	help
-	  Python Package - plugin and hook calling mechanisms for python
+	  plugin and hook calling mechanisms for python.
 
-	  https://pypi.org/project/pluggy/
+	  https://github.com/pytest-dev/pluggy

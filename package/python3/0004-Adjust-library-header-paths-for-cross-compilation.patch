@@ -1,4 +1,4 @@
-From e359a7a3c4f9e70360a068bef19c95938fdacede Mon Sep 17 00:00:00 2001
+From 61af65485f1dade4aa08d0cf2b24082aeda24c51 Mon Sep 17 00:00:00 2001
 From: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
 Date: Wed, 23 Dec 2015 11:33:14 +0100
 Subject: [PATCH] Adjust library/header paths for cross-compilation
@@ -21,10 +21,10 @@ Signed-off-by: Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
  2 files changed, 15 insertions(+), 5 deletions(-)
 
 diff --git a/Lib/distutils/command/build_ext.py b/Lib/distutils/command/build_ext.py
-index 74de782d8a..d0c847b365 100644
+index 1a9bd1200f..3cf7d6746e 100644
 --- a/Lib/distutils/command/build_ext.py
 +++ b/Lib/distutils/command/build_ext.py
-@@ -233,7 +233,10 @@ class build_ext(Command):
+@@ -234,7 +234,10 @@ class build_ext(Command):
          if (sysconfig.get_config_var('Py_ENABLE_SHARED')):
              if not sysconfig.python_build:
                  # building third party extensions
@@ -37,7 +37,7 @@ index 74de782d8a..d0c847b365 100644
                  # building python standard extensions
                  self.library_dirs.append('.')
 diff --git a/Lib/distutils/sysconfig.py b/Lib/distutils/sysconfig.py
-index 2bcd1dd288..422c13fa4f 100644
+index 37feae5df7..e9c3a27856 100644
 --- a/Lib/distutils/sysconfig.py
 +++ b/Lib/distutils/sysconfig.py
 @@ -17,10 +17,17 @@ import sys
@@ -63,5 +63,5 @@ index 2bcd1dd288..422c13fa4f 100644
  # Path to the base directory of the project. On Windows the binary may
  # live in project/PCBuild/win32 or project/PCBuild/amd64.
 -- 
-2.13.5
+2.25.1
 

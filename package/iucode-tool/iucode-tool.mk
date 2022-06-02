@@ -12,6 +12,7 @@ IUCODE_TOOL_DEPENDENCIES = argp-standalone
 endif
 IUCODE_TOOL_LICENSE = GPL-2.0+
 IUCODE_TOOL_LICENSE_FILES = COPYING
+IUCODE_TOOL_CPE_ID_VENDOR = iucode-tool_project
 
 define IUCODE_TOOL_INSTALL_INIT_SYSV
 	$(INSTALL) -D -m 0755 package/iucode-tool/S00iucode-tool \
@@ -21,9 +22,6 @@ endef
 define IUCODE_TOOL_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -D -m 644 package/iucode-tool/iucode.service \
 		$(TARGET_DIR)/usr/lib/systemd/system/iucode.service
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
-	ln -sf ../../../../usr/lib/systemd/system/iucode.service \
-		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/iucode.service
 endef
 
 $(eval $(autotools-package))

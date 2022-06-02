@@ -4,11 +4,12 @@
 #
 ################################################################################
 
-LIBARCHIVE_VERSION = 3.3.3
-LIBARCHIVE_SITE = http://www.libarchive.org/downloads
+LIBARCHIVE_VERSION = 3.5.1
+LIBARCHIVE_SITE = https://www.libarchive.de/downloads
 LIBARCHIVE_INSTALL_STAGING = YES
-LIBARCHIVE_LICENSE = BSD-2-Clause, BSD-3-Clause
+LIBARCHIVE_LICENSE = BSD-2-Clause, BSD-3-Clause, CC0-1.0, OpenSSL, Apache-2.0
 LIBARCHIVE_LICENSE_FILES = COPYING
+LIBARCHIVE_CPE_ID_VENDOR = libarchive
 
 ifeq ($(BR2_PACKAGE_LIBARCHIVE_BSDTAR),y)
 ifeq ($(BR2_STATIC_LIBS),y)
@@ -78,14 +79,29 @@ else
 LIBARCHIVE_CONF_OPTS += --without-xml2
 endif
 
+ifeq ($(BR2_PACKAGE_LZ4),y)
+LIBARCHIVE_CONF_OPTS += --with-lz4
+LIBARCHIVE_DEPENDENCIES += lz4
+else
+LIBARCHIVE_CONF_OPTS += --without-lz4
+endif
+
 ifeq ($(BR2_PACKAGE_LZO),y)
 LIBARCHIVE_DEPENDENCIES += lzo
 else
 LIBARCHIVE_CONF_OPTS += --without-lzo2
 endif
 
+ifeq ($(BR2_PACKAGE_MBEDTLS),y)
+LIBARCHIVE_DEPENDENCIES += mbedtls
+LIBARCHIVE_CONF_OPTS += --with-mbedtls
+else
+LIBARCHIVE_CONF_OPTS += --without-mbedtls
+endif
+
 ifeq ($(BR2_PACKAGE_NETTLE),y)
 LIBARCHIVE_DEPENDENCIES += nettle
+LIBARCHIVE_CONF_OPTS += --with-nettle
 else
 LIBARCHIVE_CONF_OPTS += --without-nettle
 endif
@@ -110,8 +126,11 @@ else
 LIBARCHIVE_CONF_OPTS += --without-lzma
 endif
 
-ifeq ($(BR2_PACKAGE_E2FSPROGS),y)
-LIBARCHIVE_DEPENDENCIES += e2fsprogs
+ifeq ($(BR2_PACKAGE_ZSTD),y)
+LIBARCHIVE_DEPENDENCIES += zstd
+LIBARCHIVE_CONF_OPTS += --with-zstd
+else
+LIBARCHIVE_CONF_OPTS += --without-zstd
 endif
 
 # The only user of host-libarchive needs zlib support
@@ -126,10 +145,13 @@ HOST_LIBARCHIVE_CONF_OPTS = \
 	--without-expat \
 	--without-libiconv-prefix \
 	--without-xml2 \
+	--without-lz4 \
 	--without-lzo2 \
+	--without-mbedtls \
 	--without-nettle \
 	--without-openssl \
-	--without-lzma
+	--without-lzma \
+	--without-zstd
 
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))

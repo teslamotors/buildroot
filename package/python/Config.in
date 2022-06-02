@@ -3,7 +3,7 @@ comment "python needs a toolchain w/ wchar, threads, dynamic library"
 	depends on !BR2_USE_WCHAR || !BR2_TOOLCHAIN_HAS_THREADS || BR2_STATIC_LIBS
 
 config BR2_PACKAGE_PYTHON
-	bool "python"
+	bool "python2.7 (deprecated)"
 	depends on BR2_USE_WCHAR
 	# uses fork()
 	depends on BR2_USE_MMU
@@ -38,6 +38,11 @@ endchoice
 menu "core python modules"
 
 comment "The following modules are unusual or require extra libraries"
+
+config BR2_PACKAGE_PYTHON_2TO3
+	bool "2to3 module"
+	help
+	  code translation from python 2 to 3
 
 config BR2_PACKAGE_PYTHON_BZIP2
 	bool "bzip2 module"

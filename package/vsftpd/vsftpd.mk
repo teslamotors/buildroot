@@ -9,6 +9,7 @@ VSFTPD_SITE = https://security.appspot.com/downloads
 VSFTPD_LIBS = -lcrypt
 VSFTPD_LICENSE = GPL-2.0
 VSFTPD_LICENSE_FILES = COPYING
+VSFTPD_CPE_ID_VENDOR = vsftpd_project
 
 define VSFTPD_DISABLE_UTMPX
 	$(SED) 's/.*VSF_BUILD_UTMPX/#undef VSF_BUILD_UTMPX/' $(@D)/builddefs.h
@@ -45,6 +46,11 @@ endef
 
 define VSFTPD_USERS
 	ftp -1 ftp -1 * /home/ftp - - Anonymous FTP User
+endef
+
+define VSFTPD_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -D -m 0644 package/vsftpd/vsftpd.service \
+		$(TARGET_DIR)/usr/lib/systemd/system/vsftpd.service
 endef
 
 define VSFTPD_INSTALL_INIT_SYSV

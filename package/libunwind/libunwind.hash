@@ -1,2 +1,5 @@
 # Locally calculated after checking pgp signature
-sha256 3f3ecb90e28cbe53fba7a4a27ccce7aad188d3210bb1964a923a731a27a75acb  libunwind-1.2.1.tar.gz
+sha256  90337653d92d4a13de590781371c604f9031cdb50520366aa1e3a91e1efb1017  libunwind-1.5.0.tar.gz
+
+# Hash for license file
+sha256  6a0dbbdaec2b3136b7bf045586f4212bdf74e7af688bf9dfe9154607cf5ec156  COPYING

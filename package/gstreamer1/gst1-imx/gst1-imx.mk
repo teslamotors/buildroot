@@ -4,13 +4,14 @@
 #
 ################################################################################
 
-GST1_IMX_VERSION = 0.13.0
+GST1_IMX_VERSION = 0.13.1
 GST1_IMX_SITE = $(call github,Freescale,gstreamer-imx,$(GST1_IMX_VERSION))
 
 GST1_IMX_LICENSE = LGPL-2.0+
 GST1_IMX_LICENSE_FILES = LICENSE
 
 GST1_IMX_INSTALL_STAGING = YES
+GST1_IMX_NEEDS_EXTERNAL_WAF = YES
 
 GST1_IMX_DEPENDENCIES += \
 	host-pkgconf \

@@ -11,7 +11,6 @@ OPENMPI_SOURCE = openmpi-$(OPENMPI_VERSION).tar.bz2
 OPENMPI_LICENSE = BSD-3-Clause
 OPENMPI_LICENSE_FILES = LICENSE
 OPENMPI_INSTALL_STAGING = YES
-OPENMPI_CONF_OPTS = --disable-vt
 
 # Enabling Fortran support requires pre-seeding the configure script
 # with various values that cannot be guessed, so we provide cache
@@ -37,5 +36,13 @@ OPENMPI_CONF_OPTS += \
 else
 OPENMPI_CONF_OPTS += --enable-mpi-fortran=no
 endif
+
+OPENMPI_CFLAGS = $(TARGET_CFLAGS)
+
+ifeq ($(BR2_TOOLCHAIN_HAS_GCC_BUG_68485),y)
+OPENMPI_CFLAGS += -O0
+endif
+
+OPENMPI_CONF_ENV = CFLAGS="$(OPENMPI_CFLAGS)"
 
 $(eval $(autotools-package))

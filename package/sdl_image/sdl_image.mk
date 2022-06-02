@@ -10,12 +10,17 @@ SDL_IMAGE_SITE = http://www.libsdl.org/projects/SDL_image/release
 SDL_IMAGE_INSTALL_STAGING = YES
 SDL_IMAGE_LICENSE = Zlib
 SDL_IMAGE_LICENSE_FILES = COPYING
+SDL_IMAGE_CPE_ID_VENDOR = libsdl
 
 SDL_IMAGE_CONF_OPTS = \
 	--with-sdl-prefix=$(STAGING_DIR)/usr \
 	--with-sdl-exec-prefix=$(STAGING_DIR)/usr \
 	--disable-sdltest \
 	--disable-static \
+	--disable-jpg-shared \
+	--disable-png-shared \
+	--disable-tif-shared \
+	--disable-webp-shared \
 	--enable-bmp=$(if $(BR2_PACKAGE_SDL_IMAGE_BMP),yes,no) \
 	--enable-gif=$(if $(BR2_PACKAGE_SDL_IMAGE_GIF),yes,no) \
 	--enable-jpg=$(if $(BR2_PACKAGE_SDL_IMAGE_JPEG),yes,no) \
@@ -43,7 +48,8 @@ HOST_SDL_IMAGE_CONF_OPTS = \
 	--disable-static \
 	--disable-jpg-shared \
 	--disable-png-shared \
-	--disable-tif-shared
+	--disable-tif-shared \
+	--disable-webp-shared
 
 HOST_SDL_IMAGE_DEPENDENCIES = host-libjpeg host-libpng host-sdl
 

@@ -6,7 +6,7 @@ config BR2_PACKAGE_OPENBLAS_DEFAULT_TARGET
 	default "PRESCOTT"     if BR2_x86_prescott || BR2_x86_nocona
 	default "BANIAS"       if BR2_x86_pentium_m
 	default "CORE2"        if BR2_x86_core2
-	default "NEHALEM"      if BR2_x86_corei7 || BR2_x86_silvermont
+	default "NEHALEM"      if BR2_x86_corei7 || BR2_x86_silvermont || BR2_x86_westmere
 	default "SANDYBRIDGE"  if BR2_x86_corei7_avx
 	default "HASWELL"      if BR2_x86_core_avx2
 	default "ATOM"         if BR2_x86_atom
@@ -14,7 +14,7 @@ config BR2_PACKAGE_OPENBLAS_DEFAULT_TARGET
 	default "OPTERON"      if BR2_x86_opteron
 	default "OPTERON_SSE3" if BR2_x86_opteron_sse3
 	default "BARCELONA"    if BR2_x86_barcelona
-	default "JAGUAR"       if BR2_x86_jaguar
+	default "BOBCAT"       if BR2_x86_jaguar
 	default "STEAMROLLER"  if BR2_x86_steamroller
 	default "VIAC3"        if BR2_x86_c3 || BR2_x86_c32
 	default "POWER4"       if BR2_powerpc_power4
@@ -72,5 +72,26 @@ if BR2_PACKAGE_OPENBLAS
 config BR2_PACKAGE_OPENBLAS_TARGET
 	string "OpenBLAS target CPU"
 	default BR2_PACKAGE_OPENBLAS_DEFAULT_TARGET
+
+config BR2_PACKAGE_OPENBLAS_USE_THREAD
+	bool "use multithreading"
+	default y
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	depends on !BR2_STATIC_LIBS
+	help
+	  Tell OpenBLAS to use multithreading, by passing USE_THREAD=1.
+
+config BR2_PACKAGE_OPENBLAS_USE_LOCKING
+	bool "use locking"
+	default y
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	depends on !BR2_PACKAGE_OPENBLAS_USE_THREAD
+	help
+	  Tell OpenBLAS to use locking, by passing USE_LOCKING=1.
+	  Locking is implicitly enabled when USE_THREAD=1.
+	  However, if USE_THREAD=0 (i.e. OpenBLAS itself will run in
+	  single-threaded mode) but an application makes OpenBLAS
+	  function calls from multiple threads, then locking is
+	  mandatory for correct operation.
 
 endif

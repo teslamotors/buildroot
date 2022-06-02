@@ -4,14 +4,14 @@
 #
 ################################################################################
 
-UHUBCTL_VERSION = v2.0.0
-UHUBCTL_SITE = $(call github,mvp,uhubctl,$(UHUBCTL_VERSION))
+UHUBCTL_VERSION = 2.3.0
+UHUBCTL_SITE = $(call github,mvp,uhubctl,v$(UHUBCTL_VERSION))
 UHUBCTL_LICENSE = GPL-2.0
 UHUBCTL_LICENSE_FILES = LICENSE
 UHUBCTL_DEPENDENCIES = libusb
 
 define UHUBCTL_BUILD_CMDS
-	$(TARGET_CONFIGURE_OPTS) $(MAKE) -C $(@D)
+	$(TARGET_CONFIGURE_OPTS) $(MAKE) GIT_VERSION=v$(UHUBCTL_VERSION) -C $(@D)
 endef
 
 define UHUBCTL_INSTALL_TARGET_CMDS

@@ -4,8 +4,8 @@
 #
 ################################################################################
 
-DTV_SCAN_TABLES_VERSION = 59f4a9b1dfbd573bafe33d238a08da95e4f0263a
-DTV_SCAN_TABLES_SITE = http://git.linuxtv.org/cgit.cgi/dtv-scan-tables.git
+DTV_SCAN_TABLES_VERSION = 6d019038cd04e837d9dd58701202c15924c1c654
+DTV_SCAN_TABLES_SITE = https://git.linuxtv.org/dtv-scan-tables.git
 DTV_SCAN_TABLES_SITE_METHOD = git
 
 # This package only contains the transponders data. This is not a 'work'

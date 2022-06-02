@@ -278,6 +278,16 @@ config BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_SMOOTH
 	help
 	  Apply a smooth filter to an image
 
+config BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_SOUNDTOUCH
+	bool "soundtouch"
+	help
+	  Audio filters plugin for soundtouch
+
+config BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_PITCH
+	bool "pitch"
+	help
+	  Audio pitch filters
+
 config BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_SPEED
 	bool "speed"
 	help

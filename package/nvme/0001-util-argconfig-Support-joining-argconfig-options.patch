@@ -1,0 +1,78 @@
+From cad169a75f55d9cb08d004c0f743117320c3626e Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Mon, 29 Jun 2020 22:43:09 -0700
+Subject: [PATCH 1/4] util/argconfig: Support joining argconfig options
+
+Add new function argconfig_opts_join that can be used to concatenate
+lists of options into a single array.
+
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
+---
+ util/argconfig.c | 39 +++++++++++++++++++++++++++++++++++++++
+ util/argconfig.h |  3 +++
+ 2 files changed, 42 insertions(+)
+
+diff --git a/util/argconfig.c b/util/argconfig.c
+index f647448..9a76266 100644
+--- a/util/argconfig.c
++++ b/util/argconfig.c
+@@ -532,3 +532,42 @@ void argconfig_register_help_func(argconfig_help_func * f)
+ 		}
+ 	}
+ }
++
++/*
++ * Return a new argconfig_commandline_options struct array containing
++ * a copy of the concatenated elements from @opts1 and @opts2
++ *
++ * Caller must free return value.  Returns NULL on error.
++ */
++struct argconfig_commandline_options *
++argconfig_opts_join(const struct argconfig_commandline_options *opts1,
++	const struct argconfig_commandline_options *opts2)
++{
++	const struct argconfig_commandline_options *s;
++	struct argconfig_commandline_options *joined;
++	int opt_count1 = 0, opt_count2 = 0;
++
++	if (!opts1 || !opts2->option)
++		return NULL;
++
++	for (s = opts1; (s->option != NULL) && (s != NULL); s++) {
++		opt_count1++;
++	}
++
++	for (s = opts2; (s->option != NULL) && (s != NULL); s++) {
++		opt_count2++;
++	}
++
++	joined = calloc(opt_count1 + opt_count2 + 1,
++			sizeof(struct argconfig_commandline_options));
++
++	memcpy(joined, opts1, opt_count1 *
++		sizeof(struct argconfig_commandline_options));
++
++	memcpy(&(joined[opt_count1]), opts2, opt_count2 *
++		sizeof(struct argconfig_commandline_options));
++
++	joined[opt_count1 + opt_count2].option = NULL;
++
++	return joined;
++}
+diff --git a/util/argconfig.h b/util/argconfig.h
+index 623b832..8ca8767 100644
+--- a/util/argconfig.h
++++ b/util/argconfig.h
+@@ -125,6 +125,9 @@ unsigned argconfig_parse_comma_sep_array_long(char *string,
+ 					      unsigned long long *ret,
+ 					      unsigned max_length);
+ void argconfig_register_help_func(argconfig_help_func * f);
++struct argconfig_commandline_options *
++argconfig_opts_join(const struct argconfig_commandline_options *opts1,
++	const struct argconfig_commandline_options *opts2);
+ 
+ void print_word_wrapped(const char *s, int indent, int start);
+ #endif
+-- 
+2.17.2
+

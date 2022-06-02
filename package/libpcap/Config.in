@@ -6,3 +6,10 @@ config BR2_PACKAGE_LIBPCAP
 	  capture.
 
 	  http://www.tcpdump.org/
+
+if BR2_PACKAGE_LIBPCAP
+    config BR2_PACKAGE_LIBPCAP_DISABLE_PACKET_RING
+    bool "Disable packet-ring support"
+    help
+      Disable packet-ring mmpap support in libpcap
+endif

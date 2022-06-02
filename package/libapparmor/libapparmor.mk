@@ -27,6 +27,11 @@ LIBAPPARMOR_CONF_OPTS = \
 	--enable-static \
 	--disable-man-pages
 
+HOST_LIBAPPARMOR_CONF_OPTS = \
+	ac_cv_prog_cc_c99=-std=gnu99 \
+	--enable-static \
+	--disable-man-pages
+
 ifeq ($(BR2_PACKAGE_PYTHON3),y)
 LIBAPPARMOR_DEPENDENCIES += host-python3 host-swig python3
 LIBAPPARMOR_CONF_OPTS += \
@@ -34,9 +39,16 @@ LIBAPPARMOR_CONF_OPTS += \
 	PYTHON=$(HOST_DIR)/usr/bin/python3 \
 	PYTHON_CONFIG=$(STAGING_DIR)/usr/bin/python3-config \
 	SWIG=$(SWIG)
+HOST_LIBAPPARMOR_CONF_OPTS += \
+	--with-python \
+	PYTHON=$(HOST_DIR)/usr/bin/python3 \
+	PYTHON_CONFIG=$(HOST_DIR)/bin/python3-config \
+	SWIG=$(SWIG)
 else
 LIBAPPARMOR_CONF_OPTS += --without-python
 endif
+
+HOST_LIBAPPARMOR_DEPENDENCIES = $(LIBAPPARMOR_DEPENDENCIES)
 
 define LIBAPPARMOR_LINUX_CONFIG_FIXUPS
 	$(call KCONFIG_ENABLE_OPT,CONFIG_AUDIT)
@@ -46,3 +58,4 @@ define LIBAPPARMOR_LINUX_CONFIG_FIXUPS
 endef
 
 $(eval $(autotools-package))
+$(eval $(host-autotools-package))

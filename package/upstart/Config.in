@@ -1,0 +1,8 @@
+config BR2_PACKAGE_UPSTART
+       bool "upstart"
+       select BR2_PACKAGE_EUDEV
+       select BR2_PACKAGE_LIBNIH
+       select BR2_PACKAGE_JSON_C
+       select BR2_PACKAGE_DBUS
+       help
+         Upstart is Ubuntu's now-abandonded init system.

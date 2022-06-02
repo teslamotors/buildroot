@@ -1,5 +1,6 @@
 SW-97860 Add patch to svlogd to make an option available to print timestamps in localtime
 
+Author: Tesla OpenSource <opensource@tesla.com>
 
 --- runit-2.1.2/doc/svlogd.8.html
 +++ runit-2.1.2/doc/svlogd.8.html

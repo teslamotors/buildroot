@@ -1,0 +1,36 @@
+From c23d3a9d23b3f626756d982199d40702fd886d87 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Mon, 18 Nov 2019 14:32:48 -0800
+Subject: [PATCH] [PATCH] Fixed an intermittent issues in cheetah "Template":
+
+ genUniqueModuleName() template generation non-uniqness due to
+ str(time.time()) dependency while generating multiple templates at once
+ and a very small value range for "randomness"
+---
+ Cheetah/Template.py | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/Cheetah/Template.py b/Cheetah/Template.py
+index 4d34ab2..f0c78b1 100644
+--- a/Cheetah/Template.py
++++ b/Cheetah/Template.py
+@@ -114,9 +114,13 @@ def _genUniqueModuleName(baseModuleName):
+     """
+     finalName = baseModuleName
+     while finalName in sys.modules:
+-        finalName = ('cheetah_%s_%s_%s' % (baseModuleName,
+-                                           str(time.time()).replace('.', '_'),
+-                                           str(randrange(10000, 99999))))
++        finalName = ('cheetah_%s_%s_%s_%s' % (
++            baseModuleName,
++            str(time.time()).replace('.', '_'),
++            str(randrange(10000, 999999)),
++            str(randrange(10000, 999999))
++        ))
++    print("Cheetah generated unique {} module name: {}".format(finalName, baseModuleName))
+     return finalName
+ 
+ 
+-- 
+2.19.1
+

@@ -1,0 +1,169 @@
+From 560320f76def2b9d85e1cc1f7bcc29f57653e3db Mon Sep 17 00:00:00 2001
+From: Klaus Uhl <klaus.uhl@intel.com>
+Date: Thu, 5 Jul 2018 15:29:25 +0200
+Subject: [PATCH] [PATCH 2/3] CMake changes for KC3.0 usage
+
+Signed-off-by: Iulian Mocanu <iulian.mocanu@intel.com>
+---
+ CMakeLists.txt | 70 ++++++++++++++++++++++++++++------------------------------
+ 1 file changed, 34 insertions(+), 36 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index f0e1c59..0b24a4e 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -3,9 +3,9 @@
+ # License, v. 2.0. If a copy of the MPL was not distributed with this
+ # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ 
+-cmake_minimum_required (VERSION 2.8.1)
+-
+-PROJECT(libcommonapi-dbus)
++cmake_minimum_required (VERSION 2.8.12)
++include(GNUInstallDirs)
++PROJECT(CommonAPI-DBus)
+ 
+ # version of CommonAPI-DBus
+ SET( LIBCOMMONAPI_DBUS_MAJOR_VERSION 3 )
+@@ -70,24 +70,16 @@ string(TOLOWER ${CMAKE_BUILD_TYPE} CMAKE_BUILD_TYPE_FOR_SPEC_IN)
+ SET(BUILD_SERVER_COMMONAPI_INSTALL_PATH "na" CACHE STRING "CommonAPI install path on the build server")
+ 
+ # Offer the user the choice of overriding the installation directories
+-set(INSTALL_LIB_DIR lib CACHE PATH "Installation directory for libraries")
+-set (INSTALL_BIN_DIR bin CACHE PATH "Installation directory for executables")
++set(INSTALL_LIB_DIR ${CMAKE_INSTALL_LIBDIR} CACHE PATH "Installation directory for libraries")
++#set(INSTALL_BIN_DIR bin CACHE PATH "Installation directory for executables")
+ set(INSTALL_INCLUDE_DIR include/CommonAPI-${COMMONAPI_API_HEADER_VERSION} CACHE PATH "Installation directory for header files")
+ if(WIN32 AND NOT CYGWIN)
+   set(DEF_INSTALL_CMAKE_DIR cmake)
+ else()
+-  set(DEF_INSTALL_CMAKE_DIR lib/cmake/CommonAPI-DBus-${COMPONENT_VERSION})
++  set(DEF_INSTALL_CMAKE_DIR ${INSTALL_LIB_DIR}/cmake/CommonAPI-DBus-${COMPONENT_VERSION})
+ endif()
+ set(INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH "Installation directory for CMake files")
+ 
+-# Make relative paths absolute (needed later on)
+-foreach(p LIB INCLUDE CMAKE)
+-  set(var INSTALL_${p}_DIR)
+-  if(NOT IS_ABSOLUTE "${${var}}")
+-    set(ABSOLUTE_${var} "${CMAKE_INSTALL_PREFIX}/${${var}}")
+-  endif()
+-endforeach()
+-
+ message(STATUS "RPM packet version set to ${RPM_PACKAGE_VERSION}")
+ 
+ SET(MAX_LOG_LEVEL "DEBUG" CACHE STRING "maximum log level")
+@@ -164,27 +156,30 @@ if (MSVC)
+ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_CRT_SECURE_NO_WARNINGS -DCOMMONAPI_INTERNAL_COMPILATION -DCOMMONAPI_DLL_COMPILATION /EHsc /wd4503")
+ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_CRT_SECURE_NO_WARNINGS -DCOMMONAPI_INTERNAL_COMPILATION -DCOMMONAPI_DLL_COMPILATION /wd4503")
+ else()
+-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra -Wformat -Wformat-security -Wconversion -fexceptions -fstrict-aliasing -fstack-protector -fasynchronous-unwind-tables -fno-omit-frame-pointer -DCOMMONAPI_INTERNAL_COMPILATION -D_GLIBCXX_USE_NANOSLEEP")
++  set(OFLAG_IN_DEBUG)
++  if ("${CMAKE_BUILD_TYPE}x" STREQUAL "Debugx")
++    set(OFLAG_IN_DEBUG "-O")
++  endif()
++  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x ${OFLAG_IN_DEBUG} -Wall -Wextra -Wformat -Wformat-security -fexceptions -fstrict-aliasing -fstack-protector -fasynchronous-unwind-tables -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -Werror -DCOMMONAPI_INTERNAL_COMPILATION -D_GLIBCXX_USE_NANOSLEEP")
+ endif()
+ 
+ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCOMMONAPI_LOGLEVEL=COMMONAPI_LOGLEVEL_${MAX_LOG_LEVEL}")
+ 
+-message(STATUS "Compiler options: ${CMAKE_CXX_FLAGS}") 
+-
+ include_directories(
+     include
+     ${COMMONAPI_INCLUDE_DIRS}
+     ${DBus_INCLUDE_DIRS}
++    ${DLT_INCLUDE_DIRS}
+ )
+ 
+ if ("${USE_INSTALLED_DBUS}" STREQUAL "ON")
+     link_directories(
+         ${DBus_LIBRARY_DIRS}
++        ${DLT_LIBDIR}
+     )
+ else()
+-    set (DBus_LIBRARIES dbus-1)
+     link_directories(
+-        ${DBus_INCLUDE_DIRS}/dbus/.libs
++        ${DLT_LIBDIR}
+     )
+ endif()
+ 
+@@ -206,7 +201,7 @@ add_library(CommonAPI-DBus SHARED ${CAPIDB_SRCS} ${PUGIXML_SRCS} ${MMHASH_SRCS})
+ target_link_libraries(CommonAPI-DBus CommonAPI ${DBus_LIBRARIES})
+ 
+ if (MSVC)
+-    target_link_libraries(CommonAPI-DBus ws2_32 Rpcrt4)
++    target_link_libraries(CommonAPI-DBus CommonAPI ws2_32 debug ${DBus_BUILD_DIR}/bin/Debug/dbus-1d.lib optimized ${DBus_BUILD_DIR}/bin/Release/dbus-1.lib ${DLT_LIBRARIES})
+ endif()
+ 
+ set_target_properties(CommonAPI-DBus PROPERTIES VERSION ${LIBCOMMONAPI_DBUS_MAJOR_VERSION}.${LIBCOMMONAPI_DBUS_MINOR_VERSION}.${LIBCOMMONAPI_DBUS_PATCH_VERSION} SOVERSION ${LIBCOMMONAPI_DBUS_MAJOR_VERSION}.${LIBCOMMONAPI_DBUS_MINOR_VERSION}.${LIBCOMMONAPI_DBUS_PATCH_VERSION} LINKER_LANGUAGE C)
+@@ -224,14 +219,17 @@ CONFIGURE_FILE(commonapi-dbus.spec.in commonapi-dbus.spec)
+ file (GLOB_RECURSE CommonAPI-DBus_INCLUDE_INSTALL_FILES "include/CommonAPI/DBus/*.hpp")
+ list (SORT CommonAPI-DBus_INCLUDE_INSTALL_FILES)
+ set_target_properties (CommonAPI-DBus PROPERTIES PUBLIC_HEADER "${CommonAPI-DBus_INCLUDE_INSTALL_FILES}")
++target_include_directories(CommonAPI-DBus PUBLIC
++  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
++  $<INSTALL_INTERFACE:${INSTALL_INCLUDE_DIR}>
++)
+ 
+ # install CommonAPI-DBus library including headers
+-install(TARGETS CommonAPI-DBus
+-        EXPORT CommonAPI-DBusTargets
+-        RUNTIME DESTINATION ${INSTALL_BIN_DIR}
+-        LIBRARY DESTINATION ${INSTALL_LIB_DIR}
+-        ARCHIVE DESTINATION ${INSTALL_LIB_DIR}
+-        PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}/CommonAPI/DBus"
++install(
++    TARGETS CommonAPI-DBus
++    EXPORT CommonAPI-DBusTargets
++    LIBRARY DESTINATION ${INSTALL_LIB_DIR}
++    PUBLIC_HEADER DESTINATION "${INSTALL_INCLUDE_DIR}/CommonAPI/DBus"
+ )
+ 
+ # install pugixml header files
+@@ -249,16 +247,12 @@ export(TARGETS CommonAPI-DBus
+ # (this registers the build-tree with a global CMake-registry)
+ export(PACKAGE CommonAPI-DBus)
+ 
+-# Create the CommonAPI-DBusConfig.cmake and CommonAPI-DBusConfigVersion files ...
+-file(RELATIVE_PATH REL_INCLUDE_DIR "${ABSOLUTE_INSTALL_CMAKE_DIR}" "${ABSOLUTE_INSTALL_INCLUDE_DIR}")
+-
+ # ... for the build tree
+ set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/include")
+ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CommonAPI-DBusConfig.cmake.in
+   "${PROJECT_BINARY_DIR}/CommonAPI-DBusConfig.cmake" @ONLY)
+ 
+ # ... for the install tree
+-set(CONF_INCLUDE_DIRS "\${COMMONAPI_DBUS_CMAKE_DIR}/${REL_INCLUDE_DIR}")
+ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CommonAPI-DBusConfig.cmake.in
+   "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CommonAPI-DBusConfig.cmake" @ONLY)
+ 
+@@ -267,14 +261,18 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CommonAPI-DBusConfigVersion.cma
+   "${PROJECT_BINARY_DIR}/CommonAPI-DBusConfigVersion.cmake" @ONLY)
+ 
+ # Install the CommonAPI-DBusConfig.cmake and CommonAPI-DBusConfigVersion.cmake
+-install(FILES
+-  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CommonAPI-DBusConfig.cmake"
+-  "${PROJECT_BINARY_DIR}/CommonAPI-DBusConfigVersion.cmake"
+-  DESTINATION "${INSTALL_CMAKE_DIR}")
++install(
++    FILES
++    "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CommonAPI-DBusConfig.cmake"
++    "${PROJECT_BINARY_DIR}/CommonAPI-DBusConfigVersion.cmake"
++    DESTINATION "${INSTALL_CMAKE_DIR}"
++)
+ 
+ # Install the export set for use with the install-tree
+-install(EXPORT CommonAPI-DBusTargets DESTINATION
+-  "${INSTALL_CMAKE_DIR}")
++install(
++    EXPORT CommonAPI-DBusTargets
++    DESTINATION "${INSTALL_CMAKE_DIR}"
++)
+ 
+ ##############################################################################
+ # maintainer-clean
+-- 
+2.1.0
+

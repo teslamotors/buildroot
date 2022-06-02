@@ -1,0 +1,2032 @@
+--- xserver-xorg-input-evdev-2.3.2.orig/autogen.sh
++++ xserver-xorg-input-evdev-2.3.2/autogen.sh
+@@ -0,0 +1,12 @@
++#! /bin/sh
++
++srcdir=`dirname $0`
++test -z "$srcdir" && srcdir=.
++
++ORIGDIR=`pwd`
++cd $srcdir
++
++autoreconf -v --install || exit 1
++cd $ORIGDIR || exit $?
++
++$srcdir/configure --enable-maintainer-mode "$@"
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/compat
++++ xserver-xorg-input-evdev-2.3.2/debian/compat
+@@ -0,0 +1 @@
++5
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/README.source
++++ xserver-xorg-input-evdev-2.3.2/debian/README.source
+@@ -0,0 +1,73 @@
++------------------------------------------------------
++Quick Guide To Patching This Package For The Impatient
++------------------------------------------------------
++
++1. Make sure you have quilt installed
++2. Unpack the package as usual with "dpkg-source -x"
++3. Run the "patch" target in debian/rules
++4. Create a new patch with "quilt new" (see quilt(1))
++5. Edit all the files you want to include in the patch with "quilt edit" 
++   (see quilt(1)).
++6. Write the patch with "quilt refresh" (see quilt(1))
++7. Run the "clean" target in debian/rules
++
++Alternatively, instead of using quilt directly, you can drop the patch in to 
++debian/patches and add the name of the patch to debian/patches/series.
++
++------------------------------------
++Guide To The X Strike Force Packages
++------------------------------------
++
++The X Strike Force team maintains X packages in git repositories on
++git.debian.org in the pkg-xorg subdirectory. Most upstream packages
++are actually maintained in git repositories as well, so they often
++just need to be pulled into git.debian.org in a "upstream-*" branch.
++Otherwise, the upstream sources are manually installed in the Debian
++git repository.
++
++The .orig.tar.gz upstream source file could be generated this
++"upstream-*" branch in the Debian git repository but it is actually
++copied from upstream tarballs directly.
++
++Due to X.org being highly modular, packaging all X.org applications
++as their own independent packages would have created too many Debian
++packages. For this reason, some X.org applications have been grouped
++into larger packages: xutils, xutils-dev, x11-apps, x11-session-utils,
++x11-utils, x11-xfs-utils, x11-xkb-utils, x11-xserver-utils.
++Most packages, including the X.org server itself and all libraries
++and drivers are, however maintained independently.
++
++The Debian packaging is added by creating the "debian-*" git branch
++which contains the aforementioned "upstream-*" branch plus the debian/
++repository files.
++When a patch has to be applied to the Debian package, two solutions
++are involved:
++* If the patch is available in one of the upstream branches, it
++  may be git'cherry-picked into the Debian repository. In this
++  case, it appears directly in the .diff.gz.
++* Otherwise, the patch is added to debian/patches/ which is managed
++  with quilt as documented in /usr/share/doc/quilt/README.source.
++
++quilt is actually invoked by the Debian X packaging through a larger
++set of scripts called XSFBS. XSFBS brings some other X specific
++features such as managing dependencies and conflicts due to the video
++and input driver ABIs.
++XSFBS itself is maintained in a separate repository at
++  git://git.debian.org/pkg-xorg/xsfbs.git
++and it is pulled inside the other Debian X repositories when needed.
++
++The XSFBS patching system requires a build dependency on quilt. Also
++a dependency on $(STAMP_DIR)/patch has to be added to debian/rules
++so that the XSFBS patching occurs before the actual build. So the
++very first target of the build (likely the one running autoreconf)
++should depend on $(STAMP_DIR)/patch. It should also not depend on
++anything so that parallel builds are correctly supported (nothing
++should probably run while patching is being done). And finally, the
++clean target should depend on the xsfclean target so that patches
++are unapplied on clean.
++
++When the upstream sources contain some DFSG-nonfree files, they are
++listed in text files in debian/prune/ in the "debian-*" branch of
++the Debian repository. XSFBS' scripts then take care of removing
++these listed files during the build so as to generate a modified
++DFSG-free .orig.tar.gz tarball.
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/xserver-xorg-input-evdev.manpages
++++ xserver-xorg-input-evdev-2.3.2/debian/xserver-xorg-input-evdev.manpages
+@@ -0,0 +1 @@
++debian/tmp/usr/share/man/man4/*
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/rules
++++ xserver-xorg-input-evdev-2.3.2/debian/rules
+@@ -0,0 +1,116 @@
++#!/usr/bin/make -f
++# debian/rules for the Debian xserver-xorg-input-evdev package.
++# Copyright © 2004 Scott James Remnant <scott@netsplit.com>
++# Copyright © 2005 Daniel Stone <daniel@fooishbar.org>
++# Copyright © 2005 David Nusinow <dnusinow@debian.org>
++
++# Uncomment this to turn on verbose mode.
++#export DH_VERBOSE=1
++
++include debian/xsfbs/xsfbs.mk
++
++CFLAGS = -Wall -g
++ifneq (,$(filter noopt,$(DEB_BUILD_OPTIONS)))
++	CFLAGS += -O0
++else
++	CFLAGS += -O2
++endif
++ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
++	NUMJOBS = $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
++	MAKEFLAGS += -j$(NUMJOBS)
++endif
++
++DEB_HOST_ARCH      ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
++DEB_HOST_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
++DEB_BUILD_GNU_TYPE ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
++ifeq ($(DEB_BUILD_GNU_TYPE), $(DEB_HOST_GNU_TYPE))
++	confflags += --build=$(DEB_HOST_GNU_TYPE)
++else
++	confflags += --build=$(DEB_BUILD_GNU_TYPE) --host=$(DEB_HOST_GNU_TYPE)
++endif
++
++# kbd_drv.a isn't phenomenally useful; kbd_drv.so more so
++confflags += --disable-static
++
++configure: $(STAMP_DIR)/patch
++	autoreconf -vfi
++
++build/config.status: configure
++	mkdir -p build
++	cd build && \
++	../configure --prefix=/usr --mandir=\$${prefix}/share/man \
++	             --infodir=\$${prefix}/share/info $(confflags) \
++	             CFLAGS="$(CFLAGS)" 
++
++build: build-stamp
++build-stamp: build/config.status
++	dh_testdir
++	cd build && $(MAKE)
++	>$@
++
++clean: xsfclean
++	dh_testdir
++	dh_testroot
++	rm -f build-stamp
++
++	rm -f config.cache config.log config.status
++	rm -f */config.cache */config.log */config.status
++	rm -f conftest* */conftest*
++	rm -rf autom4te.cache */autom4te.cache
++	rm -rf build
++	rm -f $$(find -name Makefile.in)
++	rm -f compile config.guess config.sub configure depcomp install-sh
++	rm -f ltmain.sh missing INSTALL aclocal.m4 ylwrap mkinstalldirs config.h.in
++
++	dh_clean
++
++install: build
++	dh_testdir
++	dh_testroot
++	dh_clean -k
++	dh_installdirs
++
++	cd build && $(MAKE) DESTDIR=$(CURDIR)/debian/tmp install
++
++# Build architecture-dependent files here.
++binary-arch: DH_OPTIONS=-s
++binary-arch: build install serverabi
++	dh_testdir
++	dh_testroot
++
++	dh_installdocs
++	dh_installchangelogs ChangeLog
++	dh_install --sourcedir=debian/tmp --list-missing --exclude=evdev_drv.la --exclude=usr/share/man/man4
++	install -d debian/xserver-xorg-input-evdev/usr/lib/X11/xorg.conf.d
++	install -m 644 debian/local/05-evdev.conf debian/xserver-xorg-input-evdev/usr/lib/X11/xorg.conf.d
++	dh_installman
++	dh_link
++	dh_strip
++	dh_compress
++	dh_fixperms
++	dh_installdeb
++	dh_shlibdeps -- --warnings=6
++	dh_gencontrol
++	dh_md5sums
++	dh_builddeb
++
++# Build architecture-independent files here.
++binary-indep: DH_OPTIONS=-i
++binary-indep: build install
++	dh_testdir
++	dh_testroot
++	dh_installdocs
++	dh_installchangelogs
++	dh_install --sourcedir=debian/tmp
++	dh_installman
++	dh_link
++	dh_strip
++	dh_compress
++	dh_fixperms
++	dh_installdeb
++	dh_gencontrol
++	dh_md5sums
++	dh_builddeb
++
++binary: binary-indep binary-arch
++.PHONY: build clean binary-indep binary-arch binary install
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/xserver-xorg-input-evdev.links
++++ xserver-xorg-input-evdev-2.3.2/debian/xserver-xorg-input-evdev.links
+@@ -0,0 +1 @@
++usr/share/bug/xserver-xorg-core/script usr/share/bug/xserver-xorg-input-evdev/script
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/watch
++++ xserver-xorg-input-evdev-2.3.2/debian/watch
+@@ -0,0 +1,2 @@
++version=3
++http://xorg.freedesktop.org/releases/individual/driver/ xf86-input-evdev-(.*)\.tar\.gz
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/xserver-xorg-input-evdev-dev.install
++++ xserver-xorg-input-evdev-2.3.2/debian/xserver-xorg-input-evdev-dev.install
+@@ -0,0 +1,3 @@
++usr/include/xorg/*
++usr/lib/pkgconfig/xorg-evdev.pc
++
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/control
++++ xserver-xorg-input-evdev-2.3.2/debian/control
+@@ -0,0 +1,66 @@
++Source: xserver-xorg-input-evdev
++Section: x11
++Priority: optional
++Maintainer: Ubuntu X-SWAT <ubuntu-x@lists.ubuntu.com>
++XSBC-Original-Maintainer: Debian X Strike Force <debian-x@lists.debian.org>
++Uploaders: David Nusinow <dnusinow@debian.org>, Drew Parsons <dparsons@debian.org>, Brice Goglin <bgoglin@debian.org>, Cyril Brulebois <kibi@debian.org>
++Build-Depends:
++ debhelper (>= 5.0.0),
++ pkg-config,
++ quilt,
++ xserver-xorg-dev (>= 2:1.7),
++ x11proto-core-dev,
++ x11proto-randr-dev,
++ x11proto-input-dev,
++ x11proto-kb-dev,
++ libxkbfile-dev,
++ dpkg-dev (>= 1.14.17),
++ automake,
++ libtool,
++ xutils-dev (>= 1:7.5~1)
++Standards-Version: 3.8.4
++Vcs-Git: git://git.debian.org/git/pkg-xorg/driver/xserver-xorg-input-evdev
++Vcs-Browser: http://git.debian.org/?p=pkg-xorg/driver/xserver-xorg-input-evdev.git
++
++Package: xserver-xorg-input-evdev
++Architecture: any
++Depends: ${shlibs:Depends}, ${misc:Depends}, ${xserver:Depends},
++Provides: ${xinpdriver:Provides}
++Replaces: xserver-xorg (<< 6.8.2-35)
++Description: X.Org X server -- evdev input driver
++ This package provides the driver for input devices using evdev, the Linux
++ kernel's event delivery mechanism.  This driver allows for multiple keyboards
++ and mice to be treated as separate input devices.
++ .
++ More information about X.Org can be found at:
++ <URL:http://www.X.org>
++ <URL:http://xorg.freedesktop.org>
++ <URL:http://lists.freedesktop.org/mailman/listinfo/xorg>
++ .
++ This package is built from the X.org xf86-input-evdev driver module.
++
++#Package: xserver-xorg-input-evdev-udeb
++#XC-Package-Type: udeb
++#Section: debian-installer
++#Architecture: any
++#Depends: ${shlibs:Depends}, ${misc:Depends}, ${xserver:Depends},
++# udev-udeb [linux-any],
++#Provides: ${xinpdriver:Provides}
++#Description: X.Org X server -- evdev input driver
++# This is a udeb, or a microdeb, for the debian-installer.
++
++Package: xserver-xorg-input-evdev-dev
++Section: libdevel
++Architecture: all
++Depends: ${shlibs:Depends}, ${misc:Depends}
++Description: X.Org X server -- evdev input driver (development headers)
++ This package provides the development headers for the evdev input driver
++ found in xserver-xorg-input-evdev. Non-developers likely have little use
++ for this package.
++ .
++ More information about X.Org can be found at:
++ <URL:http://www.X.org>
++ <URL:http://xorg.freedesktop.org>
++ <URL:http://lists.freedesktop.org/mailman/listinfo/xorg>
++ .
++ This package is built from the X.org xf86-input-evdev driver module.
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/changelog
++++ xserver-xorg-input-evdev-2.3.2/debian/changelog
+@@ -0,0 +1,603 @@
++xserver-xorg-input-evdev (1:2.3.2-5ubuntu1) lucid; urgency=low
++
++  * Merge from Debian unstable. (LP: #546933)
++  * control, rules: Don't build the udeb.
++
++ -- Timo Aaltonen <tjaalton@ubuntu.com>  Tue, 30 Mar 2010 23:41:56 +0300
++
++xserver-xorg-input-evdev (1:2.3.2-5) unstable; urgency=low
++
++  * Install 05-evdev.conf in /usr/lib/X11/xorg.conf.d.
++  * Remove 65-xorg-evdev.rules, obsoleted by the above.
++  * Drop the postinst, and don't depend on udev.
++
++ -- Timo Aaltonen <tjaalton@ubuntu.com>  Tue, 30 Mar 2010 21:40:54 +0300
++
++xserver-xorg-input-evdev (1:2.3.2-4) unstable; urgency=low
++
++  [ Julien Cristau ]
++  * Rename the build directory to not include DEB_BUILD_GNU_TYPE for no
++    good reason.  Thanks, Colin Watson!
++  * Remove myself from Uploaders
++  * 65-xorg-evdev.rules: only set x11_driver for event devices.
++
++  [ Robert Hooker ]
++  * Build xserver-xorg-input-evdev-dev on arch: all.
++
++  [ Cyril Brulebois ]
++  * Add udeb needed for the graphical installer:
++    xserver-xorg-input-evdev-udeb.
++  * Bump Standards-Version from 3.8.3 to 3.8.4 (no changes needed).
++  * Add myself to Uploaders.
++
++ -- Cyril Brulebois <kibi@debian.org>  Fri, 12 Mar 2010 01:02:58 +0100
++
++xserver-xorg-input-evdev (1:2.3.2-3ubuntu2) lucid; urgency=low
++
++  * 65-xorg-evdev.rules: only set x11_driver for event devices, and also
++    extend to work for tablet devices. Fixes part of LP: #537801
++
++ -- Robert Hooker <sarvatt@ubuntu.com>  Mon, 15 Mar 2010 21:05:29 -0400
++
++xserver-xorg-input-evdev (1:2.3.2-3ubuntu1) lucid; urgency=low
++
++  * Add 100-silence-eviocgname-error.patch:
++     - Silences the harmless EVIOCGNAME errors from the log.
++
++ -- Robert Hooker <sarvatt@ubuntu.com>  Tue, 23 Feb 2010 23:28:05 -0500
++
++xserver-xorg-input-evdev (1:2.3.2-3) unstable; urgency=low
++
++  * 65-xorg-evdev.rules: instead of blacklisting joysticks, explicitly
++    whitelist keyboards, mice, touchscreens and touchpads (closes: #564219).
++    We'll need a better solution, but this should do for now.
++  * No need to test for linux in postinst, this package only exists on linux.
++
++ -- Julien Cristau <jcristau@debian.org>  Tue, 12 Jan 2010 10:36:54 +0000
++
++xserver-xorg-input-evdev (1:2.3.2-2) unstable; urgency=low
++
++  [ Timo Aaltonen ]
++  * evdev.rules: Skip joysticks, since using evdev for those is
++    generally considered as a bad idea. Use -joystick instead.
++
++  [ Julien Cristau ]
++  * evdev.rules: Match on ID_INPUT instead of device name + subsystem.
++  * Upload to unstable.
++
++ -- Julien Cristau <jcristau@debian.org>  Thu, 07 Jan 2010 20:21:57 +0000
++
++xserver-xorg-input-evdev (1:2.3.2-1) experimental; urgency=low
++
++  [ Timo Aaltonen ]
++  * Build against Xserver 1.7.
++  * Run udevadm trigger on postinst, and depend on udev [linux-any].
++  * Add xserver-xorg-input-evdev-dev for the header and .pc files.
++
++  [ Julien Cristau ]
++  * 65-xorg-evdev.rules: don't ignore change events.
++
++  [ Brice Goglin ]
++  * New upstream release.
++
++ -- Brice Goglin <bgoglin@debian.org>  Sat, 12 Dec 2009 17:56:22 +0100
++
++xserver-xorg-input-evdev (1:2.3.1-1) experimental; urgency=low
++
++  * New upstream release.
++    + Finalize the middle button emulation when a read error occurs
++      (closes: #550970, #552012)
++  * Replace the fdi file with an udev rule.
++
++ -- Julien Cristau <jcristau@debian.org>  Sat, 28 Nov 2009 20:42:52 +0100
++
++xserver-xorg-input-evdev (1:2.2.99.1-1) experimental; urgency=low
++
++  * New upstream snapshot.
++  * Bump build-dep on xutils-dev for new xorg-macros.
++  * Build against xserver 1.7 RC.
++  * Bump Standards-Version to 3.8.3.
++
++ -- Julien Cristau <jcristau@debian.org>  Tue, 29 Sep 2009 21:04:26 +0200
++
++xserver-xorg-input-evdev (1:2.2.5-1ubuntu7) lucid; urgency=low
++
++  * 102_set_all_valuators_for_relative_motion_events.patch:
++    Based on upstream patch for erratic mouse behavior (LP: #441408)
++
++ -- Tormod Volden <debian.tormod@gmail.com>  Mon, 23 Nov 2009 23:00:32 +0100
++
++xserver-xorg-input-evdev (1:2.2.5-1ubuntu6) karmic; urgency=low
++
++  * Revert addition evoluent-verticalmouse3.fdi.
++    (LP: #451729)
++
++ -- Bryce Harrington <bryce@ubuntu.com>  Sun, 25 Oct 2009 12:23:17 -0700
++
++xserver-xorg-input-evdev (1:2.2.5-1ubuntu5) karmic; urgency=low
++
++  * Rebuild
++
++ -- Bryce Harrington <bryce@ubuntu.com>  Thu, 15 Oct 2009 03:11:30 -0700
++
++xserver-xorg-input-evdev (1:2.2.5-1ubuntu4) karmic; urgency=low
++
++  * local/evoluent-verticalmouse3.fdi, rules: Add support for Kingsis
++    Evoluent VerticalMouse 3.
++    (LP: #451729)
++
++ -- Bryce Harrington <bryce@ubuntu.com>  Wed, 14 Oct 2009 20:21:50 -0700
++
++xserver-xorg-input-evdev (1:2.2.5-1ubuntu2) karmic; urgency=low
++
++  * Apply upstream patch from fd.org bug 23048 (LP: #343528)
++    Finalize the middle button emulation when a read error occurs (#23048)
++
++    If a read error occurs, remove the block and wakeup handlers for middle
++    mouse button emulation. Otherwise, they'll still be around after the device
++    has been reopened and overwritten with the new ones created by EvdevOn.
++    Once this happened, future removal of the device can lead to a server
++    crash.
++
++ -- Matt Zimmerman <mdz@ubuntu.com>  Sun, 11 Oct 2009 09:47:44 +0100
++
++xserver-xorg-input-evdev (1:2.2.5-1ubuntu1) karmic; urgency=low
++
++  * Merge from debian unstable, remaining changes:
++    - Don't install the fdi file, hal in ubuntu already ships one.
++
++ -- Bryce Harrington <bryce@ubuntu.com>  Wed, 02 Sep 2009 17:00:08 -0700
++
++xserver-xorg-input-evdev (1:2.2.5-1) unstable; urgency=low
++
++  * New upstream release.
++
++ -- Brice Goglin <bgoglin@debian.org>  Fri, 21 Aug 2009 07:18:07 +0200
++
++xserver-xorg-input-evdev (1:2.2.4-1) unstable; urgency=low
++
++  * New upstream release.
++
++ -- Brice Goglin <bgoglin@debian.org>  Thu, 06 Aug 2009 07:29:42 +0200
++
++xserver-xorg-input-evdev (1:2.2.3-1) unstable; urgency=low
++
++  * New upstream release.
++    + Fix corrupted mouse motion events sending pointer to
++      top-left of screen, cloces: #528994.
++  * Add README.source, bump Standards-Version to 3.8.2.
++
++ -- Brice Goglin <bgoglin@debian.org>  Thu, 30 Jul 2009 09:14:44 +0200
++
++xserver-xorg-input-evdev (1:2.2.2-1ubuntu2) karmic; urgency=low
++
++  * Add 100_mbemu_nullptr.patch:  Null pointer checks for MBEmu*().
++    (LP: #343528)
++
++ -- Bryce Harrington <bryce@ubuntu.com>  Thu, 30 Jul 2009 13:53:48 -0700
++
++xserver-xorg-input-evdev (1:2.2.2-1ubuntu1) karmic; urgency=low
++
++  * Merge from Debian unstable, remaining changes:
++    - Don't install the fdi file, hal in ubuntu already ships one.
++
++ -- Timo Aaltonen <tjaalton@ubuntu.com>  Fri, 15 May 2009 12:40:30 +0300
++
++xserver-xorg-input-evdev (1:2.2.2-1) unstable; urgency=low
++
++  * New upstream release.
++  * Add myself to Uploaders.
++
++ -- Brice Goglin <bgoglin@debian.org>  Thu, 30 Apr 2009 08:59:58 +0200
++
++xserver-xorg-input-evdev (1:2.2.1-1) unstable; urgency=low
++
++  * New upstream release.
++  * Upload to unstable.
++
++ -- Julien Cristau <jcristau@debian.org>  Thu, 09 Apr 2009 01:16:36 +0100
++
++xserver-xorg-input-evdev (1:2.1.1-1ubuntu3) jaunty; urgency=low
++
++  * Add 101_evdevcachecompare_errmsgs.patch: Provides more specific error
++    messages to assist in debugging issues where currently it merely says,
++    "Device has changed - disabling", such as in 327175.
++
++ -- Bryce Harrington <bryce@ubuntu.com>  Thu, 12 Feb 2009 09:09:49 -0800
++
++xserver-xorg-input-evdev (1:2.1.1-1ubuntu2) jaunty; urgency=low
++
++  * Add 100_exclude_touchscreen_pos.patch as cherry-pick from upstream:
++    EvdevCacheCompare fails because it also compares all values of
++    input_absinfo structure, which include the last tapped position of the
++    touchscreen (.value field). This is never updated in the cache, and
++    anyway it could change anytime if the screen is touched while away
++    from the X virtual console.
++    (LP: #322946)
++
++ -- Bryce Harrington <bryce@ubuntu.com>  Mon, 09 Feb 2009 14:31:19 -0800
++
++xserver-xorg-input-evdev (1:2.1.1-1ubuntu1) jaunty; urgency=low
++
++  * Merge with Debian experimental, remaining changes:
++    - Don't install the fdi file, hal in ubuntu already ships one.
++  * Drop 100_dont_check_abi.patch, since the new xserver has a higher
++    INPUT_ABI already.
++
++ -- Timo Aaltonen <tjaalton@ubuntu.com>  Thu, 22 Jan 2009 15:22:17 +0200
++
++xserver-xorg-input-evdev (1:2.1.1-1) experimental; urgency=low
++
++  * New upstream release.
++  * Update debian/copyright from upstream's COPYING.
++  * Build against xserver 1.6 rc1.
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 21 Jan 2009 21:58:47 +0100
++
++xserver-xorg-input-evdev (1:2.1.0-1) experimental; urgency=low
++
++  [ Timo Aaltonen ]
++  * New upstream release.
++    + Store device file's minor/major to avoid duplicate devices
++      (closes: #505635)
++
++  [ Julien Cristau ]
++  * debian/control: update the long description.  We don't do "clever" device
++    matching anymore, that's hal/udev's job.  Also drop the mention of
++    'Protocol "evdev"', which unexists since quite a while.
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 26 Nov 2008 19:27:26 +0100
++
++xserver-xorg-input-evdev (1:2.1.0-0ubuntu3) jaunty; urgency=low
++
++  * Rebuild against new xorg-server for armel.
++
++ -- Loic Minier <lool@dooz.org>  Fri, 19 Dec 2008 14:53:31 +0100
++
++xserver-xorg-input-evdev (1:2.1.0-0ubuntu2) jaunty; urgency=low
++
++  * Rebuild against the new xserver.
++
++ -- Timo Aaltonen <tjaalton@ubuntu.com>  Mon, 15 Dec 2008 11:49:48 +0200
++
++xserver-xorg-input-evdev (1:2.1.0-0ubuntu1) jaunty; urgency=low
++
++  * Merge from Debian experimental, remaining changes:
++    - 100_dont_check_abi.patch: Don't check for XINPUT_VERSION >= 3, since
++      our xserver & libXi has those bits backported.
++    - Bump the build-dep on xserver-xorg-dev and x11proto-input-dev.
++  * Don't install the fdi file, hal in ubuntu already ships one.
++
++ -- Timo Aaltonen <tepsipakki@ubuntu.com>  Wed, 26 Nov 2008 14:06:08 +0200
++
++xserver-xorg-input-evdev (1:2.0.99.3-1) experimental; urgency=low
++
++  [ Timo Aaltonen ]
++  * rules: Clean config.h.in.
++
++  [ Julien Cristau ]
++  * New upstream release.
++    + don't grab the device by default
++    + close the device on DEVICE_OFF, and reopen it on DEVICE_ON
++      (closes: #496101, #492146)
++  * Drop patch included upstream.
++  * Install (temporarily) an fdi file to get Xorg to load the evdev driver for
++    mice and keyboards.
++  * Depend on xserver-xorg-core >= 2:1.5.3, to make sure the console is set to
++    RAW mode.
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 12 Nov 2008 20:22:57 +0100
++
++xserver-xorg-input-evdev (1:2.0.99+git20080912-0ubuntu6) intrepid-proposed; urgency=low
++
++  * 101_64bit_safe_testbit.patch: On amd64 evdev would be used for joysticks
++    because TestBit would return a wrong value. (LP: #284951)
++
++ -- Timo Aaltonen <tepsipakki@ubuntu.com>  Tue, 21 Oct 2008 18:23:09 +0300
++
++xserver-xorg-input-evdev (1:2.0.99+git20080912-0ubuntu5) intrepid; urgency=low
++
++  * Rebuild against new x11proto-input-dev.
++
++ -- William Grant <wgrant@ubuntu.com>  Sat, 18 Oct 2008 21:13:47 +1100
++
++xserver-xorg-input-evdev (1:2.0.99+git20080912-0ubuntu4) intrepid; urgency=low
++
++  * Cherry-pick commit 7243116f from upstream, "Don't post keycodes > 255."
++    (LP: #274203)
++
++ -- Timo Aaltonen <tepsipakki@ubuntu.com>  Thu, 16 Oct 2008 17:37:04 +0300
++
++xserver-xorg-input-evdev (1:2.0.99+git20080912-0ubuntu3) intrepid; urgency=low
++
++  * Merged with upstream master, commit 84a0e39c0dd, "Use new property API"
++  * Drop patch 101, cherry-picked the commit.
++  * Bump the build-dep on xserver-xorg-dev and x11proto-input-dev.
++
++ -- Timo Aaltonen <tepsipakki@ubuntu.com>  Fri, 10 Oct 2008 12:24:00 +0300
++
++xserver-xorg-input-evdev (1:2.0.99+git20080912-0ubuntu2) intrepid; urgency=low
++
++  * 101_evdev-close-fd.patch: Fix issue where keystrokes on tty can "leak"
++    into the X session after vt switch, due to an fd still being open.
++    (LP: #276887)
++
++ -- Bryce Harrington <bryce@ubuntu.com>  Fri, 03 Oct 2008 13:52:36 -0700
++
++xserver-xorg-input-evdev (1:2.0.99+git20080912-0ubuntu1) intrepid; urgency=low
++
++  * New upstream snapshot, up to commit 9930477cbeb4acf.
++    - Add support for device properties (Middle button emulation, timeout).
++    - Add support for features ported from mousedrv (also through
++      properties):
++      * Button mapping
++      * Mouse wheel emulation, timeout
++      * DragLockButtons
++    - Attempt to reopen devices on read errors
++  * 100_dont_check_abi.patch: Don't check for XINPUT_VERSION >= 3, since
++    our xserver & libXi has those bits backported.
++
++ -- Timo Aaltonen <tepsipakki@ubuntu.com>  Fri, 12 Sep 2008 16:15:21 +0300
++
++xserver-xorg-input-evdev (1:2.0.3-2ubuntu1) intrepid; urgency=low
++
++  * Pull 36d702006d, "Force rules, not model, to be evdev".
++  * Change the maintainer address.
++
++ -- Timo Aaltonen <tepsipakki@ubuntu.com>  Tue, 09 Sep 2008 18:36:57 +0300
++
++xserver-xorg-input-evdev (1:2.0.3-2) experimental; urgency=low
++
++  * Build against xserver 1.5 rc6.
++  * Run autoreconf at build time; build-depend on automake, libtool and
++    xutils-dev.
++  * Add support for parallel builds.
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 04 Aug 2008 13:38:46 +0200
++
++xserver-xorg-input-evdev (1:2.0.3-1) unstable; urgency=low
++
++  * New upstream release, incorporates the two fixes from our previous
++    version.
++  * Pull from evdev-2.0-branch:
++    - Print the device name when we get a read error
++    - Actually close the fd on DEVICE_CLOSE
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 04 Aug 2008 13:05:52 +0200
++
++xserver-xorg-input-evdev (1:2.0.2-1.lenny1) unstable; urgency=low
++
++  * Pull two fixes from upstream
++    - Fix EVIOCGBIT ioctl usage on big endian platforms
++    - Fill up the version info
++
++ -- Julien Cristau <jcristau@debian.org>  Wed, 30 Jul 2008 11:30:53 +0200
++
++xserver-xorg-input-evdev (1:2.0.2-1) unstable; urgency=low
++
++  * New upstream release
++    + fixes mice with lots of buttons (Closes: #491061)
++
++ -- Julien Cristau <jcristau@debian.org>  Fri, 18 Jul 2008 22:21:17 +0200
++
++xserver-xorg-input-evdev (1:2.0.1-1) unstable; urgency=low
++
++  [ Julien Cristau, Timo Aaltonen ]
++  * New upstream release.
++
++  [ Julien Cristau ]
++  * Drop the XS- prefix from Vcs-* control fields.
++  * Drop evdev_no_flush_on_init.diff, obsolete.
++  * New patch include-the-proper-header-for-XkbSetRulesDflts-and-X.patch, fix
++    a 'missing declaration' compiler warning by including the right header.
++  * Run dpkg-shlibdeps with --warnings=6.  Drivers reference symbols from
++    /usr/bin/Xorg and other modules, and that's not a bug, so we want
++    dpkg-shlibdeps to shut up about symbols it can't find.  Build-depend on
++    dpkg-dev >= 1.14.17.
++  * Fix target dependencies in debian/rules.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 13 Jul 2008 15:37:13 +0200
++
++xserver-xorg-input-evdev (1:1.2.0-1) unstable; urgency=low
++
++  * New upstream releases
++    + includes manpage fixes from Peter Samuelson (close: #446118)
++    + drop evdev_man_illegal_char.patch, included upstream
++  * Bump Standards-Version to 3.7.3.
++
++ -- Julien Cristau <jcristau@debian.org>  Thu, 06 Dec 2007 17:05:24 +0100
++
++xserver-xorg-input-evdev (1:1.2.0~git20070819-4) unstable; urgency=low
++
++  * New patch evdev_no_flush_on_init.diff: don't send button release events on
++    init.
++
++ -- Julien Cristau <jcristau@debian.org>  Tue, 13 Nov 2007 21:27:37 +0100
++
++xserver-xorg-input-evdev (1:1.2.0~git20070819-3) unstable; urgency=low
++
++  * Upload to unstable
++
++ -- David Nusinow <dnusinow@debian.org>  Sun, 16 Sep 2007 15:13:36 -0400
++
++xserver-xorg-input-evdev (1:1.2.0~git20070819-2) experimental; urgency=low
++
++  * Build against xserver 1.4.
++
++ -- Julien Cristau <jcristau@debian.org>  Mon, 10 Sep 2007 16:30:28 +0200
++
++xserver-xorg-input-evdev (1:1.2.0~git20070819-1) experimental; urgency=low
++
++  * New git snapshot from upstream's master branch.
++    + manpage typos fixed (closes: #432063).  Thanks, A. Costa!
++  * Build against xserver 1.3.99.0.
++  * Update debian/copyright.
++  * Generate the Provides field automatically.
++  * Add myself to uploaders, and remove Branden with his permission.
++  * Drop build-dep on linux-kernel-headers, which is provided by
++    build-essential.
++
++ -- Julien Cristau <jcristau@debian.org>  Sun, 19 Aug 2007 17:22:09 +0200
++
++xserver-xorg-input-evdev (1:1.1.5-3) unstable; urgency=low
++
++  * Cherry-pick commit 987c6b15: don't call xf86OSRingBell() which isn't
++    available anymore (closes: #430539).
++
++ -- Julien Cristau <jcristau@debian.org>  Sat, 07 Jul 2007 19:21:43 +0200
++
++xserver-xorg-input-evdev (1:1.1.5-2) unstable; urgency=low
++
++  [ Julien Cristau ]
++  * Generate the dependency on xserver-xorg-core automatically.
++  * Upload to unstable.
++
++  [ Brice Goglin ]
++  * Bump Build-Depends: xserver-xorg-dev to >= 2:1.2.99.902
++    (needed to let xsfbs get access to serverminver).
++  * Add XS-Vcs-*.
++  * Add a link to www.X.org and a reference to the xf86-input-evdev
++    module in the long description.
++  * Remove Fabio from uploaders with his permission. He's always welcome back.
++
++ -- Julien Cristau <jcristau@debian.org>  Thu, 03 May 2007 20:18:03 +0200
++
++xserver-xorg-input-evdev (1:1.1.5-1) experimental; urgency=low
++
++  [ Julien Cristau ]
++  * Add link to xserver-xorg-core bug script, so that bugreports contain
++    the user's config and log files.
++  * Bump dependency on xserver-xorg-core to >= 2:1.1.1-11, as previous
++    versions don't have the bug script.
++  * New upstream release.
++    + Drop all patches, applied upstream.
++  * New patch to replace "ø" with "\(/o" in the evdev(4) manpage.
++  * Make debian/rules clean depend on xsfclean, to make sure that patches are
++    unapplied and everything is cleaned up.
++
++ -- Drew Parsons <dparsons@debian.org>  Mon, 19 Mar 2007 19:36:42 +1100
++
++xserver-xorg-input-evdev (1:1.1.2-6) unstable; urgency=low
++
++  * Apply upstream patch 30-absolute-axis.patch to avert potential
++    crashes in the absolute axis setup.
++  * Also apply 40-close-fd.patch, as the last "trivial" patch from
++    upstream before the major changes of 1.1.3.
++  * Use dh_installman to install man pages.
++
++ -- Drew Parsons <dparsons@debian.org>  Sun,  5 Nov 2006 21:37:25 +1100
++
++xserver-xorg-input-evdev (1:1.1.2-5) unstable; urgency=low
++
++  * Applied upstream patches 10-bitfield-fixes.patch and
++    11-bitops-fixes.patch to define bit operations. Closes: #395510.
++    The former contains the hppa inotify patch, so rework
++    1-add-inotify-architectures.patch into
++    20-add-inotify-architectures.patch to accommodate. Also, deleted
++    the trivial man patch from 10-bitfield-fixes.patch, it was not
++    applying neatly.
++
++ -- Drew Parsons <dparsons@debian.org>  Wed,  1 Nov 2006 20:05:50 +1100
++
++xserver-xorg-input-evdev (1:1.1.2-4) unstable; urgency=low
++
++  * Fix versioned depends: xserver-xorg-core (>= 2:1.1.1-1) (see
++    #391508) since it is built against xserver-xorg-dev (>= 2:1.1.1-1).
++    However the specific versioned build-depends is not needed since
++    it is not required in configure.ac (the driver could be built
++    against older xserver versions).
++
++ -- Drew Parsons <dparsons@debian.org>  Fri, 27 Oct 2006 22:13:15 +1000
++
++xserver-xorg-input-evdev (1:1.1.2-3) unstable; urgency=low
++
++  * Add patch rule to build rule to debian/rules to get
++    1-add-inotify-architectures.patch applied. Run autoreconf and
++    update config.{guess,sub} for good measure.
++
++ -- Drew Parsons <dparsons@debian.org>  Sun, 24 Sep 2006 10:02:45 +1000
++
++xserver-xorg-input-evdev (1:1.1.2-2) unstable; urgency=low
++
++  [ Andres Salomon ]
++  * Test for obj-$(DEB_BUILD_GNU_TYPE) before creating it during build;
++    idempotency fix.
++
++  [ Drew Parsons ]
++  * Upstream patch 1-add-inotify-architectures.patch enables building
++    for hppa, mips (from git upstream) and m68k (thanks Geert Uytterhoeven). 
++    Closes: #387922, #388639.
++  * Install upstream ChangeLog. Closes: #370300.
++  * Exclude evdev_drv.la from dh_install.
++
++ -- Drew Parsons <dparsons@debian.org>  Sun, 24 Sep 2006 01:51:55 +1000
++
++xserver-xorg-input-evdev (1:1.1.2-1) unstable; urgency=low
++
++  * New upstream release
++    + Now includes manpage (closes: #362679)
++    + Doesn't suck (closes: #365581)
++  * Run dh_install with --list-missing
++  * Bump debhelper compat to 5
++  * Bump standards version to 3.7.2.0
++  * Add x11proto-kb-dev to build-depends
++
++ -- David Nusinow <dnusinow@debian.org>  Tue, 30 May 2006 22:37:01 -0400
++
++xserver-xorg-input-evdev (1:1.0.0.5-2) unstable; urgency=low
++
++  * Upload to modular
++
++ -- David Nusinow <dnusinow@debian.org>  Sun, 26 Mar 2006 20:25:00 -0500
++
++xserver-xorg-input-evdev (1:1.0.0.5-1) experimental; urgency=low
++
++  * First upload to Debian
++  * Change source package, package, and provides names to denote the
++    type of driver and that they are for xserver-xorg
++
++ -- David Nusinow <dnusinow@debian.org>  Thu, 19 Jan 2006 20:40:34 -0500
++
++xserver-xorg-input-evdev (1:1.0.0.5-0ubuntu1) dapper; urgency=low
++
++  * New upstream release.
++  * Add provides on xserver-xorg-input.
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Wed,  4 Jan 2006 19:42:22 +1100
++
++xserver-xorg-input-evdev (1:1.0.0.4-0ubuntu1) dapper; urgency=low
++
++  * New upstream release.
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Mon, 19 Dec 2005 08:55:27 +1100
++
++xserver-xorg-input-evdev (1:1.0.0.3-0ubuntu1) dapper; urgency=low
++
++  * New upstream release.
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Mon, 12 Dec 2005 13:37:47 +1100
++
++xserver-xorg-input-evdev (1:1.0.0.2-0ubuntu2) dapper; urgency=low
++
++  * Add missing Build-Depends (x11proto-core-dev, x11proto-randr-dev,
++    x11proto-input-dev).
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Mon,  5 Dec 2005 12:47:45 +1100
++
++xserver-xorg-input-evdev (1:1.0.0.2-0ubuntu1) dapper; urgency=low
++
++  * New upstream release.
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Tue, 22 Nov 2005 13:20:15 +1100
++
++xserver-xorg-input-evdev (1:1.0.0.1-1) dapper; urgency=low
++
++  * New upstream release.
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Tue, 25 Oct 2005 16:52:45 +1000
++
++xserver-xorg-input-evdev (1:1.0.0-1) breezy; urgency=low
++
++  * First xserver-xorg-input-evdev release.
++
++ -- Daniel Stone <daniel.stone@ubuntu.com>  Wed,  6 Jul 2005 15:48:17 +1000
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/copyright
++++ xserver-xorg-input-evdev-2.3.2/debian/copyright
+@@ -0,0 +1,100 @@
++This package was downloaded from
++git://anongit.freedesktop.org/git/xorg/driver/xf86-input-evdev.
++Release tarballs are available at
++http://xorg.freedesktop.org/releases/individual/driver/
++
++Various copyright notices found in this driver:
++
++Copyright © 2004-2008 Red Hat, Inc.
++
++Permission to use, copy, modify, distribute, and sell this software
++and its documentation for any purpose is hereby granted without
++fee, provided that the above copyright notice appear in all copies
++and that both that copyright notice and this permission notice
++appear in supporting documentation, and that the name of Red Hat
++not be used in advertising or publicity pertaining to distribution
++of the software without specific, written prior permission.  Red
++Hat makes no representations about the suitability of this software
++for any purpose.  It is provided "as is" without express or implied
++warranty.
++
++THE AUTHORS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
++INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN
++NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY SPECIAL, INDIRECT OR
++CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
++OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
++NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
++CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++
++Copyright 2005 Sun Microsystems, Inc.  All rights reserved.
++
++Permission to use, copy, modify, distribute, and sell this software and its
++documentation for any purpose is hereby granted without fee, provided that
++the above copyright notice appear in all copies and that both that
++copyright notice and this permission notice appear in supporting
++documentation.
++
++The above copyright notice and this permission notice shall be included
++in all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
++OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
++IN NO EVENT SHALL THE OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR
++OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
++ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++OTHER DEALINGS IN THE SOFTWARE.
++
++Except as contained in this notice, the name of the copyright holders shall
++not be used in advertising or otherwise to promote the sale, use or
++other dealings in this Software without prior written authorization
++from the copyright holders.
++
++Copyright © 2008 University of South Australia
++copyrights taken from xf86-input-mouse, partly valid for this driver.
++Copyright 1990,91 by Thomas Roell, Dinkelscherben, Germany.
++Copyright 1993 by David Dawes <dawes@xfree86.org>
++Copyright 2002 by SuSE Linux AG, Author: Egbert Eich
++Copyright 1994-2002 by The XFree86 Project, Inc.
++Copyright 2002 by Paul Elliott
++
++Permission to use, copy, modify, distribute, and sell this software
++and its documentation for any purpose is hereby granted without
++fee, provided that the above copyright notice appear in all copies
++and that both that copyright notice and this permission notice
++appear in supporting documentation, and that the name of the authors
++not be used in advertising or publicity pertaining to distribution of the
++software without specific, written prior permission.  The authors make no
++representations about the suitability of this software for any
++purpose.  It is provided "as is" without express or implied
++warranty.
++
++THE AUTHORS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
++INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN
++NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY SPECIAL, INDIRECT OR
++CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
++OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
++NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
++CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
++
++
++Copyright 2005 Adam Jackson.
++
++Permission is hereby granted, free of charge, to any person obtaining a
++copy of this software and associated documentation files (the "Software"),
++to deal in the Software without restriction, including without limitation
++on the rights to use, copy, modify, merge, publish, distribute, sub
++license, and/or sell copies of the Software, and to permit persons to whom
++the Software is furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice (including the next
++paragraph) shall be included in all copies or substantial portions of the
++Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.  IN NO EVENT SHALL
++ADAM JACKSON BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
++IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
++CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/xserver-xorg-input-evdev.install
++++ xserver-xorg-input-evdev-2.3.2/debian/xserver-xorg-input-evdev.install
+@@ -0,0 +1 @@
++usr/lib/xorg/modules/input/*.so
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/xserver-xorg-input-evdev-udeb.install
++++ xserver-xorg-input-evdev-2.3.2/debian/xserver-xorg-input-evdev-udeb.install
+@@ -0,0 +1 @@
++usr/lib/xorg/modules/input/*.so
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/local/05-evdev.conf
++++ xserver-xorg-input-evdev-2.3.2/debian/local/05-evdev.conf
+@@ -0,0 +1,39 @@
++# Catchall classes for input devices
++# We don't simply match on any device since that also adds accelerometers
++# and other devices that we don't really want to use. The list below
++# matches everything but joysticks.
++
++Section "InputClass"
++	Identifier "evdev pointer catchall"
++	MatchIsPointer "on"
++	MatchDevicePath "/dev/input/event*"
++	Driver "evdev"
++EndSection
++
++Section "InputClass"
++	Identifier "evdev keyboard catchall"
++	MatchIsKeyboard "on"
++	MatchDevicePath "/dev/input/event*"
++	Driver "evdev"
++EndSection
++
++Section "InputClass"
++	Identifier "evdev touchpad catchall"
++	MatchIsTouchpad "on"
++	MatchDevicePath "/dev/input/event*"
++	Driver "evdev"
++EndSection
++
++Section "InputClass"
++	Identifier "evdev tablet catchall"
++	MatchIsTablet "on"
++	MatchDevicePath "/dev/input/event*"
++	Driver "evdev"
++EndSection
++
++Section "InputClass"
++	Identifier "evdev touchscreen catchall"
++	MatchIsTouchscreen "on"
++	MatchDevicePath "/dev/input/event*"
++	Driver "evdev"
++EndSection
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/patches/series
++++ xserver-xorg-input-evdev-2.3.2/debian/patches/series
+@@ -0,0 +1 @@
++100-silence-eviocgname-error.patch
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/patches/100-silence-eviocgname-error.patch
++++ xserver-xorg-input-evdev-2.3.2/debian/patches/100-silence-eviocgname-error.patch
+@@ -0,0 +1,25 @@
++From 3a06d505b3b1eaecc6e55aedd22106655d73f12a Mon Sep 17 00:00:00 2001
++From: Robert Hooker <sarvatt@ubuntu.com>
++Date: Tue, 23 Feb 2010 22:53:52 -0500
++Subject: [PATCH] Silence EVIOCGNAME error.
++
++---
++ src/evdev.c |    2 +-
++ 1 files changed, 1 insertions(+), 1 deletions(-)
++
++diff --git a/src/evdev.c b/src/evdev.c
++index 58ffcea..f9aae2c 100644
++--- a/src/evdev.c
+++++ b/src/evdev.c
++@@ -1656,7 +1656,7 @@ EvdevCacheCompare(InputInfoPtr pInfo, BOOL compare)
++     unsigned long led_bitmask[NLONGS(LED_CNT)] = {0};
++ 
++     if (ioctl(pInfo->fd, EVIOCGNAME(sizeof(name) - 1), name) < 0) {
++-        xf86Msg(X_ERROR, "ioctl EVIOCGNAME failed: %s\n", strerror(errno));
+++        /* xf86Msg(X_ERROR, "ioctl EVIOCGNAME failed: %s\n", strerror(errno)); */
++         goto error;
++     }
++ 
++-- 
++1.7.0
++
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/xsfbs/xsfbs.sh
++++ xserver-xorg-input-evdev-2.3.2/debian/xsfbs/xsfbs.sh
+@@ -0,0 +1,622 @@
++# This is the X Strike Force shell library for X Window System package
++# maintainer scripts.  It serves to define shell functions commonly used by
++# such packages, and performs some error checking necessary for proper operation
++# of those functions.  By itself, it does not "do" much; the maintainer scripts
++# invoke the functions defined here to accomplish package installation and
++# removal tasks.
++
++# If you are reading this within a Debian package maintainer script (e.g.,
++# /var/lib/dpkg/info/PACKAGE.{config,preinst,postinst,prerm,postrm}), you can
++# skip past this library by scanning forward in this file to the string
++# "GOBSTOPPER".
++
++SOURCE_VERSION=@SOURCE_VERSION@
++OFFICIAL_BUILD=@OFFICIAL_BUILD@
++
++# Use special abnormal exit codes so that problems with this library are more
++# easily tracked down.
++SHELL_LIB_INTERNAL_ERROR=86
++SHELL_LIB_THROWN_ERROR=74
++SHELL_LIB_USAGE_ERROR=99
++
++# old -> new variable names
++if [ -z "$DEBUG_XORG_PACKAGE" ] && [ -n "$DEBUG_XFREE86_PACKAGE" ]; then
++  DEBUG_XORG_PACKAGE="$DEBUG_XFREE86_PACKAGE"
++fi
++if [ -z "$DEBUG_XORG_DEBCONF" ] && [ -n "$DEBUG_XFREE86_DEBCONF" ]; then
++  DEBUG_XORG_DEBCONF="$DEBUG_XFREE86_DEBCONF"
++fi
++
++# initial sanity checks
++if [ -z "$THIS_PACKAGE" ]; then
++  cat >&2 <<EOF
++Error: package maintainer script attempted to use shell library without
++definining \$THIS_PACKAGE shell variable.  Please report the package name,
++version, and the text of this error message to the Debian Bug Tracking System.
++Visit <http://www.debian.org/Bugs/Reporting> on the World Wide Web for
++instructions, read the file /usr/share/doc/debian/bug-reporting.txt from the
++"doc-debian" package, or install the "reportbug" package and use the command of
++the same name to file a report against version $SOURCE_VERSION of this package.
++EOF
++  exit $SHELL_LIB_USAGE_ERROR
++fi
++
++if [ -z "$THIS_SCRIPT" ]; then
++  cat >&2 <<EOF
++Error: package maintainer script attempted to use shell library without
++definining \$THIS_SCRIPT shell variable.  Please report the package name,
++version, and the text of this error message to the Debian Bug Tracking System.
++Visit <http://www.debian.org/Bugs/Reporting> on the World Wide Web for
++instructions, read the file /usr/share/doc/debian/bug-reporting.txt from the
++"doc-debian" package, or install the "reportbug" package and use the command of
++the same name to file a report against version $SOURCE_VERSION of the
++"$THIS_PACKAGE" package.
++EOF
++  exit $SHELL_LIB_USAGE_ERROR
++fi
++
++if [ "$1" = "reconfigure" ] || [ -n "$DEBCONF_RECONFIGURE" ]; then
++  RECONFIGURE="true"
++else
++  RECONFIGURE=
++fi
++
++if ([ "$1" = "install" ] || [ "$1" = "configure" ]) && [ -z "$2" ]; then
++  FIRSTINST="yes"
++fi
++
++if [ -z "$RECONFIGURE" ] && [ -z "$FIRSTINST" ]; then
++  UPGRADE="yes"
++fi
++
++trap "message;\
++      message \"Received signal.  Aborting $THIS_PACKAGE package $THIS_SCRIPT script.\";\
++      message;\
++      exit 1" HUP INT QUIT TERM
++
++reject_nondigits () {
++  # syntax: reject_nondigits [ operand ... ]
++  #
++  # scan operands (typically shell variables whose values cannot be trusted) for
++  # characters other than decimal digits and barf if any are found
++  while [ -n "$1" ]; do
++    # does the operand contain anything but digits?
++    if ! expr "$1" : "[[:digit:]]\+$" > /dev/null 2>&1; then
++      # can't use die(), because it wraps message() which wraps this function
++      echo "$THIS_PACKAGE $THIS_SCRIPT error: reject_nondigits() encountered" \
++           "possibly malicious garbage \"$1\"" >&2
++      exit $SHELL_LIB_THROWN_ERROR
++    fi
++    shift
++  done
++}
++
++reject_unlikely_path_chars () {
++  # syntax: reject_unlikely_path_chars [ operand ... ]
++  #
++  # scan operands (typically shell variables whose values cannot be trusted) for
++  # characters unlikely to be seen in a path and which the shell might
++  # interpret and barf if any are found
++  while [ -n "$1" ]; do
++    # does the operand contain any funny characters?
++    if expr "$1" : '.*[!$&()*;<>?|].*' > /dev/null 2>&1; then
++      # can't use die(), because I want to avoid forward references
++      echo "$THIS_PACKAGE $THIS_SCRIPT error: reject_unlikely_path_chars()" \
++           "encountered possibly malicious garbage \"$1\"" >&2
++      exit $SHELL_LIB_THROWN_ERROR
++    fi
++    shift
++  done
++}
++
++# Query the terminal to establish a default number of columns to use for
++# displaying messages to the user.  This is used only as a fallback in the
++# event the COLUMNS variable is not set.  ($COLUMNS can react to SIGWINCH while
++# the script is running, and this cannot, only being calculated once.)
++DEFCOLUMNS=$(stty size 2> /dev/null | awk '{print $2}') || true
++if ! expr "$DEFCOLUMNS" : "[[:digit:]]\+$" > /dev/null 2>&1; then
++  DEFCOLUMNS=80
++fi
++
++message () {
++  # pretty-print messages of arbitrary length
++  reject_nondigits "$COLUMNS"
++  echo "$*" | fmt -t -w ${COLUMNS:-$DEFCOLUMNS} >&2
++}
++
++observe () {
++  # syntax: observe message ...
++  #
++  # issue observational message suitable for logging someday when support for
++  # it exists in dpkg
++  if [ -n "$DEBUG_XORG_PACKAGE" ]; then
++    message "$THIS_PACKAGE $THIS_SCRIPT note: $*"
++  fi
++}
++
++warn () {
++  # syntax: warn message ...
++  #
++  # issue warning message suitable for logging someday when support for
++  # it exists in dpkg; also send to standard error
++  message "$THIS_PACKAGE $THIS_SCRIPT warning: $*"
++}
++
++die () {
++  # syntax: die message ...
++  #
++  # exit script with error message
++  message "$THIS_PACKAGE $THIS_SCRIPT error: $*"
++  exit $SHELL_LIB_THROWN_ERROR
++}
++
++internal_error () {
++  # exit script with error; essentially a "THIS SHOULD NEVER HAPPEN" message
++  message "internal error: $*"
++  if [ -n "$OFFICIAL_BUILD" ]; then
++    message "Please report a bug in the $THIS_SCRIPT script of the" \
++            "$THIS_PACKAGE package, version $SOURCE_VERSION to the Debian Bug" \
++            "Tracking System.  Include all messages above that mention the" \
++            "$THIS_PACKAGE package.  Visit " \
++            "<http://www.debian.org/Bugs/Reporting> on the World Wide Web for" \
++            "instructions, read the file" \
++            "/usr/share/doc/debian/bug-reporting.txt from the doc-debian" \
++            "package, or install the reportbug package and use the command of" \
++            "the same name to file a report."
++  fi
++  exit $SHELL_LIB_INTERNAL_ERROR
++}
++
++usage_error () {
++  message "usage error: $*"
++  message "Please report a bug in the $THIS_SCRIPT script of the" \
++          "$THIS_PACKAGE package, version $SOURCE_VERSION to the Debian Bug" \
++          "Tracking System.  Include all messages above that mention the" \
++          "$THIS_PACKAGE package.  Visit " \
++          "<http://www.debian.org/Bugs/Reporting> on the World Wide Web for" \
++          "instructions, read the file" \
++          "/usr/share/doc/debian/bug-reporting.txt from the doc-debian" \
++          "package, or install the reportbug package and use the command of" \
++          "the same name to file a report."
++  exit $SHELL_LIB_USAGE_ERROR
++}
++
++font_update () {
++  # run $UPDATECMDS in $FONTDIRS
++
++  local dir cmd shortcmd x_font_dir_prefix
++
++  x_font_dir_prefix="/usr/share/fonts/X11"
++
++  if [ -z "$UPDATECMDS" ]; then
++    usage_error "font_update() called but \$UPDATECMDS not set"
++  fi
++  if [ -z "$FONTDIRS" ]; then
++    usage_error "font_update() called but \$FONTDIRS not set"
++  fi
++
++  reject_unlikely_path_chars "$UPDATECMDS"
++  reject_unlikely_path_chars "$FONTDIRS"
++
++  for dir in $FONTDIRS; do
++    if [ -d "$x_font_dir_prefix/$dir" ]; then
++      for cmd in $UPDATECMDS; do
++        if which "$cmd" > /dev/null 2>&1; then
++          shortcmd=${cmd##*/}
++          observe "running $shortcmd in $dir font directory"
++	  cmd_opts=
++          if [ "$shortcmd" = "update-fonts-alias" ]; then
++            cmd_opts=--x11r7-layout
++          fi
++          if [ "$shortcmd" = "update-fonts-dir" ]; then
++            cmd_opts=--x11r7-layout
++          fi
++          if [ "$shortcmd" = "update-fonts-scale" ]; then
++            cmd_opts=--x11r7-layout
++          fi
++          $cmd $cmd_opts $dir || warn "$cmd $cmd_opts $dir" \
++                              "failed; font directory data may not" \
++                              "be up to date"
++        else
++          warn "$cmd not found; not updating corresponding $dir font" \
++               "directory data"
++        fi
++      done
++    else
++      warn "$dir is not a directory; not updating font directory data"
++    fi
++  done
++}
++
++remove_conffile_prepare () {
++  # syntax: remove_conffile_prepare filename official_md5sum ...
++  #
++  # Check a conffile "filename" against a list of canonical MD5 checksums.
++  # If the file's current MD5 checksum matches one of the "official_md5sum"
++  # operands provided, then prepare the conffile for removal from the system.
++  # We defer actual deletion until the package is configured so that we can
++  # roll this operation back if package installation fails.
++  #
++  # Call this function from a preinst script in the event $1 is "upgrade" or
++  # "install" and verify $2 to ensure the package is being upgraded from a
++  # version (or installed over a version removed-but-not-purged) prior to the
++  # one in which the conffile was obsoleted.
++
++  local conffile current_checksum
++
++  # validate arguments
++  if [ $# -lt 2 ]; then
++    usage_error "remove_conffile_prepare() called with wrong number of" \
++                "arguments; expected at least 2, got $#"
++    exit $SHELL_LIB_USAGE_ERROR
++  fi
++
++  conffile="$1"
++  shift
++
++  # does the conffile even exist?
++  if [ -e "$conffile" ]; then
++    # calculate its checksum
++    current_checksum=$(md5sum < "$conffile" | sed 's/[[:space:]].*//')
++    # compare it to each supplied checksum
++    while [ -n "$1" ]; do
++      if [ "$current_checksum" = "$1" ]; then
++        # we found a match; move the confffile and stop looking
++        observe "preparing obsolete conffile $conffile for removal"
++        mv "$conffile" "$conffile.$THIS_PACKAGE-tmp"
++        break
++      fi
++      shift
++    done
++  fi
++}
++
++remove_conffile_lookup () {
++  # syntax: remove_conffile_lookup package filename
++  #
++  # Lookup the md5sum of a conffile in dpkg's database, and prepare for removal
++  # if it matches the actual file's md5sum.
++  #
++  # Call this function when you would call remove_conffile_prepare but only
++  # want to check against dpkg's status database instead of known checksums.
++
++  local package conffile old_md5sum
++
++  # validate arguments
++  if [ $# -ne 2 ]; then
++    usage_error "remove_conffile_lookup() called with wrong number of" \
++                "arguments; expected 1, got $#"
++    exit $SHELL_LIB_USAGE_ERROR
++  fi
++
++  package="$1"
++  conffile="$2"
++
++  if ! [ -e "$conffile" ]; then
++    return
++  fi
++  old_md5sum="$(dpkg-query -W -f='${Conffiles}' "$package" | \
++    awk '{ if (match($0, "^ '"$conffile"' ")) print $2}')"
++  if [ -n "$old_md5sum" ]; then
++    remove_conffile_prepare "$conffile" "$old_md5sum"
++  fi
++}
++
++remove_conffile_commit () {
++  # syntax: remove_conffile_commit filename
++  #
++  # Complete the removal of a conffile "filename" that has become obsolete.
++  #
++  # Call this function from a postinst script after having used
++  # remove_conffile_prepare() in the preinst.
++
++  local conffile
++
++  # validate arguments
++  if [ $# -ne 1 ]; then
++    usage_error "remove_conffile_commit() called with wrong number of" \
++                "arguments; expected 1, got $#"
++    exit $SHELL_LIB_USAGE_ERROR
++  fi
++
++  conffile="$1"
++
++  # if the temporary file created by remove_conffile_prepare() exists, remove it
++  if [ -e "$conffile.$THIS_PACKAGE-tmp" ]; then
++    observe "committing removal of obsolete conffile $conffile"
++    rm "$conffile.$THIS_PACKAGE-tmp"
++  fi
++}
++
++remove_conffile_rollback () {
++  # syntax: remove_conffile_rollback filename
++  #
++  # Roll back the removal of a conffile "filename".
++  #
++  # Call this function from a postrm script in the event $1 is "abort-upgrade"
++  # or "abort-install" is  after having used remove_conffile_prepare() in the
++  # preinst.
++
++  local conffile
++
++  # validate arguments
++  if [ $# -ne 1 ]; then
++    usage_error "remove_conffile_rollback() called with wrong number of" \
++                "arguments; expected 1, got $#"
++    exit $SHELL_LIB_USAGE_ERROR
++  fi
++
++  conffile="$1"
++
++  # if the temporary file created by remove_conffile_prepare() exists, move it
++  # back
++  if [ -e "$conffile.$THIS_PACKAGE-tmp" ]; then
++    observe "rolling back removal of obsolete conffile $conffile"
++    mv "$conffile.$THIS_PACKAGE-tmp" "$conffile"
++  fi
++}
++
++replace_conffile_with_symlink_prepare () {
++  # syntax: replace_conffile_with_symlink_prepare oldfilename newfilename \
++  # official_md5sum ...
++  #
++  # Check a conffile "oldfilename" against a list of canonical MD5 checksums.
++  # If the file's current MD5 checksum matches one of the "official_md5sum"
++  # operands provided, then prepare the conffile for removal from the system.
++  # We defer actual deletion until the package is configured so that we can
++  # roll this operation back if package installation fails. Otherwise copy it
++  # to newfilename and let dpkg handle it through conffiles mechanism.
++  #
++  # Call this function from a preinst script in the event $1 is "upgrade" or
++  # "install" and verify $2 to ensure the package is being upgraded from a
++  # version (or installed over a version removed-but-not-purged) prior to the
++  # one in which the conffile was obsoleted.
++
++  local conffile current_checksum
++
++  # validate arguments
++  if [ $# -lt 3 ]; then
++    usage_error "replace_conffile_with_symlink_prepare() called with wrong" \
++                " number of arguments; expected at least 3, got $#"
++    exit $SHELL_LIB_USAGE_ERROR
++  fi
++
++  oldconffile="$1"
++  shift
++  newconffile="$1"
++  shift
++
++  remove_conffile_prepare "$_oldconffile" "$@"
++  # If $oldconffile still exists, then md5sums didn't match.
++  # Copy it to new one.
++  if [ -f "$oldconffile" ]; then
++    cp "$oldconffile" "$newconffile"
++  fi
++
++}
++
++replace_conffile_with_symlink_commit () {
++  # syntax: replace_conffile_with_symlink_commit oldfilename
++  #
++  # Complete the removal of a conffile "oldfilename" that has been
++  # replaced by a symlink.
++  #
++  # Call this function from a postinst script after having used
++  # replace_conffile_with_symlink_prepare() in the preinst.
++
++  local conffile
++
++  # validate arguments
++  if [ $# -ne 1 ]; then
++    usage_error "replace_conffile_with_symlink_commit() called with wrong" \
++                "number of arguments; expected 1, got $#"
++    exit $SHELL_LIB_USAGE_ERROR
++  fi
++
++  conffile="$1"
++
++  remove_conffile_commit "$conffile"
++}
++
++replace_conffile_with_symlink_rollback () {
++  # syntax: replace_conffile_with_symlink_rollback oldfilename newfilename
++  #
++  # Roll back the replacing of a conffile "oldfilename" with symlink to
++  # "newfilename".
++  #
++  # Call this function from a postrm script in the event $1 is "abort-upgrade"
++  # or "abort-install" and verify $2 to ensure the package failed to upgrade
++  # from a version (or install over a version removed-but-not-purged) prior
++  # to the one in which the conffile was obsoleted.
++  # You should have  used replace_conffile_with_symlink_prepare() in the
++  # preinst.
++
++  local conffile
++
++  # validate arguments
++  if [ $# -ne 2 ]; then
++    usage_error "replace_conffile_with_symlink_rollback() called with wrong" \
++                "number of arguments; expected 2, got $#"
++    exit $SHELL_LIB_USAGE_ERROR
++  fi
++
++  oldconffile="$1"
++  newconffile="$2"
++
++  remove_conffile_rollback "$_oldconffile"
++  if [ -f "$newconffile" ]; then
++    rm "$newconffile"
++  fi
++}
++
++run () {
++  # syntax: run command [ argument ... ]
++  #
++  # Run specified command with optional arguments and report its exit status.
++  # Useful for commands whose exit status may be nonzero, but still acceptable,
++  # or commands whose failure is not fatal to us.
++  #
++  # NOTE: Do *not* use this function with db_get or db_metaget commands; in
++  # those cases the return value of the debconf command *must* be checked
++  # before the string returned by debconf is used for anything.
++
++  local retval
++
++  # validate arguments
++  if [ $# -lt 1 ]; then
++    usage_error "run() called with wrong number of arguments; expected at" \
++                "least 1, got $#"
++    exit $SHELL_LIB_USAGE_ERROR
++  fi
++
++  "$@" || retval=$?
++
++  if [ ${retval:-0} -ne 0 ]; then
++    observe "command \"$*\" exited with status $retval"
++  fi
++}
++
++make_symlink_sane () {
++  # syntax: make_symlink_sane symlink target
++  #
++  # Ensure that the symbolic link symlink exists, and points to target.
++  #
++  # If symlink does not exist, create it and point it at target.
++  #
++  # If symlink exists but is not a symbolic link, back it up.
++  #
++  # If symlink exists, is a symbolic link, but points to the wrong location, fix
++  # it.
++  #
++  # If symlink exists, is a symbolic link, and already points to target, do
++  # nothing.
++  #
++  # This function wouldn't be needed if ln had an -I, --idempotent option.
++
++  # Validate arguments.
++  if [ $# -ne 2 ]; then
++    usage_error "make_symlink_sane() called with wrong number of arguments;" \
++      "expected 2, got $#"
++    exit $SHELL_LIB_USAGE_ERROR
++  fi
++
++  # We could just use the positional parameters as-is, but that makes things
++  # harder to follow.
++  local symlink target
++
++  symlink="$1"
++  target="$2"
++
++  if [ -L "$symlink" ] && [ "$(readlink "$symlink")" = "$target" ]; then
++      observe "link from $symlink to $target already exists"
++  else
++    observe "creating symbolic link from $symlink to $target"
++    mkdir -p "${target%/*}" "${symlink%/*}"
++    ln -s -b -S ".dpkg-old" "$target" "$symlink"
++  fi
++}
++
++migrate_dir_to_symlink () {
++  # syntax: migrate_dir_to_symlink old_location new_location
++  #
++  # Per Debian Policy section 6.5.4, "A directory will never be replaced by a
++  # symbolic link to a directory or vice versa; instead, the existing state
++  # (symlink or not) will be left alone and dpkg will follow the symlink if
++  # there is one."
++  #
++  # We have to do it ourselves.
++  #
++  # This function moves the contents of old_location, a directory, into
++  # new_location, a directory, then makes old_location a symbolic link to
++  # new_location.
++  #
++  # old_location need not exist, but if it does, it must be a directory (or a
++  # symlink to a directory).  If it is not, it is backed up.  If new_location
++  # exists already and is not a directory, it is backed up.
++  #
++  # This function should be called from a package's preinst so that other
++  # packages unpacked after this one --- but before this package's postinst runs
++  # --- are unpacked into new_location even if their payloads contain
++  # old_location filespecs.
++
++  # Validate arguments.
++  if [ $# -ne 2 ]; then
++    usage_error "migrate_dir_to_symlink() called with wrong number of"
++                "arguments; expected 2, got $#"
++    exit $SHELL_LIB_USAGE_ERROR
++  fi
++
++  # We could just use the positional parameters as-is, but that makes things
++  # harder to follow.
++  local new old
++
++  old="$1"
++  new="$2"
++
++  # Is old location a symlink?
++  if [ -L "$old" ]; then
++    # Does it already point to new location?
++    if [ "$(readlink "$old")" = "$new" ]; then
++      # Nothing to do; migration has already been done.
++      observe "migration of $old to $new already done"
++      return 0
++    else
++      # Back it up.
++      warn "backing up symbolic link $old as $old.dpkg-old"
++      mv -b "$old" "$old.dpkg-old"
++    fi
++  fi
++
++  # Does old location exist, but is not a directory?
++  if [ -e "$old" ] && ! [ -d "$old" ]; then
++      # Back it up.
++      warn "backing up non-directory $old as $old.dpkg-old"
++      mv -b "$old" "$old.dpkg-old"
++  fi
++
++  observe "migrating $old to $new"
++
++  # Is new location a symlink?
++  if [ -L "$new" ]; then
++    # Does it point the wrong way, i.e., back to where we're migrating from?
++    if [ "$(readlink "$new")" = "$old" ]; then
++      # Get rid of it.
++      observe "removing symbolic link $new which points to $old"
++      rm "$new"
++    else
++      # Back it up.
++      warn "backing up symbolic link $new as $new.dpkg-old"
++      mv -b "$new" "$new.dpkg-old"
++    fi
++  fi
++
++  # Does new location exist, but is not a directory?
++  if [ -e "$new" ] && ! [ -d "$new" ]; then
++    warn "backing up non-directory $new as $new.dpkg-old"
++    mv -b "$new" "$new.dpkg-old"
++  fi
++
++  # Create new directory if it does not yet exist.
++  if ! [ -e "$new" ]; then
++    observe "creating $new"
++    mkdir -p "$new"
++  fi
++
++  # Copy files in old location to new location.  Back up any filenames that
++  # already exist in the new location with the extension ".dpkg-old".
++  observe "copying files from $old to $new"
++  if ! (cd "$old" && cp -a -b -S ".dpkg-old" . "$new"); then
++    die "error(s) encountered while copying files from $old to $new"
++  fi
++
++  # Remove files at old location.
++  observe "removing $old"
++  rm -r "$old"
++
++  # Create symlink from old location to new location.
++  make_symlink_sane "$old" "$new"
++}
++
++# vim:set ai et sw=2 ts=2 tw=80:
++
++# GOBSTOPPER: The X Strike Force shell library ends here.
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/xsfbs/repack.sh
++++ xserver-xorg-input-evdev-2.3.2/debian/xsfbs/repack.sh
+@@ -0,0 +1,32 @@
++#!/bin/sh
++
++set -e
++
++if ! [ -d debian/prune ]; then
++	exit 0
++fi
++
++if [ "x$1" != x--upstream-version ]; then
++	exit 1
++fi
++
++version="$2"
++filename="$3"
++
++if [ -z "$version" ] || ! [ -f "$filename" ]; then
++	exit 1
++fi
++
++dir="$(pwd)"
++tempdir="$(mktemp -d)"
++
++cd "$tempdir"
++tar xf "$dir/$filename"
++cat "$dir"/debian/prune/* | while read file; do rm -f */$file; done
++
++tar czf "$dir/$filename" *
++cd "$dir"
++rm -rf "$tempdir"
++echo "Done pruning upstream tarball"
++
++exit 0
+--- xserver-xorg-input-evdev-2.3.2.orig/debian/xsfbs/xsfbs.mk
++++ xserver-xorg-input-evdev-2.3.2/debian/xsfbs/xsfbs.mk
+@@ -0,0 +1,276 @@
++#!/usr/bin/make -f
++
++# Debian X Strike Force Build System (XSFBS): Make portion
++
++# Copyright 1996 Stephen Early
++# Copyright 1997 Mark Eichin
++# Copyright 1998-2005, 2007 Branden Robinson
++# Copyright 2005 David Nusinow
++#
++# Licensed under the GNU General Public License, version 2.  See the file
++# /usr/share/common-licenses/GPL or <http://www.gnu.org/copyleft/gpl.txt>.
++
++# Originally by Stephen Early <sde1000@debian.org>
++# Modified by Mark W. Eichin <eichin@kitten.gen.ma.us>
++# Modified by Adam Heath <doogie@debian.org>
++# Modified by Branden Robinson <branden@debian.org>
++# Modified by Fabio Massimo Di Nitto <fabbione@fabbione.net>
++# Modified by David Nusinow <dnusinow@debian.org>
++# Acknowledgements to Manoj Srivastava.
++
++# Pass $(DH_OPTIONS) into the environment for debhelper's benefit.
++export DH_OPTIONS
++
++# force quilt to not use ~/.quiltrc and to use debian/patches
++QUILT = QUILT_PATCHES=debian/patches quilt --quiltrc /dev/null
++
++# Set up parameters for the upstream build environment.
++
++# Determine (source) package name from Debian changelog.
++SOURCE_NAME:=$(shell dpkg-parsechangelog -ldebian/changelog \
++                        | grep '^Source:' | awk '{print $$2}')
++
++# Determine package version from Debian changelog.
++SOURCE_VERSION:=$(shell dpkg-parsechangelog -ldebian/changelog \
++                        | grep '^Version:' | awk '{print $$2}')
++
++# Determine upstream version number.
++UPSTREAM_VERSION:=$(shell echo $(SOURCE_VERSION) | sed 's/-.*//')
++
++# Determine the source version without the epoch for make-orig-tar-gz
++NO_EPOCH_VER:=$(shell echo $(UPSTREAM_VERSION) | sed 's/^.://')
++
++# Figure out who's building this package.
++BUILDER:=$(shell echo $${DEBEMAIL:-$${EMAIL:-$$(echo $$LOGNAME@$$(cat /etc/mailname 2>/dev/null))}})
++
++# Find out if this is an official build; an official build has nothing but
++# digits, dots, and/or the codename of a release in the Debian part of the
++# version number.  Anything else indicates an unofficial build.
++OFFICIAL_BUILD:=$(shell VERSION=$(SOURCE_VERSION); if ! expr "$$(echo $${VERSION\#\#*-} | sed 's/\(woody\|sarge\|etch\|lenny\)//g')" : ".*[^0-9.].*" >/dev/null 2>&1; then echo yes; fi)
++
++# Set up parameters for the Debian build environment.
++
++# Determine our architecture.
++BUILD_ARCH:=$(shell dpkg-architecture -qDEB_BUILD_ARCH)
++# Work around some old-time dpkg braindamage.
++BUILD_ARCH:=$(subst i486,i386,$(BUILD_ARCH))
++# The DEB_HOST_ARCH variable may be set per the Debian cross-compilation policy.
++ifdef DEB_HOST_ARCH
++ ARCH:=$(DEB_HOST_ARCH)
++else
++ # dpkg-cross sets the ARCH environment variable; if set, use it.
++ ifdef ARCH
++  ARCH:=$(ARCH)
++ else
++  ARCH:=$(BUILD_ARCH)
++ endif
++endif
++
++# $(STAMP_DIR) houses stamp files for complex targets.
++STAMP_DIR:=stampdir
++
++# $(DEBTREEDIR) is where all install rules are told (via $(DESTDIR)) to place
++# their files.
++DEBTREEDIR:=$(CURDIR)/debian/tmp
++
++# All "important" targets have four lines:
++#   1) A target name that is invoked by a package-building tool or the user.
++#      This consists of a dependency on a "$(STAMP_DIR)/"-prefixed counterpart.
++#   2) A line delcaring 1) as a phony target (".PHONY:").
++#   3) A "$(STAMP_DIR)/"-prefixed target which does the actual work, and may
++#   depend on other targets.
++#   4) A line declaring 3) as a member of the $(stampdir_targets) variable; the
++#   "$(STAMP_DIR)/" prefix is omitted.
++#
++# This indirection is needed so that the "stamp" files that signify when a rule
++# is done can be located in a separate "stampdir".  Recall that make has no way
++# to know when a goal has been met for a phony target (like "build" or
++# "install").
++#
++# At the end of each "$(STAMP_DIR)/" target, be sure to run the command ">$@"
++# so that the target will not be run again.  Removing the file will make Make
++# run the target over.
++
++# All phony targets should be declared as dependencies of .PHONY, even if they
++# do not have "($STAMP_DIR)/"-prefixed counterparts.
++
++# Define a harmless default rule to keep things from going nuts by accident.
++.PHONY: default
++default:
++
++# Set up the $(STAMP_DIR) directory.
++.PHONY: stampdir
++stampdir_targets+=stampdir
++stampdir: $(STAMP_DIR)/stampdir
++$(STAMP_DIR)/stampdir:
++	mkdir $(STAMP_DIR)
++	>$@
++
++# Set up the package build directory as quilt expects to find it.
++.PHONY: prepare
++stampdir_targets+=prepare
++prepare: $(STAMP_DIR)/prepare
++$(STAMP_DIR)/prepare: $(STAMP_DIR)/log $(STAMP_DIR)/genscripts
++	>$@
++
++.PHONY: log
++stampdir_targets+=log
++log: $(STAMP_DIR)/log
++$(STAMP_DIR)/log: $(STAMP_DIR)/stampdir
++	mkdir -p $(STAMP_DIR)/log
++
++# Apply all patches to the upstream source.
++.PHONY: patch
++stampdir_targets+=patch
++patch: $(STAMP_DIR)/patch
++$(STAMP_DIR)/patch: $(STAMP_DIR)/prepare
++	if ! [ `which quilt` ]; then \
++		echo "Couldn't find quilt. Please install it or add it to the build-depends for this package."; \
++		exit 1; \
++	fi; \
++	if $(QUILT) next >/dev/null 2>&1; then \
++	  echo -n "Applying patches..."; \
++	  if $(QUILT) push -a -v >$(STAMP_DIR)/log/patch 2>&1; then \
++	    cat $(STAMP_DIR)/log/patch; \
++	    echo "successful."; \
++	  else \
++	    cat $(STAMP_DIR)/log/patch; \
++	    echo "failed! (check $(STAMP_DIR)/log/patch for details)"; \
++	    exit 1; \
++	  fi; \
++	else \
++	  echo "No patches to apply"; \
++	fi; \
++	>$@
++
++# Revert all patches to the upstream source.
++.PHONY: unpatch
++unpatch: $(STAMP_DIR)/log
++	rm -f $(STAMP_DIR)/patch
++	@echo -n "Unapplying patches..."; \
++	if $(QUILT) applied >/dev/null 2>/dev/null; then \
++	  if $(QUILT) pop -a -v >$(STAMP_DIR)/log/unpatch 2>&1; then \
++	    cat $(STAMP_DIR)/log/unpatch; \
++	    echo "successful."; \
++	  else \
++	    cat $(STAMP_DIR)/log/unpatch; \
++	    echo "failed! (check $(STAMP_DIR)/log/unpatch for details)"; \
++	    exit 1; \
++	  fi; \
++	else \
++	  echo "nothing to do."; \
++	fi
++
++# Clean the generated maintainer scripts.
++.PHONY: cleanscripts
++cleanscripts:
++	rm -f $(STAMP_DIR)/genscripts
++	rm -f debian/*.config \
++	      debian/*.postinst \
++	      debian/*.postrm \
++	      debian/*.preinst \
++	      debian/*.prerm
++
++# Clean the package build tree.
++.PHONY: xsfclean
++xsfclean: cleanscripts unpatch
++	dh_testdir
++	rm -rf .pc
++	rm -rf $(STAMP_DIR)
++	dh_clean
++
++# Remove files from the upstream source tree that we don't need, or which have
++# licensing problems.  It must be run before creating the .orig.tar.gz.
++#
++# Note: This rule is for Debian package maintainers' convenience, and is not
++# needed for conventional build scenarios.
++.PHONY: prune-upstream-tree
++prune-upstream-tree:
++	# Ensure we're in the correct directory.
++	dh_testdir
++	grep -rvh '^#' debian/prune/ | xargs --no-run-if-empty rm -rf
++
++# Verify that there are no offsets or fuzz in the patches we apply.
++#
++# Note: This rule is for Debian package maintainers' convenience, and is not
++# needed for conventional build scenarios.
++.PHONY: patch-audit
++patch-audit: prepare unpatch
++	@echo -n "Auditing patches..."; \
++	>$(STAMP_DIR)/log/patch; \
++	FUZZY=; \
++	while [ -n "$$($(QUILT) next)" ]; do \
++	  RESULT=$$($(QUILT) push -v | tee -a $(STAMP_DIR)/log/patch | grep ^Hunk | sed 's/^Hunk.*\(succeeded\|FAILED\).*/\1/');\
++	  case "$$RESULT" in \
++	    succeeded) \
++	      echo "fuzzy patch: $$($(QUILT) top)" \
++	        | tee -a $(STAMP_DIR)/log/$$($(QUILT) top); \
++	      FUZZY=yes; \
++	      ;; \
++	    FAILED) \
++	      echo "broken patch: $$($(QUILT) next)" \
++	        | tee -a $(STAMP_DIR)/log/$$($(QUILT) next); \
++	      exit 1; \
++	      ;; \
++	  esac; \
++	done; \
++	if [ -n "$$FUZZY" ]; then \
++	  echo "there were fuzzy patches; please fix."; \
++	  exit 1; \
++	else \
++	  echo "done."; \
++	fi
++
++# Generate the maintainer scripts.
++.PHONY: genscripts
++stampdir_targets+=genscripts
++genscripts: $(STAMP_DIR)/genscripts
++$(STAMP_DIR)/genscripts: $(STAMP_DIR)/stampdir
++	for FILE in debian/*.config.in \
++	            debian/*.postinst.in \
++	            debian/*.postrm.in \
++	            debian/*.preinst.in \
++	            debian/*.prerm.in; do \
++	  if [ -e "$$FILE" ]; then \
++	    MAINTSCRIPT=$$(echo $$FILE | sed 's/.in$$//'); \
++	    sed -n '1,/^#INCLUDE_SHELL_LIB#$$/p' <$$FILE \
++	      | sed -e '/^#INCLUDE_SHELL_LIB#$$/d' >$$MAINTSCRIPT.tmp; \
++	    cat debian/xsfbs/xsfbs.sh >>$$MAINTSCRIPT.tmp; \
++	    sed -n '/^#INCLUDE_SHELL_LIB#$$/,$$p' <$$FILE \
++	      | sed -e '/^#INCLUDE_SHELL_LIB#$$/d' >>$$MAINTSCRIPT.tmp; \
++	    sed -e 's/@SOURCE_VERSION@/$(SOURCE_VERSION)/' \
++	        -e 's/@OFFICIAL_BUILD@/$(OFFICIAL_BUILD)/' \
++	      <$$MAINTSCRIPT.tmp >$$MAINTSCRIPT; \
++	    rm $$MAINTSCRIPT.tmp; \
++	  fi; \
++	done
++	# Validate syntax of generated shell scripts.
++	#sh debian/scripts/validate-posix-sh debian/*.config \
++	#                                    debian/*.postinst \
++	#                                    debian/*.postrm \
++	#                                    debian/*.preinst \
++	#                                    debian/*.prerm
++	>$@
++
++SERVERMINVERS = $(shell cat /usr/share/xserver-xorg/serverminver 2>/dev/null)
++VIDEOABI = $(shell cat /usr/share/xserver-xorg/videoabiver 2>/dev/null)
++INPUTABI = $(shell cat /usr/share/xserver-xorg/inputabiver 2>/dev/null)
++SERVER_DEPENDS = xserver-xorg-core (>= $(SERVERMINVERS))
++VIDDRIVER_PROVIDES = xserver-xorg-video-$(VIDEOABI)
++INPDRIVER_PROVIDES = xserver-xorg-input-$(INPUTABI)
++ifeq ($(PACKAGE),)
++PACKAGE=$(shell awk '/^Package:/ { print $$2; exit }' < debian/control)
++endif
++
++.PHONY: serverabi
++serverabi: install
++ifeq ($(SERVERMINVERS),)
++	@echo error: xserver-xorg-dev needs to be installed
++	@exit 1
++else
++	echo "xserver:Depends=$(SERVER_DEPENDS)" >> debian/$(PACKAGE).substvars
++	echo "xviddriver:Provides=$(VIDDRIVER_PROVIDES)" >> debian/$(PACKAGE).substvars
++	echo "xinpdriver:Provides=$(INPDRIVER_PROVIDES)" >> debian/$(PACKAGE).substvars
++endif
++
++# vim:set noet ai sts=8 sw=8 tw=0:

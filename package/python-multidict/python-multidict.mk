@@ -14,6 +14,8 @@ PYTHON_MULTIDICT_LICENSE_FILES = LICENSE
 define PYTHON_MULTIDICT_INSTALL_TARGET_FIXUP
 	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/multidict/*.c
 	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/multidict/*.h
+	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/multidict/*/*.c
+	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/multidict/*/*.h
 endef
 
 PYTHON_MULTIDICT_POST_INSTALL_TARGET_HOOKS += PYTHON_MULTIDICT_INSTALL_TARGET_FIXUP

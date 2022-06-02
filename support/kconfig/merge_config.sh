@@ -112,6 +112,9 @@ MERGE_LIST=$*
 SED_CONFIG_EXP1="s/^\(${CONFIG_PREFIX}[a-zA-Z0-9_]*\)=.*/\1/p"
 SED_CONFIG_EXP2="s/^# \(${CONFIG_PREFIX}[a-zA-Z0-9_]*\) is not set$/\1/p"
 
+SED_APPEND_PAT="^\(${CONFIG_PREFIX}[a-zA-Z0-9_]*\)+=.*"
+SED_CONFIG_EXP3="s/$SED_APPEND_PAT/\1/p"
+
 TMP_FILE=$(mktemp -t .tmp.config.XXXXXXXXXX)
 
 echo "Using $INITFILE as base"
@@ -132,15 +135,34 @@ for MERGE_FILE in $MERGE_LIST ; do
 		NEW_VAL=$(grep -w $CFG $MERGE_FILE)
 		if [ "x$PREV_VAL" != "x$NEW_VAL" ] ; then
 			echo Value of $CFG is redefined by fragment $MERGE_FILE:
-			echo Previous  value: $PREV_VAL
-			echo New value:       $NEW_VAL
+			echo Previous value: $PREV_VAL
+			echo New value:      $NEW_VAL
 			echo
 		elif [ "$WARNREDUN" = "true" ]; then
 			echo Value of $CFG is redundant by fragment $MERGE_FILE:
 		fi
 		sed -i "/$CFG[ =]/d" $TMP_FILE
 	done
-	cat $MERGE_FILE >> $TMP_FILE
+	sed "/$SED_APPEND_PAT/d" $MERGE_FILE >> $TMP_FILE
+
+	# Support appending to existing configurations
+	CFG_LIST=$(sed -n -e "$SED_CONFIG_EXP3" $MERGE_FILE)
+
+	for CFG in $CFG_LIST ; do
+		if ! grep -q -w $CFG $TMP_FILE; then
+			grep -w $CFG $MERGE_FILE | sed "s/+//" >> $TMP_FILE
+			continue
+		fi
+		PREV_VAL=$(grep -w $CFG $TMP_FILE | cut -d '=' -f 2- | tr -d '"')
+		NEW_VAL=$(grep -w $CFG $MERGE_FILE | cut -d '=' -f 2- | tr -d '"')
+		if [ "x$PREV_VAL" != "x$NEW_VAL" ] ; then
+			echo Value of $CFG is extended by fragment $MERGE_FILE:
+			echo Previous value: \"$PREV_VAL\"
+			echo New value:      \"$PREV_VAL $NEW_VAL\"
+			echo
+		fi
+		echo "$CFG=\"$PREV_VAL $NEW_VAL\"" >> $TMP_FILE
+	done
 done
 
 if [ "$RUNMAKE" = "false" ]; then

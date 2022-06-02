@@ -1,0 +1,24 @@
+From 0f86c375d2ef39f03a83e8fee4782689e489d75a Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Mon, 9 May 2022 16:57:46 -0700
+Subject: [PATCH] squashfs-tools: Makefile: Don't run install-manpages
+
+The newly added install-manpages.sh script runs the target
+binaries on the host system, which breaks builds for cross
+compiling, or when glibc versions do not match.
+---
+ squashfs-tools/Makefile | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/squashfs-tools/Makefile b/squashfs-tools/Makefile
+index 8b80b8a..3d14773 100755
+--- a/squashfs-tools/Makefile
++++ b/squashfs-tools/Makefile
+@@ -422,4 +422,3 @@ install: mksquashfs unsquashfs
+ 	cp unsquashfs $(INSTALL_DIR)
+ 	ln -fs unsquashfs $(INSTALL_DIR)/sqfscat
+ 	ln -fs mksquashfs $(INSTALL_DIR)/sqfstar
+-	../generate-manpages/install-manpages.sh $(shell pwd)/.. "$(INSTALL_MANPAGES_DIR)"
+-- 
+2.17.1
+

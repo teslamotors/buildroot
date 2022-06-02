@@ -19,12 +19,6 @@ TESLA_GREP_CONF_ENV += LIBS=-liconv
 TESLA_GREP_DEPENDENCIES += libiconv
 endif
 
-# link with pcre if enabled
-ifeq ($(BR2_PACKAGE_PCRE),y)
-TESLA_GREP_CONF_OPTS += --enable-perl-regexp
-TESLA_GREP_DEPENDENCIES += pcre
-endif
-
 # Full grep preferred over busybox grep
 ifeq ($(BR2_PACKAGE_BUSYBOX),y)
 TESLA_GREP_DEPENDENCIES += busybox

@@ -601,14 +601,6 @@ config BR2_PACKAGE_CURL
 	  The BR2_PACKAGE_CURL config symbol was renamed to
 	  BR2_PACKAGE_LIBCURL_CURL.
 
-config BR2_PACKAGE_GSTREAMER
-	bool "gstreamer-0.10 removed"
-	select BR2_LEGACY
-	help
-	  Gstreamer-0.10 package was removed. It has been deprecated
-	  upstream since 2012, and is missing a lot of features and
-	  fixes compared to gstreamer-1.x.
-
 config BR2_PACKAGE_NVIDIA_TEGRA23_BINARIES_GSTREAMER_PLUGINS
 	bool "nvidia-tegra23 binaries gstreamer 0.10.x support removed"
 	select BR2_LEGACY
@@ -1122,12 +1114,6 @@ config BR2_PACKAGE_GST_PLUGINS_BAD_PLUGIN_APEXSINK
 	  The gst-plugins-bad apexsink option was removed.
 
 comment "Legacy options removed in 2019.02"
-
-config BR2_PACKAGE_QT
-	bool "qt package removed"
-	select BR2_LEGACY
-	help
-	  The qt package was removed.
 
 config BR2_PACKAGE_QTUIO
 	bool "qtuio package removed"
@@ -2240,23 +2226,6 @@ config BR2_PACKAGE_LIBPLAYER_MPLAYER
 	select BR2_LEGACY
 	help
 	  The mplayer package was removed.
-
-config BR2_PACKAGE_IQVLINUX
-	bool "iqvlinux package removed"
-	select BR2_LEGACY
-	help
-	  This package contained a kernel module from Intel, which
-	  could only be used together with Intel userspace tools
-	  provided under NDA, which also come with the same kernel
-	  module. The copy of the kernel module available on
-	  SourceForge is provided only to comply with the GPLv2
-	  requirement. Intel engineers were even surprised it even
-	  built and were not willing to make any effort to fix their
-	  tarball naming to contain a version number. Therefore, it
-	  does not make sense for Buildroot to provide such a package.
-
-	  See https://sourceforge.net/p/e1000/bugs/589/ for the
-	  discussion.
 
 config BR2_BINFMT_FLAT_SEP_DATA
 	bool "binfmt FLAT with separate code and data removed"

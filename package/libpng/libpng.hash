@@ -4,3 +4,6 @@ sha1 3ab93fabbf4c27e1c4724371df408d9a1bd3f656  libpng-1.6.37.tar.xz
 # Locally computed:
 sha256 505e70834d35383537b6491e7ae8641f1a4bed1876dbfe361201fc80868d88ca  libpng-1.6.37.tar.xz
 sha256 bf5e22b9dce8464064ae17a48ea1133c3369ac9e1d80ef9e320e5219aa14ea9b  LICENSE
+
+md5     868562bd1c58b76ed8703f135a2e439a		libpng-1.2.56.tar.xz
+sha1    29027aeca860048936ebbaec6cdae1148fe05698	libpng-1.2.56.tar.xz

@@ -4,8 +4,10 @@
 #
 ################################################################################
 
-IQVLINUX_VERSION = 1.2.0.3
-IQVLINUX_SITE = http://sourceforge.net/projects/e1000/files/iqvlinux/$(IQVLINUX_VERSION)
+IQVLINUX_VERSION = 1.2.0.12
+IQVLINUX_SITE = https://downloads.sourceforge.net/project/e1000/iqvlinux/$(IQVLINUX_VERSION)/iqvlinux.tar.gz?
+# Force version-specific filenames even though original source uses plain iqvlinux.tar.gz
+IQVLINUX_DL_OPTS = -O iqvlinux-$(IQVLINUX_VERSION).tar.gz
 
 IQVLINUX_LICENSE = GPLv2, BSD-3c
 IQVLINUX_LICENSE_FILES = \

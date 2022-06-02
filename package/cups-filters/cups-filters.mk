@@ -24,6 +24,24 @@ CUPS_FILTERS_CONF_OPTS = \
 	--with-test-font-path=/dev/null \
 	--without-rcdir
 
+# 0001-install-support-old-ln-versions-without-the-r-option.patch adds
+# a ln-srf script for older distributions, but GNU patch < 2.7 does
+# not handle the git patch permission extensions - So ensure it is
+# executable
+define CUPS_FILTERS_MAKE_LN_SRF_EXECUTABLE
+	chmod +x $(@D)/ln-srf
+endef
+
+CUPS_FILTERS_POST_PATCH_HOOKS += CUPS_FILTERS_MAKE_LN_SRF_EXECUTABLE
+
+# After 0002-filter-texttotext.c-link-with-libiconv-if-needed.patch autoreconf
+# needs config.rpath and ABOUT-NLS, which are not in v1.25.4 yet. Fake them.
+define CUPS_FILTERS_ADD_MISSING_FILE
+	touch $(@D)/config.rpath $(@D)/ABOUT-NLS
+endef
+
+CUPS_FILTERS_PRE_CONFIGURE_HOOKS = CUPS_FILTERS_ADD_MISSING_FILE
+
 ifeq ($(BR2_PACKAGE_LIBPNG),y)
 CUPS_FILTERS_CONF_OPTS += --with-png
 CUPS_FILTERS_DEPENDENCIES += libpng

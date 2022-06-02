@@ -7,8 +7,8 @@
 # When making changes to this file, please check if
 # util-linux-libs/util-linux-libs.mk needs to be updated accordingly as well.
 
-UTIL_LINUX_VERSION_MAJOR = 2.36
-UTIL_LINUX_VERSION = $(UTIL_LINUX_VERSION_MAJOR).1
+UTIL_LINUX_VERSION_MAJOR = 2.37
+UTIL_LINUX_VERSION = $(UTIL_LINUX_VERSION_MAJOR).3
 UTIL_LINUX_SOURCE = util-linux-$(UTIL_LINUX_VERSION).tar.xz
 UTIL_LINUX_SITE = $(BR2_KERNEL_MIRROR)/linux/utils/util-linux/v$(UTIL_LINUX_VERSION_MAJOR)
 
@@ -34,6 +34,13 @@ UTIL_LINUX_CONF_OPTS += \
 	--disable-makeinstall-chown
 
 UTIL_LINUX_LINK_LIBS = $(TARGET_NLS_LIBS)
+
+# workaround missing disk-utils/raw.8 file in util-linux-2.37.3
+# release download package
+define UTIL_LINUX_FIX_DISK_UTILS_COMPILE
+	touch $(@D)/disk-utils/raw.8
+endef
+UTIL_LINUX_POST_PATCH_HOOKS += UTIL_LINUX_FIX_DISK_UTILS_COMPILE
 
 HOST_UTIL_LINUX_DEPENDENCIES = host-pkgconf
 
@@ -194,6 +201,11 @@ HOST_UTIL_LINUX_CONF_OPTS += \
 	--without-ncursesw \
 	--without-tinfo
 
+# Disable raw command since starting from version 2.37 needs a
+# work-around to build but in the end we don't need at all.
+HOST_UTIL_LINUX_CONF_OPTS += \
+	--disable-raw
+
 ifeq ($(BR2_PACKAGE_HOST_UTIL_LINUX),y)
 HOST_UTIL_LINUX_CONF_OPTS += --disable-makeinstall-chown
 # disable commands that have ncurses dependency, as well as
@@ -233,9 +245,9 @@ HOST_UTIL_LINUX_CONF_OPTS += --disable-all-programs
 endif
 
 # Install libmount Python bindings
-ifeq ($(BR2_PACKAGE_PYTHON)$(BR2_PACKAGE_PYTHON3),y)
+ifeq ($(BR2_PACKAGE_PYTHON3),y)
 UTIL_LINUX_CONF_OPTS += --with-python
-UTIL_LINUX_DEPENDENCIES += $(if $(BR2_PACKAGE_PYTHON),python,python3)
+UTIL_LINUX_DEPENDENCIES += python3
 ifeq ($(BR2_PACKAGE_UTIL_LINUX_LIBMOUNT),y)
 UTIL_LINUX_CONF_OPTS += --enable-pylibmount
 else

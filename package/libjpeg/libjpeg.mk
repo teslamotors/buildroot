@@ -32,5 +32,8 @@ endef
 
 LIBJPEG_POST_INSTALL_STAGING_HOOKS += LIBJPEG_INSTALL_STAGING_PC
 
+# make libjpeg unavailable for target builds only if selected in config
+ifeq ($(BR2_PACKAGE_LIBJPEG),y)
 $(eval $(autotools-package))
+endif
 $(eval $(host-autotools-package))

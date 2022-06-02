@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-GSTREAMER1_VERSION = 1.18.4
+GSTREAMER1_VERSION = 1.18.5
 GSTREAMER1_SOURCE = gstreamer-$(GSTREAMER1_VERSION).tar.xz
 GSTREAMER1_SITE = https://gstreamer.freedesktop.org/src/gstreamer
 GSTREAMER1_INSTALL_STAGING = YES
@@ -46,5 +46,11 @@ GSTREAMER1_CONF_OPTS += -Dintrospection=disabled
 endif
 
 GSTREAMER1_LDFLAGS = $(TARGET_LDFLAGS) $(TARGET_NLS_LIBS)
+
+define GSTREAMER1_INSTALL_TARGET_FIXUP
+    rm -rf $(TARGET_DIR)/usr/include/gstreamer-1.0
+endef
+
+GSTREAMER1_POST_INSTALL_TARGET_HOOKS += GSTREAMER1_INSTALL_TARGET_FIXUP
 
 $(eval $(meson-package))

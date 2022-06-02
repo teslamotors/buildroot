@@ -1,5 +1,5 @@
 config BR2_PACKAGE_CLANG
-	bool "clang"
+	bool "clang on target"
 	depends on BR2_PACKAGE_LLVM_ARCH_SUPPORTS
 	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_8
 	depends on BR2_TOOLCHAIN_HAS_THREADS

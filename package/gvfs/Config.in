@@ -17,6 +17,64 @@ config BR2_PACKAGE_GVFS
 
 	  https://wiki.gnome.org/action/show/Projects/gvfs
 
+if BR2_PACKAGE_GVFS
+
+config BR2_PACKAGE_GVFS_ADMIN
+	bool "admin"
+	default y if BR2_PACKAGE_LIBCAP && BR2_PACKAGE_POLKIT
+	help
+	  Backend for admin access for local filesystem
+
+config BR2_PACKAGE_GVFS_AFP
+	bool "afp"
+	default y if BR2_PACKAGE_LIBGCRYPT
+	help
+	  Backend for AFP protocol
+
+config BR2_PACKAGE_GVFS_ARCHIVE
+	bool "archive"
+	default y if BR2_PACKAGE_LIBARCHIVE
+	help
+	  Backend for archive files
+
+config BR2_PACKAGE_GVFS_CDDA
+	bool "cdda"
+	default y if BR2_PACKAGE_LIBCDIO_PARANOIA && BR2_PACKAGE_LIBGUDEV
+	help
+	  Backend for audio disks
+
+config BR2_PACKAGE_GVFS_DNSSD
+	bool "dnssd"
+	default y if BR2_PACKAGE_AVAHI
+	help
+	  Backend for DNS-SD devices on the network
+
+config BR2_PACKAGE_GVFS_GPHOTO2
+	bool "gphoto2"
+	default y if BR2_PACKAGE_LIBGPHOTO2 && BR2_PACKAGE_LIBGUDEV
+	help
+	  Backend for PTP protocol
+
+config BR2_PACKAGE_GVFS_HTTP
+	bool "http"
+	default y if BR2_PACKAGE_LIBSOUP && BR2_PACKAGE_LIBXML2
+	help
+	  Backend for HTTP protocol
+
+config BR2_PACKAGE_GVFS_NFS
+	bool "nfs"
+	default y if BR2_PACKAGE_LIBNFS
+	help
+	  Backend for NFS v2 and v3 protocols
+
+config BR2_PACKAGE_GVFS_SMB
+	bool "smb"
+	default y if BR2_PACKAGE_SAMBA4
+	help
+	  Backend for SMB/CIFS protocol
+
+endif
+
 comment "gvfs needs a toolchain w/ wchar, threads, dynamic library"
 	depends on BR2_USE_MMU
 	depends on !BR2_USE_WCHAR || !BR2_TOOLCHAIN_HAS_THREADS || \

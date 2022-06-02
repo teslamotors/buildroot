@@ -13,6 +13,7 @@ PYTHON_ZOPE_INTERFACE_LICENSE_FILES = LICENSE.txt
 
 define PYTHON_ZOPE_INTERFACE_INSTALL_TARGET_FIXUP
 	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/zope/interface/*.c
+	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/zope/interface/tests
 endef
 
 PYTHON_ZOPE_INTERFACE_POST_INSTALL_TARGET_HOOKS += PYTHON_ZOPE_INTERFACE_INSTALL_TARGET_FIXUP

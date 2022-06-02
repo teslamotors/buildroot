@@ -1,0 +1,310 @@
+From 3fd9228addd9b25052a5b55033987c862503aa58 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Mon, 29 Jun 2020 23:04:46 -0700
+Subject: [PATCH 3/4] plugins/micron: Physical Configuration Management support
+
+Add new Micron commands for setting Physical Configuration (e.g., SLC
+vs. TLC for regions).
+
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
+---
+ plugins/micron/micron-nvme.c | 257 +++++++++++++++++++++++++++++++++++
+ plugins/micron/micron-nvme.h |   3 +
+ 2 files changed, 260 insertions(+)
+
+diff --git a/plugins/micron/micron-nvme.c b/plugins/micron/micron-nvme.c
+index e5c6e91..a7bd442 100644
+--- a/plugins/micron/micron-nvme.c
++++ b/plugins/micron/micron-nvme.c
+@@ -25,6 +25,10 @@
+ #define MaxLogChunk 16 * 1024
+ #define CommonChunkSize 16 * 4096
+ 
++#define MICRON_OPCODE_PCM_SET		0xc0
++#define MICRON_OPCODE_PCM_LOCK		0xc4
++#define MICRON_CDW10_LOCK		0x4c4f434b
++
+ /*
+  * Micron's vendor-specific fields located within "vs" (bytes 4095:3072) of the
+  * Identify Controller structure
+@@ -43,6 +47,12 @@ struct micron_vs_id_ctrl {
+ #define MICRON_ID_CTRL_PCM_STATUS_LOCKED	(1 << 1)
+ #define MICRON_ID_CTRL_PCM_STATUS_FACTORY	(1 << 2)
+ 
++/* Status Code responses for PCM set admin commands */
++#define MICRON_PCM_SET_EINVAL		0x002
++#define MICRON_PCM_SET_ECFGLOCKED	0x7c0
++#define MICRON_PCM_SET_ENSALLOC		0x7c1
++#define MICRON_PCM_LOCK_EINVAL		0x7c2
++
+ typedef struct _LogPageHeader_t {
+ 	unsigned char numDwordsInLogPageHeaderLo;
+ 	unsigned char logPageHeaderFormatVersion;
+@@ -1250,3 +1260,250 @@ static int id_ctrl(int argc, char **argv, struct command *cmd, struct plugin *pl
+ {
+ 	return __id_ctrl(argc, argv, cmd, plugin, micron_id_ctrl);
+ }
++
++static const char *pcm_unsupported_err_msg =
++	"Physical Capacity Management not supported by this device\n";
++
++static int micron_pcm_get(int argc, char **argv, struct command *cmd,
++				struct plugin *plugin)
++{
++	const char *desc = "Get Physical Capacity configuration";
++	const char *verbose_msg = "Verbose output";
++	int verbose, fd, err;
++	struct nvme_id_ctrl ctrl;
++	struct micron_vs_id_ctrl *vs_micron =
++		(struct micron_vs_id_ctrl *) &(ctrl.vs);
++
++	OPT_ARGS(opts) = {
++		OPT_FLAG("verbose", 'v', &verbose, verbose_msg),
++		OPT_END()
++	};
++
++	fd = parse_and_open(argc, argv, desc, opts);
++	if (fd < 0)
++		return fd;
++
++	if (verbose)
++		printf("Issuing Identify Controller command\n");
++
++	err = nvme_identify_ctrl(fd, &ctrl);
++	if (err)
++		goto close_fd;
++
++	if (!(vs_micron->pcm_status & MICRON_ID_CTRL_PCM_STATUS_SUPPORTED)) {
++		fprintf(stderr, pcm_unsupported_err_msg);
++		err = EINVAL;
++		goto close_fd;
++	}
++
++	/* Show PCM info from vendor-specific ID Controller command */
++	micron_id_ctrl_pcm((uint8_t *) vs_micron, NULL);
++
++close_fd:
++	close(fd);
++	if (verbose)
++		printf("Result code: %d\n", err);
++
++	if (err != 0) {
++		fprintf(stderr, "Operation failed\n");
++	}
++
++	return err;
++}
++
++
++/* Thin wrapper around PCM config set admin command */
++static int __pcm_set(int fd, unsigned int slc_percentage)
++{
++	struct nvme_admin_cmd cmd = {
++		.opcode		= MICRON_OPCODE_PCM_SET,
++		.addr		= (__u64) (uintptr_t) NULL,
++		.data_len	= 0,
++		.cdw10		= 0,
++	};
++
++	switch (slc_percentage) {
++	case 0:
++	case 10:
++	case 20:
++	case 30:
++	case 40:
++	case 50:
++	case 100:
++		cmd.cdw10 = slc_percentage;
++		break;
++	default:
++		/* Invalid SLC percentage passed in */
++		return -1;
++	}
++
++	return nvme_submit_admin_passthru(fd, &cmd);
++}
++
++static int micron_pcm_set(int argc, char **argv, struct command *cmd,
++				struct plugin *plugin)
++{
++	const char *desc = "Set Physical Capacity configuration";
++	const char *verbose_msg = "Verbose output";
++	const char *slc_msg = "Percentage of drive to use as SLC (allowed values: 0, 10, 20, 30, 40, 50, 100)";
++	int verbose, fd, err;
++	int slc = -1;
++	struct nvme_id_ctrl ctrl;
++	struct micron_vs_id_ctrl *vs_micron =
++		(struct micron_vs_id_ctrl *) &(ctrl.vs);
++
++	OPT_ARGS(opts) = {
++		OPT_INT("slc", 's', &slc, slc_msg),
++		OPT_FLAG("verbose", 'v', &verbose, verbose_msg),
++		OPT_END()
++	};
++
++	fd = parse_and_open(argc, argv, desc, opts);
++	if (fd < 0)
++		return fd;
++
++	if (verbose)
++		printf("Checking if Physical Capacity Management is supported\n");
++
++	err = nvme_identify_ctrl(fd, &ctrl);
++	if (err)
++		goto close_fd;
++
++	if (!(vs_micron->pcm_status & MICRON_ID_CTRL_PCM_STATUS_SUPPORTED)) {
++		fprintf(stderr, pcm_unsupported_err_msg);
++		err = EINVAL;
++		goto close_fd;
++	}
++
++	printf("Physical Capacity Management support detected\n");
++
++	if (slc < 0) {
++		err = EINVAL;
++		goto close_fd;
++	}
++
++	printf("Setting physical configuration space\n");
++	err = __pcm_set(fd, slc);
++
++	if (err != 0) {
++		printf("Error: PCM configuration failed\n\n");
++		printf("Note: pcm-set requires that:\n");
++		printf("  - All namespaces have been deleted\n");
++		printf("  - Physical configuration has not been locked\n");
++		printf("\nCommand response: ");
++		switch (err) {
++		case MICRON_PCM_SET_EINVAL:
++			printf("Invalid Field in Command\n");
++			break;
++		case MICRON_PCM_SET_ECFGLOCKED:
++			printf("Physical Configuration Locked\n");
++			break;
++		case MICRON_PCM_SET_ENSALLOC:
++			printf("Namespace(s) Allocated\n");
++			break;
++		default:
++			printf("Unknown (0x%x)\n", err);
++		}
++		goto close_fd;
++	}
++
++	printf("Physical Capacity Management operation successful\n");
++
++close_fd:
++	close(fd);
++	if (verbose)
++		printf("Result code: %d\n", err);
++
++	if (err != 0) {
++		fprintf(stderr, "Operation failed\n");
++	}
++
++	return err;
++}
++
++/* Thin wrapper around Lock Physical Configuration admin command */
++static int __pcm_lock(int fd)
++{
++	struct nvme_admin_cmd cmd = {
++		.opcode		= MICRON_OPCODE_PCM_LOCK,
++		.addr		= (__u64) (uintptr_t) NULL,
++		.data_len	= 0,
++		.cdw10		= MICRON_CDW10_LOCK,
++	};
++
++	return nvme_submit_admin_passthru(fd, &cmd);
++}
++
++
++static int micron_pcm_lock(int argc, char **argv, struct command *cmd,
++				struct plugin *plugin)
++{
++	const char *desc = "Set Physical Capacity configuration";
++	const char *verbose_msg = "Verbose output";
++	const char *yes_msg = "Confirms intent for permanent config change";
++	int verbose, fd, err;
++	int yes = 0;
++	struct nvme_id_ctrl ctrl;
++	struct micron_vs_id_ctrl *vs_micron =
++		(struct micron_vs_id_ctrl *) &(ctrl.vs);
++
++	OPT_ARGS(opts) = {
++		OPT_FLAG("yes", 'y', &yes, yes_msg),
++		OPT_FLAG("verbose", 'v', &verbose, verbose_msg),
++		OPT_END()
++	};
++
++	fd = parse_and_open(argc, argv, desc, opts);
++	if (fd < 0)
++		return fd;
++
++	if (yes == 0) {
++		fprintf(stderr, "Warning: This command makes a permanent configuration change.\n\n");
++		fprintf(stderr, "Option -y required to confirm intent.  Aborting\n");
++		err = EINVAL;
++		goto close_fd;
++	}
++
++	err = nvme_identify_ctrl(fd, &ctrl);
++	if (err)
++		goto close_fd;
++
++	if (!(vs_micron->pcm_status & MICRON_ID_CTRL_PCM_STATUS_SUPPORTED)) {
++		fprintf(stderr, pcm_unsupported_err_msg);
++		err = EINVAL;
++		goto close_fd;
++	}
++
++	if (vs_micron->pcm_status & MICRON_ID_CTRL_PCM_STATUS_LOCKED) {
++		printf("Warning: PCM configuration already LOCKED\n");
++	}
++
++	printf("Locking physical configuration\n");
++	err = __pcm_lock(fd);
++
++	if (err != 0) {
++		printf("Error: PCM configuration lock failed\n\n");
++		printf("\nCommand response: ");
++		switch (err) {
++		case MICRON_PCM_LOCK_EINVAL:
++			printf("Invalid PCM password\n");
++			break;
++		default:
++			printf("Unknown (0x%x)\n", err);
++		}
++		goto close_fd;
++	}
++
++	printf("Physical Configuration lock operation successful\n");
++
++close_fd:
++	close(fd);
++	if (verbose)
++		printf("Result code: %d\n", err);
++
++	if (err != 0) {
++		fprintf(stderr, "Operation failed\n");
++	}
++
++	return err;
++}
+diff --git a/plugins/micron/micron-nvme.h b/plugins/micron/micron-nvme.h
+index dc9c074..3a77cd5 100644
+--- a/plugins/micron/micron-nvme.h
++++ b/plugins/micron/micron-nvme.h
+@@ -14,6 +14,9 @@ PLUGIN(NAME("micron", "Micron vendor specific extensions"),
+ 		ENTRY("vs-internal-log", "Retrieve Micron logs", micron_internal_logs)
+ 		ENTRY("vs-nand-stats", "Retrieve NAND Stats", micron_nand_stats)
+ 		ENTRY("id-ctrl", "Send NVMe Identify Controller", id_ctrl)
++		ENTRY("pcm-get", "Get Physical Capacity configuration", micron_pcm_get)
++		ENTRY("pcm-set", "Set Physical Capacity configuration", micron_pcm_set)
++		ENTRY("pcm-lock", "Lock Physical Capacity configuration", micron_pcm_lock)
+ 	)
+ );
+ 
+-- 
+2.17.2
+

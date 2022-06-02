@@ -24,8 +24,10 @@ DATE_BIN=false
 for P in `echo $PATH | tr ':' ' '`; do
     if [ -x "$P/date" ]; then
         if ! [ "$P/date" -ef "$0" ]; then
-            DATE_BIN="$P/date"
-            break;
+            if file "$P/date" | grep -q ELF; then
+                DATE_BIN="$P/date"
+                break;
+            fi
         fi
     fi
 done

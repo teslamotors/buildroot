@@ -1,0 +1,28 @@
+From 39b8c230107345967180ee9ee857621c2d130821 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Thu, 13 Feb 2020 13:52:06 -0800
+Subject: [PATCH] xf86-input-evdev: Only build src directory
+
+We don't use documentation or header files, and the latter are
+installed into a strange place (sdkdir is setup incorrectly), so just
+disable them both.
+---
+ Makefile.am | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile.am b/Makefile.am
+index e8e6ec1..2b38ca2 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -23,7 +23,7 @@ AUTOMAKE_OPTIONS = foreign
+ # Ensure headers are installed below $(prefix) for distcheck
+ DISTCHECK_CONFIGURE_FLAGS = --with-sdkdir='$${includedir}/xorg'
+ 
+-SUBDIRS = src man include
++SUBDIRS = src
+ 
+ pkgconfigdir = $(libdir)/pkgconfig
+ pkgconfig_DATA = xorg-evdev.pc
+-- 
+2.19.2
+

@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PYTHON_DBUS_NEXT
+	bool "python-dbus-next"
+	help
+	  Python DBus library with asyncio support
+
+	  https://github.com/altdesktop/python-dbus-next

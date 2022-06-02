@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# BR2_CONFIG_FILTERED=
+# BUILDROOT_DIR=
+# SHARED_CACHE_DEPENDENCIES_PATHS=
+
+set -euo pipefail
+set -x
+
+BR2_CONFIG_FILTERED="$(dirname "${BR2_CONFIG}")/$(basename "${BR2_CONFIG}").filtered.txt"
+mkdir -pv "$(dirname "${BR2_CONFIG_FILTERED}")"
+sort "${BR2_CONFIG}" | grep -P -v '^#' | sed '/^[[:space:]]*$/d' > "${BR2_CONFIG_FILTERED}"
+
+# shellcheck disable=SC2086
+BUILDROOT_FILES=$(find -L "${BR2_CONFIG_FILTERED}" ${SHARED_CACHE_DEPENDENCIES_PATHS} "${BUILDROOT_DIR}" -not -path "${BUILDROOT_DIR}/package/*/*" -name .git -type d -prune -o -type f -print | sort -u)
+# shellcheck disable=SC2086,SC2002
+BUILDROOT_KEY=$(cat ${BUILDROOT_FILES} | md5sum | cut -d ' ' -f 1)
+echo "BUILDROOT_KEY=${BUILDROOT_KEY}" >> "${BASE_DIR}/.shared_cache.env"
+
+if [ -n "${SHARED_CACHE_DEBUG_DIR}" ]; then
+  BUILDROOT_DEBUG_FILENAME="${SHARED_CACHE_DEBUG_DIR}/buildroot-${BUILDROOT_KEY}.txt"
+  if [ ! -f "${BUILDROOT_DEBUG_FILENAME}" ]; then
+    if [ ! -d "${SHARED_CACHE_DEBUG_DIR}" ]; then
+      mkdir -pv "${SHARED_CACHE_DEBUG_DIR}" || true
+    fi
+    # shellcheck disable=SC2086
+    md5sum $BUILDROOT_FILES > "${BUILDROOT_DEBUG_FILENAME}"
+  fi
+fi

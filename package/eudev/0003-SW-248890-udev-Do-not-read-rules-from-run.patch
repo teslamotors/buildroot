@@ -1,0 +1,45 @@
+From 74636866c5891aec8454860d335899a28abd6ac0 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Tue, 10 May 2022 11:03:44 -0700
+Subject: [PATCH] SW-248890: udev: Do not read rules from /run
+
+udev rules contain a command injection primitive
+by design.  We do not want to construct arbitrary
+system commands from a writeable mount point.
+---
+ src/udev/udev-rules.c | 1 -
+ src/udev/udevd.c      | 6 ------
+ 2 files changed, 7 deletions(-)
+
+diff --git a/src/udev/udev-rules.c b/src/udev/udev-rules.c
+index 766c00b..79150c7 100644
+--- a/src/udev/udev-rules.c
++++ b/src/udev/udev-rules.c
+@@ -51,7 +51,6 @@ struct uid_gid {
+ static const char* const rules_dirs[] = {
+         UDEV_CONF_DIR "/rules.d",
+         UDEV_RULES_DIR,
+-        UDEV_ROOT_RUN "/udev/rules.d",
+         UDEV_LIBEXEC_DIR "/rules.d",
+ #ifdef HAVE_SPLIT_USR
+         "/lib/udev/rules.d",
+diff --git a/src/udev/udevd.c b/src/udev/udevd.c
+index cf826c6..88d38da 100644
+--- a/src/udev/udevd.c
++++ b/src/udev/udevd.c
+@@ -1308,12 +1308,6 @@ int main(int argc, char *argv[]) {
+         inotify_add_watch(fd_inotify, UDEV_CONF_DIR "/rules.d",
+                           IN_DELETE | IN_MOVE | IN_CLOSE_WRITE);
+ 
+-        if (access(UDEV_ROOT_RUN "/udev/rules.d", F_OK) < 0) {
+-                udev_mkdir_p(UDEV_ROOT_RUN "/udev/rules.d", 0755);
+-        }
+-        inotify_add_watch(fd_inotify, UDEV_ROOT_RUN "/udev/rules.d",
+-                          IN_DELETE | IN_MOVE | IN_CLOSE_WRITE);
+-
+         udev_watch_restore(udev);
+ 
+         /* block and listen to all signals on signalfd */
+-- 
+2.17.1
+

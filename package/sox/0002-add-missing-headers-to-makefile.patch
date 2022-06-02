@@ -5,7 +5,7 @@
  EXTRA_PROGRAMS = example0 example1 example2 example3 example4 example5 example6 sox_sample_test
  lib_LTLIBRARIES = libsox.la
 -include_HEADERS = sox.h
-+pkginclude_HEADERS = sox.h util.h soxconfig.h xmalloc.h sox_sample_test.h
++pkginclude_HEADERS = sox.h util.h soxconfig.h xmalloc.h
  sox_SOURCES = sox.c
  if HAVE_WIN32_GLOB
  sox_SOURCES += win32-glob.c win32-glob.h

@@ -4,8 +4,8 @@
 #
 ################################################################################
 
-NACL_VERSION = ad40fdf6aaa4c64cc06ad30b2acbe285ceaa834e
-NACL_SITE = https://internal-server/internal-repo
+NACL_VERSION = 03259700f0333974bfe2a22a1d481a147e0833b5
+NACL_SITE = ssh://git@internal-server/internal-repo
 NACL_SITE_METHOD = git
 NACL_INSTALL_STAGING = YES
 NACL_LICENSE = NaCl
@@ -42,6 +42,12 @@ endef
 define HOST_NACL_INSTALL_CMDS
 	$(MAKE) -C $(@D) DESTDIR=$(HOST_DIR)/usr install
 endef
+
+ifeq ($(BR2_PACKAGE_NACL_BINARY),y)
+define NACL_INSTALL_TARGET_CMDS
+	$(INSTALL) -m 0755 $(@D)/nacl $(TARGET_DIR)/usr/bin/nacl
+endef
+endif
 
 $(eval $(generic-package))
 $(eval $(host-generic-package))

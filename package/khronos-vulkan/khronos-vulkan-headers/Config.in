@@ -1,0 +1,4 @@
+config BR2_PACKAGE_KHRONOS_VULKAN_HEADERS
+	bool "khronos-vulkan-headers"
+	help
+	  Khronos Vulkan library headers

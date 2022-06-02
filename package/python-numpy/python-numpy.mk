@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-PYTHON_NUMPY_VERSION = 1.18.2
+PYTHON_NUMPY_VERSION = 1.19.1
 PYTHON_NUMPY_SOURCE = numpy-$(PYTHON_NUMPY_VERSION).tar.gz
 PYTHON_NUMPY_SITE = https://github.com/numpy/numpy/releases/download/v$(PYTHON_NUMPY_VERSION)
 PYTHON_NUMPY_LICENSE = BSD-3-Clause, BSD-2-Clause, PSF, Apache-2.0, MIT, Zlib
@@ -18,9 +18,16 @@ PYTHON_NUMPY_DEPENDENCIES = host-python-cython
 HOST_PYTHON_NUMPY_DEPENDENCIES = host-python-cython
 
 ifeq ($(BR2_PACKAGE_CLAPACK),y)
-PYTHON_NUMPY_DEPENDENCIES += clapack
+PYTHON_NUMPY_DEPENDENCIES += clapack openblas
 else
 PYTHON_NUMPY_ENV += BLAS=None LAPACK=None
+endif
+
+ifeq ($(BR2_TOOLCHAIN_HAS_FORTRAN),y)
+define PYTHON_NUMPY_SITE_CFG_EXTRA_LINK_ARGS
+	echo "extra_link_args = -lgfortran" >> $(@D)/site.cfg
+endef
+PYTHON_NUMPY_POST_CONFIGURE_HOOKS += PYTHON_NUMPY_SITE_CFG_EXTRA_LINK_ARGS
 endif
 
 PYTHON_NUMPY_BUILD_OPTS = --fcompiler=None
@@ -49,7 +56,7 @@ define PYTHON_NUMPY_COPY_HOST_LIBS_TO_STAGING
 	# numpy.distutils eventually imports all of numpy.  That means that host-compiled
 	# binaries must be in PYTHONPATH during the build, but the .py files in PYTHONPATH
 	# must be from the target or else numpy's build system will force a host build.
-	cd $(HOST_DIR) && find usr/lib/python$(PYTHON_VERSION_MAJOR)/site-packages/numpy -name '*.so' | cpio -pmlud $(STAGING_DIR)/
+	cd $(HOST_DIR) && find usr/lib/python$(PYTHON3_VERSION_MAJOR)/site-packages/numpy -name '*.so' | cpio -pmlud $(STAGING_DIR)/
 endef
 
 PYTHON_NUMPY_POST_INSTALL_TARGET_HOOKS += PYTHON_NUMPY_COPY_HOST_LIBS_TO_STAGING

@@ -1,0 +1,37 @@
+From 32cb89b3d3a864e4967b4d76c01a963a3e7b5fef Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Sat, 13 Jul 2019 15:44:03 -0700
+Subject: [PATCH] gstregistry: Do not load gst plugins from $HOME
+
+gstreamer loads user plugins from their home directory
+by default.  This is nice for desktop systems, but does
+not make any sense for read-only Linux systems, and just
+presents a nice persistence vector for an attacker.  Therefore,
+remove unless the USE_HOME_GST_PLUGINS macro is defined.
+---
+ gst/gstregistry.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/gst/gstregistry.c b/gst/gstregistry.c
+index dbd373a..2de483b 100644
+--- a/gst/gstregistry.c
++++ b/gst/gstregistry.c
+@@ -1617,6 +1617,7 @@ scan_and_update_registry (GstRegistry * default_registry,
+   if (plugin_path == NULL)
+     plugin_path = g_getenv ("GST_PLUGIN_SYSTEM_PATH");
+   if (plugin_path == NULL) {
++#ifdef USE_HOME_GST_PLUGINS
+     char *home_plugins;
+ 
+     GST_DEBUG ("GST_PLUGIN_SYSTEM_PATH not set");
+@@ -1629,6 +1630,7 @@ scan_and_update_registry (GstRegistry * default_registry,
+     GST_DEBUG ("scanning home plugins %s", home_plugins);
+     changed |= gst_registry_scan_path_internal (&context, home_plugins);
+     g_free (home_plugins);
++#endif
+ 
+     /* add the main (installed) library path */
+ 
+-- 
+2.17.1
+

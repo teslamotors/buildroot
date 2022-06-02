@@ -6,7 +6,6 @@ config BR2_PACKAGE_SETOOLS
 	depends on BR2_USE_MMU
 	depends on BR2_PACKAGE_PYTHON3
 	select BR2_PACKAGE_PYTHON_NETWORKX # runtime
-	select BR2_PACKAGE_PYTHON_SETUPTOOLS
 	select BR2_PACKAGE_LIBSELINUX
 	help
 	  SETools is an open source project designed to facilitate

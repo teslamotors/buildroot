@@ -1,0 +1,2 @@
+source "package/khronos-vulkan/khronos-vulkan-headers/Config.in"
+source "package/khronos-vulkan/khronos-vulkan-loader/Config.in"

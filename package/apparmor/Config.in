@@ -18,6 +18,12 @@ config BR2_PACKAGE_APPARMOR
 
 	  http://wiki.apparmor.net
 
+config BR2_PACKAGE_HOST_APPARMOR
+	bool "host apparmor"
+	select BR2_PACKAGE_HOST_LIBAPPARMOR
+	help
+	    Host Apparmor - parser only
+
 if BR2_PACKAGE_APPARMOR
 
 config BR2_PACKAGE_APPARMOR_BINUTILS

@@ -1,0 +1,3314 @@
+--- upstart-0.6.6.orig/Makefile.in
++++ upstart-0.6.6/Makefile.in
+@@ -235,6 +235,8 @@
+ SET_MAKE = @SET_MAKE@
+ SHELL = @SHELL@
+ STRIP = @STRIP@
++UDEV_CFLAGS = @UDEV_CFLAGS@
++UDEV_LIBS = @UDEV_LIBS@
+ USE_INCLUDED_LIBINTL = @USE_INCLUDED_LIBINTL@
+ USE_NLS = @USE_NLS@
+ VERSION = @VERSION@
+@@ -296,7 +298,7 @@
+ top_build_prefix = @top_build_prefix@
+ top_builddir = @top_builddir@
+ top_srcdir = @top_srcdir@
+-SUBDIRS = intl dbus init util conf doc contrib po
++SUBDIRS = intl dbus init util udev conf doc contrib po
+ EXTRA_DIST = HACKING
+ ACLOCAL_AMFLAGS = --install -I m4
+ all: config.h
+--- upstart-0.6.6.orig/ChangeLog
++++ upstart-0.6.6/ChangeLog
+@@ -1,3 +1,11 @@
++2010-08-12  Scott James Remnant  <scott@netsplit.com>
++
++	* init/job_process.c (job_process_spawn): We can fail to open the
++	system console for various reasons, sometimes because there isn't
++	a console (ENXIO or ENODEV) but worse due to kernel race conditions
++	on SMP/multi-core systems (EIO).  If "console output" is used, and
++	these happen, fall back to /dev/null.
++
+ 2010-04-27  Scott James Remnant  <scott@netsplit.com>
+ 
+ 	* NEWS: Release 0.6.6
+--- upstart-0.6.6.orig/configure
++++ upstart-0.6.6/configure
+@@ -751,6 +751,8 @@
+ am__EXEEXT_TRUE
+ LTLIBOBJS
+ LIBOBJS
++UDEV_LIBS
++UDEV_CFLAGS
+ DBUS_LIBS
+ DBUS_CFLAGS
+ NIH_DBUS_LIBS
+@@ -958,7 +960,9 @@
+ NIH_DBUS_CFLAGS
+ NIH_DBUS_LIBS
+ DBUS_CFLAGS
+-DBUS_LIBS'
++DBUS_LIBS
++UDEV_CFLAGS
++UDEV_LIBS'
+ 
+ 
+ # Initialize some variables set by options.
+@@ -1639,6 +1643,8 @@
+               linker flags for NIH_DBUS, overriding pkg-config
+   DBUS_CFLAGS C compiler flags for DBUS, overriding pkg-config
+   DBUS_LIBS   linker flags for DBUS, overriding pkg-config
++  UDEV_CFLAGS C compiler flags for UDEV, overriding pkg-config
++  UDEV_LIBS   linker flags for UDEV, overriding pkg-config
+ 
+ Use these variables to override the choices made by `configure' or to help
+ it to find libraries and programs with nonstandard names/locations.
+@@ -5215,13 +5221,13 @@
+ else
+   lt_cv_nm_interface="BSD nm"
+   echo "int some_variable = 0;" > conftest.$ac_ext
+-  (eval echo "\"\$as_me:5218: $ac_compile\"" >&5)
++  (eval echo "\"\$as_me:5224: $ac_compile\"" >&5)
+   (eval "$ac_compile" 2>conftest.err)
+   cat conftest.err >&5
+-  (eval echo "\"\$as_me:5221: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
++  (eval echo "\"\$as_me:5227: $NM \\\"conftest.$ac_objext\\\"\"" >&5)
+   (eval "$NM \"conftest.$ac_objext\"" 2>conftest.err > conftest.out)
+   cat conftest.err >&5
+-  (eval echo "\"\$as_me:5224: output\"" >&5)
++  (eval echo "\"\$as_me:5230: output\"" >&5)
+   cat conftest.out >&5
+   if $GREP 'External.*some_variable' conftest.out > /dev/null; then
+     lt_cv_nm_interface="MS dumpbin"
+@@ -6426,7 +6432,7 @@
+   ;;
+ *-*-irix6*)
+   # Find out which ABI we are using.
+-  echo '#line 6429 "configure"' > conftest.$ac_ext
++  echo '#line 6435 "configure"' > conftest.$ac_ext
+   if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
+   (eval $ac_compile) 2>&5
+   ac_status=$?
+@@ -7688,11 +7694,11 @@
+    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
+    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
+    -e 's:$: $lt_compiler_flag:'`
+-   (eval echo "\"\$as_me:7691: $lt_compile\"" >&5)
++   (eval echo "\"\$as_me:7697: $lt_compile\"" >&5)
+    (eval "$lt_compile" 2>conftest.err)
+    ac_status=$?
+    cat conftest.err >&5
+-   echo "$as_me:7695: \$? = $ac_status" >&5
++   echo "$as_me:7701: \$? = $ac_status" >&5
+    if (exit $ac_status) && test -s "$ac_outfile"; then
+      # The compiler can only warn and ignore the option if not recognized
+      # So say no if there are warnings other than the usual output.
+@@ -8027,11 +8033,11 @@
+    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
+    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
+    -e 's:$: $lt_compiler_flag:'`
+-   (eval echo "\"\$as_me:8030: $lt_compile\"" >&5)
++   (eval echo "\"\$as_me:8036: $lt_compile\"" >&5)
+    (eval "$lt_compile" 2>conftest.err)
+    ac_status=$?
+    cat conftest.err >&5
+-   echo "$as_me:8034: \$? = $ac_status" >&5
++   echo "$as_me:8040: \$? = $ac_status" >&5
+    if (exit $ac_status) && test -s "$ac_outfile"; then
+      # The compiler can only warn and ignore the option if not recognized
+      # So say no if there are warnings other than the usual output.
+@@ -8132,11 +8138,11 @@
+    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
+    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
+    -e 's:$: $lt_compiler_flag:'`
+-   (eval echo "\"\$as_me:8135: $lt_compile\"" >&5)
++   (eval echo "\"\$as_me:8141: $lt_compile\"" >&5)
+    (eval "$lt_compile" 2>out/conftest.err)
+    ac_status=$?
+    cat out/conftest.err >&5
+-   echo "$as_me:8139: \$? = $ac_status" >&5
++   echo "$as_me:8145: \$? = $ac_status" >&5
+    if (exit $ac_status) && test -s out/conftest2.$ac_objext
+    then
+      # The compiler can only warn and ignore the option if not recognized
+@@ -8187,11 +8193,11 @@
+    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
+    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
+    -e 's:$: $lt_compiler_flag:'`
+-   (eval echo "\"\$as_me:8190: $lt_compile\"" >&5)
++   (eval echo "\"\$as_me:8196: $lt_compile\"" >&5)
+    (eval "$lt_compile" 2>out/conftest.err)
+    ac_status=$?
+    cat out/conftest.err >&5
+-   echo "$as_me:8194: \$? = $ac_status" >&5
++   echo "$as_me:8200: \$? = $ac_status" >&5
+    if (exit $ac_status) && test -s out/conftest2.$ac_objext
+    then
+      # The compiler can only warn and ignore the option if not recognized
+@@ -10571,7 +10577,7 @@
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 10574 "configure"
++#line 10580 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -10667,7 +10673,7 @@
+   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
+   lt_status=$lt_dlunknown
+   cat > conftest.$ac_ext <<_LT_EOF
+-#line 10670 "configure"
++#line 10676 "configure"
+ #include "confdefs.h"
+ 
+ #if HAVE_DLFCN_H
+@@ -16842,6 +16848,96 @@
+ 	:
+ fi
+ 
++pkg_failed=no
++{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for UDEV" >&5
++$as_echo_n "checking for UDEV... " >&6; }
++
++if test -n "$PKG_CONFIG"; then
++    if test -n "$UDEV_CFLAGS"; then
++        pkg_cv_UDEV_CFLAGS="$UDEV_CFLAGS"
++    else
++        if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libudev >= 146\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "libudev >= 146") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_UDEV_CFLAGS=`$PKG_CONFIG --cflags "libudev >= 146" 2>/dev/null`
++else
++  pkg_failed=yes
++fi
++    fi
++else
++	pkg_failed=untried
++fi
++if test -n "$PKG_CONFIG"; then
++    if test -n "$UDEV_LIBS"; then
++        pkg_cv_UDEV_LIBS="$UDEV_LIBS"
++    else
++        if test -n "$PKG_CONFIG" && \
++    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"libudev >= 146\""; } >&5
++  ($PKG_CONFIG --exists --print-errors "libudev >= 146") 2>&5
++  ac_status=$?
++  $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
++  test $ac_status = 0; }; then
++  pkg_cv_UDEV_LIBS=`$PKG_CONFIG --libs "libudev >= 146" 2>/dev/null`
++else
++  pkg_failed=yes
++fi
++    fi
++else
++	pkg_failed=untried
++fi
++
++
++
++if test $pkg_failed = yes; then
++
++if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
++        _pkg_short_errors_supported=yes
++else
++        _pkg_short_errors_supported=no
++fi
++        if test $_pkg_short_errors_supported = yes; then
++	        UDEV_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "libudev >= 146"`
++        else
++	        UDEV_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "libudev >= 146"`
++        fi
++	# Put the nasty error message in config.log where it belongs
++	echo "$UDEV_PKG_ERRORS" >&5
++
++	as_fn_error "Package requirements (libudev >= 146) were not met:
++
++$UDEV_PKG_ERRORS
++
++Consider adjusting the PKG_CONFIG_PATH environment variable if you
++installed software in a non-standard prefix.
++
++Alternatively, you may set the environment variables UDEV_CFLAGS
++and UDEV_LIBS to avoid the need to call pkg-config.
++See the pkg-config man page for more details.
++" "$LINENO" 5
++elif test $pkg_failed = untried; then
++	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
++$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
++as_fn_error "The pkg-config script could not be found or is too old.  Make sure it
++is in your PATH or set the PKG_CONFIG environment variable to the full
++path to pkg-config.
++
++Alternatively, you may set the environment variables UDEV_CFLAGS
++and UDEV_LIBS to avoid the need to call pkg-config.
++See the pkg-config man page for more details.
++
++To get pkg-config, see <http://pkg-config.freedesktop.org/>.
++See \`config.log' for more details." "$LINENO" 5; }
++else
++	UDEV_CFLAGS=$pkg_cv_UDEV_CFLAGS
++	UDEV_LIBS=$pkg_cv_UDEV_LIBS
++        { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
++$as_echo "yes" >&6; }
++	:
++fi
++
+ # Checks for header files.
+ for ac_header in valgrind/valgrind.h
+ do :
+@@ -17272,7 +17368,7 @@
+ 
+ 
+ 
+-ac_config_files="$ac_config_files Makefile intl/Makefile dbus/Makefile init/Makefile util/Makefile conf/Makefile doc/Makefile contrib/Makefile po/Makefile.in"
++ac_config_files="$ac_config_files Makefile intl/Makefile dbus/Makefile init/Makefile util/Makefile udev/Makefile conf/Makefile doc/Makefile contrib/Makefile po/Makefile.in"
+ 
+ ac_config_headers="$ac_config_headers config.h"
+ 
+@@ -18260,6 +18356,7 @@
+     "dbus/Makefile") CONFIG_FILES="$CONFIG_FILES dbus/Makefile" ;;
+     "init/Makefile") CONFIG_FILES="$CONFIG_FILES init/Makefile" ;;
+     "util/Makefile") CONFIG_FILES="$CONFIG_FILES util/Makefile" ;;
++    "udev/Makefile") CONFIG_FILES="$CONFIG_FILES udev/Makefile" ;;
+     "conf/Makefile") CONFIG_FILES="$CONFIG_FILES conf/Makefile" ;;
+     "doc/Makefile") CONFIG_FILES="$CONFIG_FILES doc/Makefile" ;;
+     "contrib/Makefile") CONFIG_FILES="$CONFIG_FILES contrib/Makefile" ;;
+--- upstart-0.6.6.orig/configure.ac
++++ upstart-0.6.6/configure.ac
+@@ -30,6 +30,7 @@
+ PKG_CHECK_MODULES([NIH], [libnih >= 1.0.2])
+ PKG_CHECK_MODULES([NIH_DBUS], [libnih-dbus >= 1.0.0])
+ PKG_CHECK_MODULES([DBUS], [dbus-1 >= 1.2.16])
++PKG_CHECK_MODULES([UDEV], [libudev >= 146])
+ 
+ # Checks for header files.
+ AC_CHECK_HEADERS([valgrind/valgrind.h])
+@@ -63,7 +64,7 @@
+ 
+ 
+ AC_CONFIG_FILES([ Makefile intl/Makefile
+-		  dbus/Makefile init/Makefile util/Makefile conf/Makefile
++		  dbus/Makefile init/Makefile util/Makefile udev/Makefile conf/Makefile
+ 		  doc/Makefile contrib/Makefile po/Makefile.in ])
+ AC_CONFIG_HEADERS([config.h])
+ AC_OUTPUT
+--- upstart-0.6.6.orig/Makefile.am
++++ upstart-0.6.6/Makefile.am
+@@ -1,6 +1,6 @@
+ ## Process this file with automake to produce Makefile.in
+ 
+-SUBDIRS = intl dbus init util conf doc contrib po
++SUBDIRS = intl dbus init util udev conf doc contrib po
+ 
+ EXTRA_DIST = HACKING
+ 
+--- upstart-0.6.6.orig/debian/upstart.postrm
++++ upstart-0.6.6/debian/upstart.postrm
+@@ -0,0 +1,81 @@
++#!/bin/sh -e
++# This script can be called in the following ways:
++#
++# After the package was removed:
++#	<postrm> remove
++#
++# After the package was purged:
++#	<postrm> purge
++#
++# After the package was upgraded:
++#	<old-postrm> upgrade <new-version>
++# if that fails:
++#	<new-postrm> failed-upgrade <old-version>
++#
++#
++# After all of the packages files have been replaced:
++#	<postrm> disappear <overwriting-package> <version>
++#
++#
++# If preinst fails during install:
++#	<new-postrm> abort-install
++#
++# If preinst fails during upgrade of removed package:
++#	<new-postrm> abort-install <old-version>
++#
++# If preinst fails during upgrade:
++#	<new-postrm> abort-upgrade <old-version>
++
++
++# Undo removal of a no-longer used conffile
++undo_rm_conffile()
++{
++    CONFFILE="$1"
++
++    if [ ! -e "$CONFFILE" ]; then
++	if [ -e "$CONFFILE".dpkg-bak ]; then
++	    echo "Restoring modified conffile $CONFFILE"
++	    mv -f "$CONFFILE".dpkg-bak "$CONFFILE"
++	elif [ -e "$CONFFILE".dpkg-obsolete ]; then
++	    mv -f "$CONFFILE".dpkg-obsolete "$CONFFILE"
++	fi
++    fi
++}
++
++# Finish removal of a no-longer used conffile
++finish_rm_conffile()
++{
++    CONFFILE="$1"
++
++    if [ -e "$CONFFILE".dpkg-bak ]; then
++	rm -f "$CONFFILE".dpkg-bak
++    fi
++}
++
++
++case "$1" in
++    remove)
++	;;
++
++    purge)
++    	finish_rm_conffile /etc/init/dbus-reconnect.conf
++	;;
++
++    upgrade|failed-upgrade|disappear)
++	;;
++
++    abort-install|abort-upgrade)
++	# Abort upgrade from karmic development version
++	if dpkg --compare-versions "$2" lt-nl 0.6.3-7; then
++	    undo_rm_conffile /etc/init/dbus-reconnect.conf
++	fi
++	;;
++
++    *)
++	echo "$0 called with unknown argument \`$1'" 1>&2
++	exit 1
++	;;
++esac
++
++#DEBHELPER#
++exit 0
+--- upstart-0.6.6.orig/debian/rules
++++ upstart-0.6.6/debian/rules
+@@ -0,0 +1,25 @@
++#!/usr/bin/make -f
++%:
++	dh $@
++
++
++CFLAGS = -Wall -g -fstack-protector -fPIE
++LDFLAGS = -Wl,--as-needed -Wl,-z,relro -Wl,-z,now -pie
++
++# Disable optimisations if noopt found in $DEB_BUILD_OPTIONS
++ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
++	CFLAGS += -O0
++	LDFLAGS += -Wl,-O0
++else
++	CFLAGS += -Os
++	LDFLAGS += -Wl,-O1
++endif
++
++override_dh_auto_configure:
++	dh_auto_configure -- CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)" \
++		--exec-prefix=
++
++override_dh_fixperms:
++	dh_fixperms
++	chmod 755 debian/upstart/lib/init/upstart-job
++	chmod 755 debian/upstart/usr/lib/upstart/migrate-inittab.pl
+--- upstart-0.6.6.orig/debian/upstart-job
++++ upstart-0.6.6/debian/upstart-job
+@@ -0,0 +1,73 @@
++#!/bin/sh -e
++# upstart-job
++#
++# Symlink target for initscripts that have been converted to Upstart.
++
++set -e
++
++INITSCRIPT="$(basename "$0")"
++JOB="${INITSCRIPT%.sh}"
++
++if [ "$JOB" = "upstart-job" ]; then
++    if [ -z "$1" ]; then
++        echo "Usage: upstart-job JOB COMMAND" 1>&2
++	exit 1
++    fi
++
++    JOB="$1"
++    INITSCRIPT="$1"
++    shift
++else
++    if [ -z "$1" ]; then
++        echo "Usage: $0 COMMAND" 1>&2
++	exit 1
++    fi
++fi
++
++COMMAND="$1"
++shift
++
++
++if [ -z "$DPKG_MAINTSCRIPT_PACKAGE" ]; then
++	ECHO=echo
++else
++	ECHO=:
++fi
++
++$ECHO "Rather than invoking init scripts through /etc/init.d, use the service(8)"
++$ECHO "utility, e.g. service $INITSCRIPT $COMMAND"
++
++case $COMMAND in
++status)
++    $ECHO
++    $ECHO "Since the script you are attempting to invoke has been converted to an"
++    $ECHO "Upstart job, you may also use the $COMMAND(8) utility, e.g. $COMMAND $JOB"
++    $COMMAND "$JOB"
++    ;;
++start|stop|restart)
++    $ECHO
++    $ECHO "Since the script you are attempting to invoke has been converted to an"
++    $ECHO "Upstart job, you may also use the $COMMAND(8) utility, e.g. $COMMAND $JOB"
++    PID=$(status "$JOB" 2>/dev/null | awk '/[0-9]$/ { print $NF }')
++    if [ -z "$PID" ] && [ "$COMMAND" = "stop" ]; then
++        exit 0
++    elif [ -n "$PID" ] && [ "$COMMAND" = "start" ]; then
++        exit 0
++    elif [ -z "$PID" ] && [ "$COMMAND" = "restart" ]; then
++        start "$JOB"
++        exit 0
++    fi
++    $COMMAND "$JOB"
++    ;;
++reload|force-reload)
++    $ECHO
++    $ECHO "Since the script you are attempting to invoke has been converted to an"
++    $ECHO "Upstart job, you may also use the reload(8) utility, e.g. reload $JOB"
++    reload "$JOB"
++    ;;
++*)
++    $ECHO
++    $ECHO "The script you are attempting to invoke has been converted to an Upstart" 1>&2
++    $ECHO "job, but $COMMAND is not supported for Upstart jobs." 1>&2
++    exit 1
++esac
+--- upstart-0.6.6.orig/debian/upstart.install
++++ upstart-0.6.6/debian/upstart.install
+@@ -0,0 +1,3 @@
++debian/conf/*.conf etc/init/
++debian/upstart-job lib/init/
++debian/migrate-inittab.pl usr/lib/upstart/
+--- upstart-0.6.6.orig/debian/migrate-inittab.pl
++++ upstart-0.6.6/debian/migrate-inittab.pl
+@@ -0,0 +1,143 @@
++#!/usr/bin/perl
++
++use strict;
++use warnings;
++
++my %gettys;
++my $have_cad = 0;
++
++
++#-----------------------------------------------------------------------------#
++# Parse /etc/inittab
++#-----------------------------------------------------------------------------#
++
++open INITTAB, "/etc/inittab"
++    or die "Unable to open /etc/inittab: $!";
++
++while (<INITTAB>) {
++    chomp;
++    s/^\s*//;
++
++    next if /^\#/;
++    next unless length;
++
++    my ($id, $rlevel, $action, $process) = split /:/, $_, 4;
++
++    warn "missing id field" and next
++	unless defined $id and length $id;
++    warn "missing runlevel field" and next
++	unless defined $rlevel;
++    warn "missing action field" and next
++	unless defined $action and length $action;
++    warn "missing process field" and next
++	unless defined $process;
++
++
++    $have_cad = 1 if $action eq "ctrlaltdel";
++    $gettys{$1} = [ $rlevel, $process ]	if $process =~ /getty.*\b(tty\w+)/;
++}
++
++close INITTAB
++    or warn "Error while closing /etc/inittab: $!";
++
++
++#-----------------------------------------------------------------------------#
++# Alter /etc/event.d
++#-----------------------------------------------------------------------------#
++
++unlink "/etc/init/control-alt-delete.conf"
++    unless $have_cad;
++
++foreach (qw/tty1 tty2 tty3 tty4 tty5 tty6/) {
++    unlink "/etc/init/$_.conf"
++	unless exists $gettys{$_};
++}
++
++foreach (sort keys %gettys) {
++    my ($rlevel, $process) = @{$gettys{$_}};
++
++    my @job;
++    if (-f "/etc/event.d/$_") {
++	open JOB, "/etc/event.d/$_"
++	    or warn "Unable to open /etc/event.d/$_: $!" and next;
++	@job = <JOB>;
++	chomp @job;
++	close JOB
++	    or warn "Error while closing /etc/event,d/$_: $!" and next;
++
++	foreach my $rl (qw/2 3 4 5/) {
++	    my $idx;
++	    for ($idx = 0; $idx < @job; $idx++) {
++		last if $job[$idx] =~ /^\s*(start|stop)\s+on\s+runlevel\s+$rl\b/;
++	    }
++
++	    if ($idx < @job) {
++		if ($rlevel =~ /$rl/) {
++		    $job[$idx] =~ s/^(\s*)stop(\s+)/$1start$2/;
++		} else {
++		    $job[$idx] =~ s/^(\s*)start(\s+)/$1stop$2/;
++		}
++	    } else {
++		if ($rlevel =~ /$rl/) {
++		    push @job, "start on runlevel $rl";
++		} else {
++		    push @job, "stop on runlevel $rl";
++		}
++	    }
++	}
++
++	my $idx;
++	for ($idx = 0; $idx < @job; $idx++) {
++	    last if $job[$idx] =~ /^\s*respawn\s*/; # match bare 'respawn' too
++	}
++
++	if ($idx < @job) {
++	    # only match old-style 'respawn process', not bare 'respawn'
++	    $job[$idx] =~ s/^(\s*respawn\s+).*/$1$process/;
++	} else {
++	    push @job, "respawn";
++	    push @job, "exec $process";
++	}
++
++	# Try to fix up effects of previous broken migrations
++	if (@job and $job[$#job] =~ /.*(.+?)exec (\1)$/) {
++	    $job[$#job] = "exec $1";
++	}
++
++    } else {
++	push @job, "# $_ - getty";
++	push @job, "#";
++	push @job, "# Converted from /etc/inittab entry";
++	push @job, "";
++
++	foreach my $rl (qw/2 3 4 5/) {
++	    if ($rlevel =~ /$rl/) {
++		push @job, "start on runlevel $rl";
++	    } else {
++		push @job, "stop on runlevel $rl";
++	    }
++	}
++	push @job, "";
++
++	push @job, "stop on shutdown";
++	push @job, "";
++
++	push @job, "respawn";
++	push @job, "exec $process";
++    }
++
++    open JOB, ">/etc/event.d/.$_"
++	or warn "Unable to write to /etc/event.d/.$_: $!" and next;
++    print JOB map { "$_\n" } @job;
++    unless (close JOB) {
++	warn "Error while closing /etc/event.d/.$_: $!";
++	unlink "/etc/event.d/.$_";
++	next;
++    }
++
++    unless (rename "/etc/event.d/.$_", "/etc/event.d/$_") {
++	warn "Unable to replace /etc/event.d/$_: $!";
++	unlink "/etc/event.d/.$_";
++	next;
++    }
++}
+--- upstart-0.6.6.orig/debian/copyright
++++ upstart-0.6.6/debian/copyright
+@@ -0,0 +1,18 @@
++This is the Ubuntu package of upstart, the event-based init daemon.
++
++Copyright © 2009 Canonical Ltd.
++Copyright © 2009 Scott James Remnant <scott@netsplit.com>
++
++Licence:
++
++This program is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License version 2, as
++published by the Free Software Foundation.
++
++This program is distributed in the hope that it will be useful, but
++WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++General Public License for more details.
++
++On Ubuntu systems, the complete text of the GNU General Public License
++can be found in ‘/usr/share/common-licenses/GPL’.
+--- upstart-0.6.6.orig/debian/upstart.postinst
++++ upstart-0.6.6/debian/upstart.postinst
+@@ -0,0 +1,62 @@
++#!/bin/sh -e
++# This script can be called in the following ways:
++#
++# After the package was installed:
++#	<postinst> configure <old-version>
++#
++#
++# If prerm fails during upgrade or fails on failed upgrade:
++#	<old-postinst> abort-upgrade <new-version>
++#
++# If prerm fails during deconfiguration of a package:
++#	<postinst> abort-deconfigure in-favour <new-package> <version>
++#	           removing <old-package> <version>
++#
++# If prerm fails during replacement due to conflict:
++#	<postinst> abort-remove in-favour <new-package> <version>
++
++
++# Remove a no-longer used conffile
++rm_conffile()
++{
++    CONFFILE="$1"
++
++    if [ -e "$CONFFILE".dpkg-obsolete ]; then
++	echo "Removing obsolete conffile $CONFFILE"
++	rm -f "$CONFFILE".dpkg-obsolete
++    fi
++}
++
++
++case "$1" in
++    configure)
++        if dpkg --compare-versions "$2" lt-nl 0.6.0; then
++	    # We're upgrading from a version of Upstart that doesn't use
++	    # D-Bus for its IPC.  We have to tell it to re-exec into one
++	    # that does.  It'll lose all state, but we didn't keep much
++	    # in those days.
++	    telinit u
++	else
++	    # Before we shutdown or reboot, we need to re-exec so that we
++	    # can safely remount the root filesystem; we can't just do that
++	    # here because we lose state.
++	    touch /var/run/init.upgraded || :
++	fi
++
++	# Upgrade from karmic development version
++	if dpkg --compare-versions "$2" lt-nl 0.6.3-7; then
++	    rm_conffile /etc/init/dbus-reconnect.conf
++	fi
++	;;
++
++    abort-upgrade|abort-deconfigure|abort-remove)
++	;;
++
++    *)
++	echo "$0 called with unknown argument \`$1'" 1>&2
++	exit 1
++	;;
++esac
++
++#DEBHELPER#
++exit 0
+--- upstart-0.6.6.orig/debian/README.Debian
++++ upstart-0.6.6/debian/README.Debian
+@@ -0,0 +1,200 @@
++upstart
++=======
++
++Upstart is a replacement for the traditional sysvinit package, and
++runs as process #1.  Through upstart, we are able to have an
++event-driven process, whilst at the same time retaining compatibility
++for the original sysvinit behaviour.
++
++This file documents how to do a few common operations with the new
++system.
++
++
++Where are initscripts installed?
++--------------------------------
++
++This has not changed, they are installed in /etc/init.d.  See
++/etc/init.d/README.
++
++Important system jobs are no longer shipped as initscripts, but as
++upstart jobs.  These are installed in /etc/init
++
++
++How are initscripts started and stopped?
++----------------------------------------
++
++This has not changed, symlinks are made from the initscript in the
++/etc/init.d directory to the /etc/rc?.d directories.  See
++/etc/init.d/README and /etc/rc?.d/README.
++
++
++What order are initscripts started and stopped in?
++--------------------------------------------------
++
++This has not changed, the symlinks are named SNNname or KNNname, where
++NN is a number from 00 to 99.  The K scripts are run first in
++numerical order, followed by the S scripts in numerical order.
++
++
++How do I find the current/previous runlevel?
++--------------------------------------------
++
++This has not changed, use the "runlevel" command.  See runlevel(8).
++
++
++How do I change the runlevel?
++-----------------------------
++
++This has not changed, use the "telinit" command or just invoke "init"
++directly.  See telinit(8).
++
++
++How do I change the default runlevel?
++-------------------------------------
++
++If you have an /etc/inittab file, edit it.  Locate the following line:
++
++    id:N:initdefault:
++
++Where N is the default runlevel, change this to match.
++
++Most people won't have that file, you can edit /etc/init/rc-sysinit.conf
++and change the following line:
++
++    env DEFAULT_RUNLEVEL=2
++
++
++How do I shutdown the machine?
++------------------------------
++
++This has not changed, use the "shutdown" command provided by the
++upstart package; you may also use the "reboot"/"halt"/"poweroff"
++commands as a short-cut.  See shutdown(8) and reboot(8).
++
++You can also press Control-Alt-Delete on a console to reboot the
++machine.
++
++
++How do I change the behaviour of Control-Alt-Delete?
++----------------------------------------------------
++
++Edit the /etc/init/control-alt-delete.conf file, the line beginning
++"exec" is what upstart will run when this key combination is pressed.
++
++To not do anything, you can simply delete this file.
++
++
++How do I enter single-user mode?
++--------------------------------
++
++This hasn't changed, choose the "(recovery mode)" option from GRUB;
++add "-s", "S" or "single" to the kernel command-line; or from a
++running machine, run "telinit 1" or "shutdown now".
++
++
++How do I reduce the number of gettys?
++-------------------------------------
++
++Also see "How do I change which runlevels gettys are run in?"
++
++In /etc/init there is a file named ttyN.conf for each getty that will be
++started, where N is numbered 1 to 6.  Remove any that you do not
++want.
++
++This will not take immediate effect, however you can run "stop ttyN"
++to stop one that is running.
++
++
++How do I change getty parameters?
++---------------------------------
++
++In /etc/init there is a file named ttyN.conf for each getty that will be
++started, where N is numbered 1 to 6.  Edit these files, the line
++beginning "respawn" is what upstart will run.
++
++This will not take immediate effect, run "stop ttyN" followed by
++"start ttyN" or just kill the running getty to respawn with the new
++parameters.
++
++
++How do I change which runlevels gettys are run in?
++--------------------------------------------------
++
++In /etc/init there is a file named ttyN.conf for each getty that will be
++started, where N is numbered 1 to 6.  Edit these files, there are two
++lines:
++
++   start on runlevel [2345]
++   stop on runlevel [!2345]
++
++Change the set of runlevels to match your taste.
++
++This will not take immediate effect, however you can run "stop ttyN"
++to stop one that is running or "start ttyN" to start one that isn't.
++
++
++How do I increase the number of gettys?
++---------------------------------------
++
++In /etc/init there is a file named ttyN.conf for each getty that will be
++started, where N is numbered 1 to 6.
++
++Copy one of these files to a new name, we suggest you simply name it
++after the tty, e.g. "ttyS0".
++
++Edit that file, change the "respawn" line to match your requirements;
++in particular you'll need to change the tty the getty should be run
++on.
++
++This will not take immediate effect, however you can run "start ttyN"
++to start the getty.
++
++
++How do I add a serial console?
++------------------------------
++
++See "How do I increase the number of gettys?"
++
++
++How can I see boot messages on the console?
++-------------------------------------------
++
++This is nothing to do with upstart, but I'll answer this anyway.
++Remove "quiet" from the kernel command-line.
++
++To make this permanent, edit /boot/grub/menu.lst and edit the line
++that begins "# defoptions=" (yes, it looks like a comment).
++
++This will change both usplash and the LSB init logging.
++
++
++Upstart isn't working, how do I debug it?
++-----------------------------------------
++
++Add "--debug" to the kernel command-line, and be sure to remove "quiet"
++and "splash".  You'll now see debugging messages as upstart works.
++
++
++Can I query upstart for a list of jobs?
++---------------------------------------
++
++Yes, "initctl list" will list the known jobs and their status.
++
++
++How do I manually start or stop a job?
++--------------------------------------
++
++Use "start JOB" or "stop JOB".
++
++
++How do I find the status of a job?
++----------------------------------
++
++Use "status JOB".
++
++
++Can I emit an event by hand?
++----------------------------
++
++Yes, "initctl emit EVENT" will emit the named event and cause any
++jobs waiting for it to be started or stopped as appropriate.
+--- upstart-0.6.6.orig/debian/compat
++++ upstart-0.6.6/debian/compat
+@@ -0,0 +1 @@
++7
+--- upstart-0.6.6.orig/debian/upstart.preinst
++++ upstart-0.6.6/debian/upstart.preinst
+@@ -0,0 +1,54 @@
++#!/bin/sh -e
++# This script can be called in the following ways:
++#
++# Before the package is installed:
++#	<new-preinst> install
++#
++# Before removed package is upgraded:
++#	<new-preinst> install <old-version>
++#
++# Before the package is upgraded:
++#	<new-preinst> upgrade <old-version>
++#
++#
++# If postrm fails during upgrade or fails on failed upgrade:
++#	<old-preinst> abort-upgrade <new-version>
++
++
++# Prepare to remove a no-longer used conffile
++prep_rm_conffile()
++{
++    CONFFILE="$1"
++
++    if [ -e "$CONFFILE" ]; then
++        md5sum="`md5sum \"$CONFFILE\" | sed -e \"s/ .*//\"`"
++        old_md5sum="`sed -n -e \"/^Conffiles:/,/^[^ ]/{\\\\' $CONFFILE '{s/ obsolete$//;s/.* //;p}}\" /var/lib/dpkg/status`"
++        if [ "$md5sum" != "$old_md5sum" ]; then
++            echo "Obsolete conffile $CONFFILE has been modified by you, renaming to .dpkg-bak"
++            mv -f "$CONFFILE" "$CONFFILE".dpkg-bak
++	else
++	    mv -f "$CONFFILE" "$CONFFILE".dpkg-obsolete
++	fi
++    fi
++}
++
++
++case "$1" in
++    install|upgrade)
++	# Upgrade from karmic development version
++	if dpkg --compare-versions "$2" lt-nl 0.6.3-7; then
++	    prep_rm_conffile /etc/init/dbus-reconnect.conf
++	fi
++	;;
++
++    abort-upgrade)
++	;;
++
++    *)
++	echo "$0 called with unknown argument \`$1'" 1>&2
++	exit 1
++	;;
++esac
++
++#DEBHELPER#
++exit 0
+--- upstart-0.6.6.orig/debian/changelog
++++ upstart-0.6.6/debian/changelog
+@@ -0,0 +1,708 @@
++upstart (0.6.6-4) maverick-proposed; urgency=low
++
++  * Re-add upstream r977 to allow proper re-exec on shutdown (LP: #672177)
++  * debian/control: adding Breaks on eglibc version that disables 
++    telinit u to avoid accidentally installing a version of libc6 that 
++    will cause upstart to re-exec and lose its state.
++
++ -- Clint Byrum <clint@ubuntu.com>  Wed, 29 Dec 2010 12:08:36 -0800
++
++upstart (0.6.6-3) maverick; urgency=low
++
++  * Ubuntu seems to have stopped installing Recommends of Build-Depends,
++    add a Build-Depend on dbus.  LP: #602130.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Thu, 12 Aug 2010 16:38:05 -0400
++
++upstart (0.6.6-2) maverick; urgency=low
++
++  * Apply patch from trunk to use /dev/null when /dev/console is unavailable
++    due to kernel bugs.  This isn't a fix for those bugs, but it does work
++    around it for now.  LP: #554172.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Thu, 12 Aug 2010 09:52:07 -0400
++
++upstart (0.6.6-1ubuntu1) maverick; urgency=low
++
++  * Try buying with -fPIE/-pie on armel again; we have a shiny new armel
++    toolchain and this part of the rules was broken in 0.6.6-1 anyway.
++
++ -- Loïc Minier <loic.minier@ubuntu.com>  Fri, 23 Jul 2010 14:54:11 +0200
++
++upstart (0.6.6-1) maverick; urgency=low
++
++  * New upstream release:
++    - All changes were previously merged into this package.
++
++  * debian/upstart-job:
++    - Fix output for the force-reload command to only refer to reload(8).
++      LP: #532862.
++
++  * Add debian/source/format with "1.0" to be future compatible.
++  * Add missing ${misc:Depends}.
++  * Bump standards version.
++  * Convert rules to dh7 format.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Tue, 27 Apr 2010 13:41:18 -0700
++
++upstart (0.6.5-6) lucid; urgency=low
++
++  * Merge fixes from trunk:
++    - double-quoting of NIH_CFLAGS and NIH_DBUS_CFLAGS on --with-local-libnih
++    - document "env KEY" behaviour
++  * conf/rc.conf, conf/rc-sysinit.conf:
++    - enable console output.  LP: #548954.
++    - pass value of INIT_VERBOSE from kernel command-line. 
++
++ -- Scott James Remnant <scott@ubuntu.com>  Thu, 01 Apr 2010 19:25:36 +0100
++
++upstart (0.6.5-5) lucid; urgency=low
++
++  * init/main.c:
++    - Don't change the settings of the foreground console, this is often
++      owned by plymouth and not supposed to be in Canonical Mode; all other
++      paths have stty sane settings anyway (which these are not), so there
++      really isn't need for init to do this.  LP: #540256.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 17 Mar 2010 22:34:55 +0000
++
++upstart (0.6.5-4) lucid; urgency=low
++
++  * debian/control:
++    - change Pre-Depends back to Depends, this was a holdover from when we
++      attempted to make Upstart Essential to solve early sysvinit→upstart
++      upgrade issues, we backed out the Essential bit but never the use of
++      Pre-Depends.  LP: #527722.
++    - add versioned-dependencies on ifupdown for loopback fix that can
++      prevent initscripts from being run.  LP: #527830.
++
++  * Merge patches from trunk to use /proc/self/fd instead of /dev/fd, and
++    to always mount /proc and /sys on boot.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Fri, 26 Feb 2010 15:40:58 +0000
++
++upstart (0.6.5-3) lucid; urgency=low
++
++  * udev/upstart-udev-bridge.c: use right variable name, fixing a build
++    failure. (LP: #524484)
++
++ -- Scott Moser <smoser@ubuntu.com>  Fri, 19 Feb 2010 10:21:33 -0500
++
++upstart (0.6.5-2) lucid; urgency=low
++
++  * udev/upstart-udev-bridge.c:
++    - Increase receiving buffer size for uevents so we don't miss any.
++      LP: #504883.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 17 Feb 2010 15:50:40 +0000
++
++upstart (0.6.5-1) lucid; urgency=low
++
++  * New upstream release:
++    - libnih has been separated out into its own project.
++    - "start on" and "stop on" now support != matches.  LP: #513035.
++    - Fixed crash in child when unable to spawn job.  LP: #451917.
++    - No longer holds /dev/console open so SAK won't kill init.  LP: #486005.
++    - Added missing OPTIONS section to init(8).  LP: #449883.
++
++  [ Scott James Remnant ]
++  * Build-depend on libnih-dev, libnih-dbus-dev and nih-dbus-tool to use
++    the separated out libnih.
++    - This has the fix for LP: #436758.
++    - Remove changelog.nih from the doc directory.
++  * Bump udev build-dependency to 147 to match upstream.
++  * udev/Makefile.am: Update to use external libnih
++
++  [ Johan Kiviniemi ]
++  * udev/upstart-udev-bridge.c: Change -device-remove to -device-removed to
++    match -device-added and -device-changed.  LP: #516698.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Thu, 04 Feb 2010 16:30:10 -0800
++
++upstart (0.6.3-11build1) lucid; urgency=low
++
++  * Rebuild to pick up relaxed dependency on libc6, after checking that
++    __abort_msg is available with the same signature in eglibc 2.11.
++   LP: #508702.
++
++ -- Matthias Klose <doko@ubuntu.com>  Mon, 18 Jan 2010 16:10:11 +0100
++
++upstart (0.6.3-11) karmic-proposed; urgency=low
++
++  * Make rc-sysinit.conf wait on the loopback interface, to ensure that the
++    interface is up before we process the scripts in /etc/rc?.d.  LP: #461725.
++
++ -- Steve Langasek <steve.langasek@ubuntu.com>  Tue, 08 Dec 2009 12:58:37 -0800
++
++upstart (0.6.3-10) karmic; urgency=low
++
++  * Retain the "telinit u" for the case when we're upgrading from pre-0.6
++    (ie. hardy or jaunty).  Whups.  LP: #451556.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Thu, 15 Oct 2009 17:48:47 +0100
++
++upstart (0.6.3-9) karmic; urgency=low
++
++  * Restore the call to sync() in reboot, have been observing some issues
++    and it looks like ext4 might not be explicitly flushing the disk when
++    remounting read-only.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 14 Oct 2009 16:40:32 +0100
++
++upstart (0.6.3-8) karmic; urgency=low
++
++  * Rather than calling "telinit u" after upgrade, which will lose state,
++    have the umountroot initscript take care of it for us by setting a
++    flag.  LP: #441796.
++  * Don't lose the original default runlevel if /etc/inittab exists without
++    an initdefault line.  LP: #405847.
++  * Fix "unhandled error" in shutdown when unable to change runlevel,
++    e.g. due to previous Ubiquity bug.  LP: #426332.
++  * Merge change from trunk that makes it possible to build Upstart using
++    a previously built copy of nih-dbus-tool, especially useful when
++    cross-compiling.  LP: #426740.
++  * Merge change from libnih to store our assertion messages in the
++    glibc __abort_msg symbol so apport can pick them up.  LP: #429411.
++  * Merge change from libnih to fix compilation issue with eglibc due
++    to changed alphasort() prototype.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 14 Oct 2009 05:34:13 +0100
++
++upstart (0.6.3-7) karmic; urgency=low
++
++  * Ignore initramfs pids that don't exist.  LP: #440071.
++    - you still need to ensure that the pid's parent is init, there's no
++      cheap way to test for that. 
++  * Remove "console owner" and "console output" from rc scripts.
++  * Try harder to remove dbus-reconnect.conf
++
++ -- Scott James Remnant <scott@ubuntu.com>  Fri, 02 Oct 2009 21:09:03 +0100
++
++upstart (0.6.3-6) karmic; urgency=low
++
++  * Don't use "telinit q" to reconnect to D-Bus, since that breaks
++    lots of things.  Invent another secret way instead.
++
++  [ Steve Langasek ]
++  * upstart-job's restart target must also not fail when the service is not
++    yet started.  LP: #430883.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Thu, 01 Oct 2009 15:26:19 +0100
++
++upstart (0.6.3-5) karmic; urgency=low
++
++  * Update autoconf and automake files.  LP: #435252.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 23 Sep 2009 14:16:34 -0700
++
++upstart (0.6.3-4) karmic; urgency=low
++
++  [ Scott James Remnant ]
++  * Reduce the priority of the stopped by/continued by messages so that
++    they are only shown when --verbose on the kernel command-line.
++    LP: #401333.
++  * Add a hack to look for /dev/.initramfs/*.pid files on startup and
++    "fake" start jobs of those names.  Basically this means that "status"
++    and "stop" work for things like bootchart and usplash.
++  * Implement a "reload" command in initctl that retrieves the current pid
++    of the job and sends it the HUP signal.  LP: #433544.
++
++  [ Steve Langasek ]
++  * debian/upstart-job:
++    - give proper policy-compliant behavior of the start command: detect if
++      the job is already running using upstart status, and if so return success.
++    - same for the stop command: return success if the job is already stopped.
++    - when $DPKG_MAINTSCRIPT_PACKAGE is set, don't spit warnings out because
++      it's not the user's fault - we're being invoked by a maintainer script.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Tue, 22 Sep 2009 13:56:48 -0700
++
++upstart (0.6.3-3) karmic; urgency=low
++
++  * debian/upstart-job:
++    - force-reload should only send a HUP signal, since it may not be wise
++      to actually restart (cf. dbus)
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 16 Sep 2009 00:10:13 +0100
++
++upstart (0.6.3-2) karmic; urgency=low
++
++  FFE LP: #427356.
++
++  * debian/upstart-job:
++    - Remove trailing "s" from file
++    - Support direct invocation better.
++  * udev/upstart-udev-bridge.c:
++    - New tool to capture events from the udev netlink socket and
++      convert into upstart events.
++  * conf/rc-sysinit.conf:
++    - Run once all filesystems are mounted, rather than on startup
++  * debian/control:
++    - Add dependency on mountall for the filesystem event.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Tue, 15 Sep 2009 03:19:09 +0100
++
++upstart (0.6.3-1) karmic; urgency=low
++
++  * New upstream release:
++    - Fixed assertion when a job exits while stopping.  LP: #406408.
++    - Fixed compilation on ia64.
++    - nih-dbus-tool(1) manpage no longer installed.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Mon, 03 Aug 2009 23:58:47 +0100
++
++upstart (0.6.2-1) karmic; urgency=low
++
++  * New upstream release:
++    - Fixed assertion when stopping a job during its starting event.
++    - Fixed fork following to not stop on exec() before fork()
++    - Fixed missing chdir() in crash handler.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 22 Jul 2009 10:39:50 +0100
++
++upstart (0.6.1-1) karmic; urgency=low
++
++  * New upstream release:
++    - Fixed race condition in ptrace() code.  LP: #264711.
++    - Fixed runlevel to output "unknown" not "N N".  LP: #400248.
++    - Fixed runlevel to prefix error messages with filename.  LP: #400241.
++
++  * Provide/Conflict/Replace the agreed "upstart-job" meta-package.
++    LP: #399799.
++  * Bump dpkg dependency to 1.2.16
++
++ -- Scott James Remnant <scott@ubuntu.com>  Thu, 16 Jul 2009 18:26:23 +0100
++
++upstart (0.6.0-5) karmic; urgency=low
++
++  * Cherry-pick patch from -r1188 to fix "expect fork" and "expect daemon"
++    LP: #264711.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Tue, 14 Jul 2009 15:19:17 +0100
++
++upstart (0.6.0-4) karmic; urgency=low
++
++  * Don't build the testsuite with -fPIE on armel; LP: #398403.
++
++ -- Loïc Minier <lool@dooz.org>  Mon, 13 Jul 2009 22:12:34 +0200
++
++upstart (0.6.0-3) karmic; urgency=low
++
++  * Add Conflicts on older Upstart packages to make update-manager's
++    job easier.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Fri, 10 Jul 2009 10:11:21 +0100
++
++upstart (0.6.0-2) karmic; urgency=low
++
++  * Bump D-Bus build dependency to ensure we get the container abandonment
++    patches, and the GIT version bump.
++  * Actually ship /lib/init/upstart-job
++
++ -- Scott James Remnant <scott@ubuntu.com>  Thu, 09 Jul 2009 17:29:59 +0100
++
++upstart (0.6.0-1) karmic; urgency=low
++
++  * New upstream release ("How appropriate, you fight like a cow")
++    - my customary changes list since pointless, it's basically a
++      complete rewrite.
++    - Handles /bin/sh symlink disappearing.  LP: #65024.
++    - Boot parameters may be passed to init scripts.  LP: #74664.
++    - reboot implies --force during shutdown.  LP: #388738.
++    - reboot no longer iterates /proc/ide.  LP: #92685.
++    - much improved documentation.  LP: #60429, #72058, #388715.
++
++  * Merge the various upstart packages into a single package, it makes
++    little sense to have it all spread out.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 08 Jul 2009 23:12:03 +0100
++
++upstart (0.3.10-2) karmic; urgency=low
++
++  * debian/upstart.postinst: Use telinit u to re-exec, rather than
++    kill just in case it's not Upstart that's running.  LP: #92177. 
++  * debian/event.d/system-services/tty*: Run getty in 8-bit clean
++    mode.  LP: #273189. 
++  * debian/event.d/upstart-compat-sysv/rc-default:
++    - Don't use grep -w, instead split on $IFS and iterate.  LP: #385911.
++    - Check for any valid runlevel, not just S.  LP: #85014.
++    - Make console owner, since it may spawn sulogin.
++  * debian/event.d/upstart-compat-sysv/rcS: 
++    - Spawn sulogin if given -b or "emergency".  LP: #193810.
++  * debian/event.d/upstart-compat-sysv/rcS:
++    - Make console owner.  LP: #211402.
++  * debian/event.d/upstart-compat-sysv/rcS-sulogin:
++    - Place the telinit code in post-stop, checking $UPSTART_EVENT first so
++      we don't change the runlevel if we were stopped due to a runlevel
++      change.  LP: #66002.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Thu, 18 Jun 2009 16:19:34 +0100
++
++upstart (0.3.10-1) karmic; urgency=low
++
++  * Compilation fixes.
++  * Fixed assertion caused by the post-start or pre-stop scripts
++    exiting after the main process of a respawning job had exited.
++    LP: #381048.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 17 Jun 2009 13:33:40 +0100
++
++upstart (0.3.9-8) intrepid; urgency=low
++
++  * Do not attempt to continue communicating with the restarted upstart
++    (LP: #273761).
++
++ -- Kees Cook <kees@ubuntu.com>  Mon, 29 Sep 2008 13:35:21 -0700
++
++upstart (0.3.9-7) intrepid; urgency=low
++
++  * Implement "telinit u" by just sending Upstart SIGTERM with a slightly
++    different patch than Fedora.  LP: #188925.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Tue, 23 Sep 2008 09:01:09 -0700
++
++upstart (0.3.9-6) intrepid; urgency=low
++
++  * Really fix LP: #237276 properly this time, lost the change while mucking
++    around with bzr.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 04 Jun 2008 22:29:48 +0100
++
++upstart (0.3.9-5) intrepid; urgency=low
++
++  * Correct build problem on amd64 and ia64 by only building libnih and
++    libupstart statically.  The shared objects were unwanted, and conflict
++    with -fPIE.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 04 Jun 2008 17:07:12 +0100
++
++upstart (0.3.9-4) intrepid; urgency=low
++
++  * Add missing limits.h, required to build with current libc.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 04 Jun 2008 13:09:32 +0100
++
++upstart (0.3.9-3) intrepid; urgency=low
++
++  * Change dependency from sysvutils to sysvinit-utils.  LP: #237276.
++  * Compile with stack -fstack-protector, -fPIE, -z relro, -z now and -pie
++    (MMmm, pie)
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 04 Jun 2008 12:59:11 +0100
++
++upstart (0.3.9-2) hardy; urgency=low
++
++  * Start the getty on tty1 after the rc script has stopped rather then
++    at the same time it starts to avoid overwriting by console messages.
++    tty2..6 will still be active if you want an early login.  LP: #65230.
++  * If the recovery menu is available start that instead of sulogin when
++    entering single-user-mode.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Fri, 11 Apr 2008 13:38:50 +0100
++
++upstart (0.3.9-1) hardy; urgency=low
++
++  * New upstream release:
++    - many bug fixes.
++
++  * Update reference to "edgy" in README.Debian to "hardy".  LP: #140037.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Sun, 28 Oct 2007 10:51:59 -0400
++
++upstart (0.3.8-2) gutsy; urgency=low
++
++  * Fix broken migration of old-style 'respawn process' stanzas which
++    produced corrupted 'exec' stanzas. Try to fix up files previously
++    corrupted by this. LP: #95210
++
++ -- Scott James Remnant <scott@ubuntu.com>  Sun, 28 Oct 2007 10:50:36 -0400
++
++upstart (0.3.8-1) feisty; urgency=low
++
++  * New upstream release:
++    - much improved initctl tool.
++
++  * Update my standard prep_/undo_/rm_conffile functions to take into account
++    current dpkg behaviour wrt obsolete conffiles.  The conffile is now moved
++    out of the way in preinst and the moved file deleted in postinst, or moved
++    back in postrm abort-upgrade.  This means it's not there when dpkg
++    configures the new version, so the conffile is not left in the list.
++  * Purge backups of modified obsolete conffiles when the package is purged.
++
++  * Update runlevel and respawn rule generated in migrate-inittab.pl
++    LP: #89314
++
++  * Drop 00-libnih-update.patch and 01-libnih-sparc-ftbfs.patch; new upstream
++    release includes an up-to-date libnih which contains both patches.
++  * Drop 10-cant-stop-execless-job.patch; included upstream.
++  * Drop 20-complex-event-config.patch; this is going to be significantly
++    changed upstream, and we don't want to ship something strange.
++  * Drop 30-fix-warnings.patch; included upstream.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Sun, 11 Mar 2007 19:19:00 +0000
++
++upstart (0.3.5-2) feisty; urgency=low
++
++  * Changed "start script" to "pre-start script" in sulogin event, the former
++    is no longer recognised.
++
++  * Applied 01-libnih-sparc-ftbfs.patch; this updates the signal name list
++    to exclude signals not available on that architecture, and add one that's
++    unique to it.
++  * Applied 30-fix-warnings.patch; this corrects a few warnings that spoiled
++    an otherwise clean build log.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Tue, 13 Feb 2007 15:56:33 +0000
++
++upstart (0.3.5-1) feisty; urgency=low
++
++  * New upstream release:
++    - inotify file descriptor leak fixed.  LP: #83099.
++    - inotify support is no longer required.  LP: #68904.
++    - new job state machine
++    - new event structure, can now include arguments and environment
++
++  * Applied 00-libnih-update.patch; this updates the libnih library to the
++    latest bzr trunk version, required for the complex-event-config patch.
++  * Applied 10-cant-stop-execless-job.patch from upstream; this corrects a
++    bug where jobs without an "exec" or "script" stanza cannot be stopped.
++  * Applied 20-complex-event-config.patch from upstream; this is an
++    experimental implementation of the "on" keyword that allows definition
++    of complex system states.
++
++  * System V compatibility jobs updated to match new event names.
++  * rcS job now sets PREVLEVEL and RUNLEVEL.  LP: #76304.
++
++  * NOTE: After this upgrade, init will appear to have "forgotten" the
++    process ids of your gettys, etc.  This is not a critical problem and
++    will be fixed before release.  Shutdown will still work as normal.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Mon, 12 Feb 2007 13:51:40 +0000
++
++upstart (0.3.1-1) feisty; urgency=low
++
++  * New upstream release:
++    - start, stop and status are now symlinks to initctl, not to a
++      different, separate utility.
++    - initctl completely rewritten to behave properly.
++    - some upstart-specific options to shutdown and reboot dropped, as
++      these are considered SysV-compat tools.
++    - "console none" fixed.  LP: #70782.
++    - improved documentation.  LP: #68805.
++
++  * shutdown and reboot moved to upstart-compat-sysv.
++
++  * Replace the /usr/share/doc/* directory in upstart-logd,
++    upstart-compat-sysv, system-services and startup-tasks with a symlink to
++    /usr/share/doc/upstart.  This was actually done in a previous package,
++    but the migration missed.  LP: #70895.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 13 Dec 2006 17:27:37 +0000
++
++upstart (0.2.7-7) edgy; urgency=low
++
++  * Don't abort the postinst if we can't send init SIGTERM.  Ubuntu: #64499.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Tue, 10 Oct 2006 10:13:05 +0100
++
++upstart (0.2.7-6) edgy; urgency=low
++
++  * Don't start gettys on tty2 thru tty6 in runlevels 4 and 5 (matches
++    our sysvinit configuration).
++  * Migrate common changes made to /etc/inittab to /etc/event.d by
++    adjusting the installed conffiles.  Ubuntu: #61539.
++
++  * Include missing AUTHORS and NEWS file in the upstart package.
++  * Include README.Debian which answers common questions.  Ubuntu: #60429.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Thu,  5 Oct 2006 16:08:34 +0100
++
++upstart (0.2.7-5) edgy; urgency=low
++
++  * Don't set the current runlevel in /var/run/utmp to 0 or 6 if it is
++    already either of those two values.  That way we don't end up with
++    either 0 or 6 in the PREVLEVEL variable, which can cause
++    /etc/init.d/rc to be "efficient" and not bother doing
++    anything.  Ubuntu: #63852.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed,  4 Oct 2006 14:06:18 +0100
++
++upstart (0.2.7-4) edgy; urgency=low
++
++  * Can't just start rc-default once in single-user mode, because if we
++    boot into that, that will just return us back to sulogin again.  Copy
++    the script out of rc-default into rcS-sulogin to call telinit with the
++    right default runlevel.  Ubuntu: #62189.
++
++  * Add Build-Depend on dpkg-dev (>= 1.13.19) due to our use of
++    ${binary:Version}.  Ubuntu: #61693.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Tue, 26 Sep 2006 17:20:42 +0100
++
++upstart (0.2.7-3) edgy; urgency=low
++
++  * Set the runlevel to "S" when we enter sulogin so that it appears
++    in utmp.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Thu, 21 Sep 2006 05:37:25 +0100
++
++upstart (0.2.7-2) edgy; urgency=low
++
++  * Ensure that the same version of upstart is installed as the version of
++    upstart-compat-sysv and upstart-logd; as the IPC protocol may change
++    between releases.
++
++  * Adjust the rcS-sulogin job so that if sulogin exits the default runlevel
++    is entered; but if the job is stopped (e.g. by shutdown) it isn't.  The
++    solves the regression introduced in the previous release.
++
++  * Revert upstream logd/"quiet" change in favour of doing it in our
++    lsb logging functions instead; seems to work better (fsvo better).
++
++ -- Scott James Remnant <scott@ubuntu.com>  Thu, 21 Sep 2006 03:12:33 +0100
++
++upstart (0.2.7-1) edgy; urgency=low
++
++  * New upstream release:
++    - logd now writes to the console unless "quiet" is specified
++    - runaway jobs caught when they start rather than respawn.  Ubuntu: #59807
++
++  * Fix failure to shutdown while in single-user mode, however this means
++    that for edgy you can't exit the sulogin shell to enter the default
++    runlevel; explicitly say what works.  Ubuntu: #60626.
++  * Drop unnecessary dependency on util-linux.
++  * Drop sulogin hack, instead depend on the version of sysvutils that
++    includes the real one.  Ubuntu: #60965.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 20 Sep 2006 05:39:16 +0100
++
++upstart (0.2.6-1) edgy; urgency=low
++
++  * New upstream release:
++    - fix infinite loop caused by bad waitid() call.  Ubuntu: #59459.
++    - halt now behaves as "shutdown -h now".  Ubuntu: #59720.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed, 13 Sep 2006 22:16:17 +0100
++
++upstart (0.2.5-1) edgy; urgency=low
++
++  * New upstream release:
++    - no longer spins when no stalled event handler.  Ubuntu: #59170.
++    - shutdown works when under sysvinit.  Ubuntu: #58523;
++    - shutdown -k implemented.  Ubuntu: #58723.
++    - telinit sends shutdown event for 0, 1 and 6.  Ubuntu: #58913.
++    - basic manual pages included.  Ubuntu: #58724.
++
++  * upstart-compat-sysv Replaces: sysvinit.  Ubuntu: #59427.
++  * upstart Recommends: upstart-compat-sysv, startup-tasks & system-services.
++
++  * New upstart-logd package includes the logd daemon that can will log
++    output of jobs with "console logged" (the default) in their description
++    to /var/log/boot.
++
++  * Add /etc/event.d/rc0 that is run on the "halt" event (neither -H or -P
++    given), and modify rc0-halt to run on "system-halt" (-H given) and
++    rc0-poweroff to run on "power-off" (-P given).  Ubuntu: #59134.
++  * Fix the control-alt-delete job to run on the "ctrlaltdel" event so
++    that it's triggered properly.  Ubuntu: #59398.
++  * Fix single-user mode.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Sat,  9 Sep 2006 05:10:12 +0100
++
++upstart (0.2.1-7) edgy; urgency=low
++
++  * Remove the Essential tags again, they didn't solve the problem we
++    hoped they would (dpkg/apt still won't remove sysvinit without
++    serious persuasion) and I don't think these packages should be.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Thu,  7 Sep 2006 02:42:33 +0100
++
++upstart (0.2.1-6) edgy; urgency=low
++
++  * Make packages Essential, and change Depends to Pre-Depends so that the
++    packages work when unconfigured (nothing interesting is performed in
++    postinst).  Ubuntu: #59005.
++  * Sync priority in debian/control with that in the archive (required)
++  * Drop warning of dire consequences if you install upstart, seeing as it's
++    installed by default.
++
++  * Add new startup-tasks and system-services packages which will contain
++    the /etc/event.d files themselves (other than the main ones).
++  * Move tty definitions into system-services.
++  * Modify tty definitions to start when the rcS task has finished.  This
++    puts them in the "right" place when compared to gdm.  Ubuntu: #58630.
++
++  * Correct rcS compatibility script to ignore any information in utmp so
++    that all scripts are always run.  Ubuntu: #59203.
++  * Make rcS the console owner while it runs, temporary fix for
++    Ubuntu: #58609, #58794, #58796
++  * Include default control-alt-delete handler that reboots the machine.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Wed,  6 Sep 2006 21:52:48 +0100
++
++upstart (0.2.1-5) edgy; urgency=low
++
++  * upstart-compat-sysv Depends: initscripts (closes: Malone #58979).
++
++ -- Colin Watson <cjwatson@ubuntu.com>  Tue,  5 Sep 2006 12:22:50 +0100
++
++upstart (0.2.1-4) edgy; urgency=low
++
++  * Add missing #! line to top of postrm
++
++ -- Scott James Remnant <scott@ubuntu.com>  Mon,  4 Sep 2006 08:11:16 +0100
++
++upstart (0.2.1-3) edgy; urgency=low
++
++  * Remove the rc0 configuration file shipped in 0.1.0 that causes all
++    reboots to become shutdowns.  Ubuntu: #58557.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Sun,  3 Sep 2006 23:24:41 +0100
++
++upstart (0.2.1-2) edgy; urgency=low
++
++  * Don't send the SIGTERM signal unless we're upgrading from a version
++    of upstart that supports re-exec; older versions would cause a kernel
++    PANIC and change from sysvinit does nothing.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Sat,  2 Sep 2006 17:18:38 +0100
++
++upstart (0.2.1-1) edgy; urgency=low
++
++  * New upstream release:
++    - compilation fixes.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Fri,  1 Sep 2006 19:51:41 +0100
++
++upstart (0.2.0-1) edgy; urgency=low
++
++  * New upstream release:
++    - upstart includes shutdown, reboot, halt, poweroff, start, stop, status,
++      runlevel and telinit utilities.
++    - "initctl list" will list active jobs.
++    - Events vastly simplified to just simple strings.
++  
++  * Compatibility tasks for old rc scripts, along with runlevel and telinit
++    utilities now shipped in upstart-compat-sysv package.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Fri,  1 Sep 2006 02:38:44 +0100
++
++upstart (0.1.1-1) edgy; urgency=low
++
++  * New upstream release:
++    - set PATH and TERM in processes
++
++ -- Scott James Remnant <scott@ubuntu.com>  Fri, 25 Aug 2006 16:17:52 +0200
++
++upstart (0.1.0-2) edgy; urgency=low
++
++  * Oops, rename /sbin/init to /sbin/upstart as documented.  Lost this
++    while battling bzr.
++
++ -- Scott James Remnant <scott@ubuntu.com>  Thu, 24 Aug 2006 16:30:54 +0200
++
++upstart (0.1.0-1) edgy; urgency=low
++  
++  * Initial release.
++  
++ -- Scott James Remnant <scott@ubuntu.com>  Thu, 24 Aug 2006 14:27:47 +0200
+--- upstart-0.6.6.orig/debian/upstart.docs
++++ upstart-0.6.6/debian/upstart.docs
+@@ -0,0 +1,2 @@
++AUTHORS
++NEWS
+--- upstart-0.6.6.orig/debian/control
++++ upstart-0.6.6/debian/control
+@@ -0,0 +1,19 @@
++Source: upstart
++Section: admin
++Priority: required
++Maintainer: Scott James Remnant <scott@ubuntu.com>
++Standards-Version: 3.8.4.0
++Build-Depends: debhelper (>= 7.3.15ubuntu2), pkg-config (>= 0.22), libnih-dev (>= 1.0.2), libnih-dbus-dev (>= 1.0.0), nih-dbus-tool, libdbus-1-dev (>= 1.2.16), libexpat1-dev (>= 2.0.0), libudev-dev (>= 151-5), dbus
++Homepage: http://upstart.ubuntu.com/
++
++Package: upstart
++Architecture: any
++Depends: ${shlibs:Depends}, ${misc:Depends}, sysvinit-utils, sysv-rc, initscripts, mountall, ifupdown (>= 0.6.8ubuntu29)
++Replaces: upstart-job, sysvinit, upstart-compat-sysv, startup-tasks, system-services
++Conflicts: upstart-job, sysvinit, upstart-compat-sysv, startup-tasks, system-services
++Provides: upstart-job, upstart-compat-sysv, startup-tasks, system-services
++Breaks: libc6 (<< 2.12.1-0ubuntu10.2)
++Description: event-based init daemon
++ upstart is a replacement for the /sbin/init daemon which handles
++ starting of tasks and services during boot, stopping them during
++ shutdown and supervising them while the system is running.
+--- upstart-0.6.6.orig/debian/conf/tty2.conf
++++ upstart-0.6.6/debian/conf/tty2.conf
+@@ -0,0 +1,10 @@
++# tty2 - getty
++#
++# This service maintains a getty on tty2 from the point the system is
++# started until it is shut down again.
++
++start on runlevel [23]
++stop on runlevel [!23]
++
++respawn
++exec /sbin/getty -8 38400 tty2
+--- upstart-0.6.6.orig/debian/conf/tty4.conf
++++ upstart-0.6.6/debian/conf/tty4.conf
+@@ -0,0 +1,10 @@
++# tty4 - getty
++#
++# This service maintains a getty on tty4 from the point the system is
++# started until it is shut down again.
++
++start on runlevel [23]
++stop on runlevel [!23]
++
++respawn
++exec /sbin/getty -8 38400 tty4
+--- upstart-0.6.6.orig/debian/conf/tty3.conf
++++ upstart-0.6.6/debian/conf/tty3.conf
+@@ -0,0 +1,10 @@
++# tty3 - getty
++#
++# This service maintains a getty on tty3 from the point the system is
++# started until it is shut down again.
++
++start on runlevel [23]
++stop on runlevel [!23]
++
++respawn
++exec /sbin/getty -8 38400 tty3
+--- upstart-0.6.6.orig/debian/conf/tty6.conf
++++ upstart-0.6.6/debian/conf/tty6.conf
+@@ -0,0 +1,10 @@
++# tty6 - getty
++#
++# This service maintains a getty on tty6 from the point the system is
++# started until it is shut down again.
++
++start on runlevel [23]
++stop on runlevel [!23]
++
++respawn
++exec /sbin/getty -8 38400 tty6
+--- upstart-0.6.6.orig/debian/conf/rcS.conf
++++ upstart-0.6.6/debian/conf/rcS.conf
+@@ -0,0 +1,32 @@
++# rcS - System V single-user mode compatibility
++#
++# This task handles the old System V-style single-user mode, this is
++# distinct from the other runlevels since running the rc script would
++# be bad.
++
++description	"System V single-user mode compatibility"
++author		"Scott James Remnant <scott@netsplit.com>"
++
++start on runlevel S
++stop on runlevel [!S]
++
++console owner
++script
++    if [ -x /usr/share/recovery-mode/recovery-menu ]; then
++	exec /usr/share/recovery-mode/recovery-menu
++    else
++	exec /sbin/sulogin
++    fi
++end script
++
++post-stop script
++    # Don't switch runlevels if we were stopped by an event, since that
++    # means we're already switching runlevels
++    if [ -n "${UPSTART_STOP_EVENTS}" ]
++    then
++	exit 0
++    fi
++
++    # Switch, passing a magic flag
++    start --no-wait rc-sysinit FROM_SINGLE_USER_MODE=y
++end script
+--- upstart-0.6.6.orig/debian/conf/tty5.conf
++++ upstart-0.6.6/debian/conf/tty5.conf
+@@ -0,0 +1,10 @@
++# tty5 - getty
++#
++# This service maintains a getty on tty5 from the point the system is
++# started until it is shut down again.
++
++start on runlevel [23]
++stop on runlevel [!23]
++
++respawn
++exec /sbin/getty -8 38400 tty5
+--- upstart-0.6.6.orig/debian/conf/tty1.conf
++++ upstart-0.6.6/debian/conf/tty1.conf
+@@ -0,0 +1,10 @@
++# tty1 - getty
++#
++# This service maintains a getty on tty1 from the point the system is
++# started until it is shut down again.
++
++start on stopped rc RUNLEVEL=[2345]
++stop on runlevel [!2345]
++
++respawn
++exec /sbin/getty -8 38400 tty1
+--- upstart-0.6.6.orig/debian/source/format
++++ upstart-0.6.6/debian/source/format
+@@ -0,0 +1 @@
++1.0
+--- upstart-0.6.6.orig/init/job_process.c
++++ upstart-0.6.6/init/job_process.c
+@@ -430,8 +430,20 @@
+ 	 * the FD_CLOEXEC flag so it's automatically closed when we exec()
+ 	 * later.
+ 	 */
+-	if (system_setup_console (class->console, FALSE) < 0)
+-		job_process_error_abort (fds[1], JOB_PROCESS_ERROR_CONSOLE, 0);
++	if (system_setup_console (class->console, FALSE) < 0) {
++		if (class->console == CONSOLE_OUTPUT) {
++			NihError *err;
++
++			err = nih_error_get ();
++			nih_warn (_("Failed to open system console: %s"),
++				  err->message);
++			nih_free (err);
++
++			if (system_setup_console (CONSOLE_NONE, FALSE) < 0)
++				job_process_error_abort (fds[1], JOB_PROCESS_ERROR_CONSOLE, 0);
++		} else
++			job_process_error_abort (fds[1], JOB_PROCESS_ERROR_CONSOLE, 0);
++	}
+ 
+ 	/* Set resource limits for the process, skipping over any that
+ 	 * aren't set in the job class such that they inherit from
+--- upstart-0.6.6.orig/init/main.c
++++ upstart-0.6.6/init/main.c
+@@ -31,6 +31,7 @@
+ 
+ #include <errno.h>
+ #include <stdio.h>
++#include <dirent.h>
+ #include <signal.h>
+ #include <stdlib.h>
+ #include <string.h>
+@@ -62,6 +63,9 @@
+ /* Prototypes for static functions */
+ #ifndef DEBUG
+ static void crash_handler   (int signum);
++#endif /* DEBUG */
++static void term_handler    (void *data, NihSignal *signal);
++#ifndef DEBUG
+ static void cad_handler     (void *data, NihSignal *signal);
+ static void kbd_handler     (void *data, NihSignal *signal);
+ static void pwr_handler     (void *data, NihSignal *signal);
+@@ -167,12 +171,7 @@
+ 	 */
+ 	setsid ();
+ 
+-	/* Set the standard file descriptors to the ordinary console device,
+-	 * resetting it to sane defaults unless we're inheriting from another
+-	 * init process which we know left it in a sane state.
+-	 */
+-	if (system_setup_console (CONSOLE_OUTPUT, (! restart)) < 0)
+-		nih_free (nih_error_get ());
++	/* Set the standard file descriptors. */
+ 	if (system_setup_console (CONSOLE_NONE, FALSE) < 0)
+ 		nih_free (nih_error_get ());
+ 
+@@ -263,8 +262,14 @@
+ 	/* SIGUSR1 instructs us to reconnect to D-Bus */
+ 	nih_signal_set_handler (SIGUSR1, nih_signal_handler);
+ 	NIH_MUST (nih_signal_add_handler (NULL, SIGUSR1, usr1_handler, NULL));
+-#endif /* DEBUG */
+ 
++	/* SIGTERM instructs us to re-exec ourselves; this should be the
++	 * last in the list to ensure that all other signals are handled
++	 * before a SIGTERM.
++	 */
++	nih_signal_set_handler (SIGTERM, nih_signal_handler);
++	NIH_MUST (nih_signal_add_handler (NULL, SIGTERM, term_handler, NULL));
++#endif /* DEBUG */
+ 
+ 	/* Watch children for events */
+ 	NIH_MUST (nih_child_add_watch (NULL, -1, NIH_CHILD_ALL,
+@@ -323,7 +328,68 @@
+ 	 * init daemon that exec'd us
+ 	 */
+ 	if (! restart) {
++		DIR *piddir;
++
+ 		NIH_MUST (event_new (NULL, STARTUP_EVENT, NULL));
++
++		/* Total hack, look for .pid files in /dev/.initramfs -
++		 * if there's a job config for them pretend that we
++		 * started it and it has that pid.
++		 */
++		piddir = opendir ("/dev/.initramfs");
++		if (piddir) {
++			struct dirent *ent;
++
++			while ((ent = readdir (piddir)) != NULL) {
++				char      path[PATH_MAX];
++				char *    ptr;
++				FILE *    pidfile;
++				pid_t     pid;
++				JobClass *class;
++				Job *     job;
++
++				if (ent->d_name[0] == '.')
++					continue;
++
++				strcpy (path, "/dev/.initramfs/");
++				strcat (path, ent->d_name);
++
++				ptr = strrchr (ent->d_name, '.');
++				if ((! ptr) || strcmp (ptr, ".pid"))
++					continue;
++
++				*ptr = '\0';
++				pidfile = fopen (path, "r");
++				if (! pidfile)
++					continue;
++
++				pid = -1;
++				if (fscanf (pidfile, "%d", &pid))
++					;
++				fclose (pidfile);
++
++				if ((pid < 0)
++				    || (kill (pid, 0) < 0))
++					continue;
++
++				class = (JobClass *)nih_hash_lookup (job_classes, ent->d_name);
++				if (! class)
++					continue;
++				if (! class->process[PROCESS_MAIN])
++					continue;
++				if (strlen (class->instance))
++					continue;
++
++				job = NIH_MUST (job_new (class, ""));
++				job->goal = JOB_START;
++				job->state = JOB_RUNNING;
++				job->pid[PROCESS_MAIN] = pid;
++
++				nih_debug ("%s inherited from initramfs with pid %d", class->name, pid);
++			}
++
++			closedir (piddir);
++		}
+ 	} else {
+ 		sigset_t mask;
+ 
+@@ -417,8 +483,61 @@
+ 	/* Goodbye, cruel world. */
+ 	exit (signum);
+ }
++#endif
+ 
+ /**
++ * term_handler:
++ * @data: unused,
++ * @signal: signal caught.
++ *
++ * This is called when we receive the TERM signal, which instructs us
++ * to reexec ourselves.
++ **/
++static void
++term_handler (void      *data,
++	      NihSignal *signal)
++{
++	NihError   *err;
++	const char *loglevel;
++	sigset_t    mask, oldmask;
++
++	nih_assert (argv0 != NULL);
++	nih_assert (signal != NULL);
++
++	nih_warn (_("Re-executing %s"), argv0);
++
++	/* Block signals while we work.  We're the last signal handler
++	 * installed so this should mean that they're all handled now.
++	 *
++	 * The child must make sure that it unblocks these again when
++	 * it's ready.
++	 */
++	sigfillset (&mask);
++	sigprocmask (SIG_BLOCK, &mask, &oldmask);
++
++	/* Argument list */
++	if (nih_log_priority <= NIH_LOG_DEBUG) {
++		loglevel = "--debug";
++	} else if (nih_log_priority <= NIH_LOG_INFO) {
++		loglevel = "--verbose";
++	} else if (nih_log_priority >= NIH_LOG_ERROR) {
++		loglevel = "--error";
++	} else {
++		loglevel = NULL;
++	}
++	execl (argv0, argv0, "--restart", loglevel, NULL);
++	nih_error_raise_system ();
++
++	err = nih_error_get ();
++	nih_error (_("Failed to re-execute %s: %s"), argv0, err->message);
++	nih_free (err);
++
++	sigprocmask (SIG_SETMASK, &oldmask, NULL);
++}
++
++
++#ifndef DEBUG
++/**
+  * cad_handler:
+  * @data: unused,
+  * @signal: signal that called this handler.
+--- upstart-0.6.6.orig/udev/Makefile.in
++++ upstart-0.6.6/udev/Makefile.in
+@@ -0,0 +1,777 @@
++# Makefile.in generated by automake 1.11.1 from Makefile.am.
++# @configure_input@
++
++# Copyright (C) 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
++# 2003, 2004, 2005, 2006, 2007, 2008, 2009  Free Software Foundation,
++# Inc.
++# This Makefile.in is free software; the Free Software Foundation
++# gives unlimited permission to copy and/or distribute it,
++# with or without modifications, as long as this notice is preserved.
++
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
++# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
++# PARTICULAR PURPOSE.
++
++@SET_MAKE@
++
++
++VPATH = @srcdir@
++pkgdatadir = $(datadir)/@PACKAGE@
++pkgincludedir = $(includedir)/@PACKAGE@
++pkglibdir = $(libdir)/@PACKAGE@
++pkglibexecdir = $(libexecdir)/@PACKAGE@
++am__cd = CDPATH="$${ZSH_VERSION+.}$(PATH_SEPARATOR)" && cd
++install_sh_DATA = $(install_sh) -c -m 644
++install_sh_PROGRAM = $(install_sh) -c
++install_sh_SCRIPT = $(install_sh) -c
++INSTALL_HEADER = $(INSTALL_DATA)
++transform = $(program_transform_name)
++NORMAL_INSTALL = :
++PRE_INSTALL = :
++POST_INSTALL = :
++NORMAL_UNINSTALL = :
++PRE_UNINSTALL = :
++POST_UNINSTALL = :
++build_triplet = @build@
++host_triplet = @host@
++sbin_PROGRAMS = upstart-udev-bridge$(EXEEXT)
++subdir = udev
++DIST_COMMON = $(dist_init_DATA) $(dist_man_MANS) $(srcdir)/Makefile.am \
++	$(srcdir)/Makefile.in
++ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
++am__aclocal_m4_deps = $(top_srcdir)/m4/codeset.m4 \
++	$(top_srcdir)/m4/gettext.m4 $(top_srcdir)/m4/glibc2.m4 \
++	$(top_srcdir)/m4/glibc21.m4 $(top_srcdir)/m4/iconv.m4 \
++	$(top_srcdir)/m4/intdiv0.m4 $(top_srcdir)/m4/intl.m4 \
++	$(top_srcdir)/m4/intlmacosx.m4 $(top_srcdir)/m4/intmax.m4 \
++	$(top_srcdir)/m4/inttypes-pri.m4 \
++	$(top_srcdir)/m4/inttypes_h.m4 $(top_srcdir)/m4/lcmessage.m4 \
++	$(top_srcdir)/m4/lib-ld.m4 $(top_srcdir)/m4/lib-link.m4 \
++	$(top_srcdir)/m4/lib-prefix.m4 $(top_srcdir)/m4/libnih.m4 \
++	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/lock.m4 \
++	$(top_srcdir)/m4/longlong.m4 $(top_srcdir)/m4/ltoptions.m4 \
++	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
++	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/m4/nls.m4 \
++	$(top_srcdir)/m4/pkg.m4 $(top_srcdir)/m4/po.m4 \
++	$(top_srcdir)/m4/printf-posix.m4 $(top_srcdir)/m4/progtest.m4 \
++	$(top_srcdir)/m4/size_max.m4 $(top_srcdir)/m4/stdint_h.m4 \
++	$(top_srcdir)/m4/uintmax_t.m4 $(top_srcdir)/m4/visibility.m4 \
++	$(top_srcdir)/m4/wchar_t.m4 $(top_srcdir)/m4/wint_t.m4 \
++	$(top_srcdir)/m4/xsize.m4 $(top_srcdir)/configure.ac
++am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
++	$(ACLOCAL_M4)
++mkinstalldirs = $(install_sh) -d
++CONFIG_HEADER = $(top_builddir)/config.h
++CONFIG_CLEAN_FILES =
++CONFIG_CLEAN_VPATH_FILES =
++am__installdirs = "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man8dir)" \
++	"$(DESTDIR)$(initdir)"
++PROGRAMS = $(sbin_PROGRAMS)
++am_upstart_udev_bridge_OBJECTS = upstart-udev-bridge.$(OBJEXT)
++am__objects_1 = com.ubuntu.Upstart.$(OBJEXT)
++nodist_upstart_udev_bridge_OBJECTS = $(am__objects_1)
++upstart_udev_bridge_OBJECTS = $(am_upstart_udev_bridge_OBJECTS) \
++	$(nodist_upstart_udev_bridge_OBJECTS)
++am__DEPENDENCIES_1 =
++upstart_udev_bridge_DEPENDENCIES = $(am__DEPENDENCIES_1) \
++	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
++	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
++AM_V_lt = $(am__v_lt_$(V))
++am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
++am__v_lt_0 = --silent
++DEFAULT_INCLUDES = 
++depcomp = $(SHELL) $(top_srcdir)/depcomp
++am__depfiles_maybe = depfiles
++am__mv = mv -f
++COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
++	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
++LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
++	$(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) \
++	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
++	$(AM_CFLAGS) $(CFLAGS)
++AM_V_CC = $(am__v_CC_$(V))
++am__v_CC_ = $(am__v_CC_$(AM_DEFAULT_VERBOSITY))
++am__v_CC_0 = @echo "  CC    " $@;
++AM_V_at = $(am__v_at_$(V))
++am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
++am__v_at_0 = @
++CCLD = $(CC)
++LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
++	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
++	$(AM_LDFLAGS) $(LDFLAGS) -o $@
++AM_V_CCLD = $(am__v_CCLD_$(V))
++am__v_CCLD_ = $(am__v_CCLD_$(AM_DEFAULT_VERBOSITY))
++am__v_CCLD_0 = @echo "  CCLD  " $@;
++AM_V_GEN = $(am__v_GEN_$(V))
++am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
++am__v_GEN_0 = @echo "  GEN   " $@;
++SOURCES = $(upstart_udev_bridge_SOURCES) \
++	$(nodist_upstart_udev_bridge_SOURCES)
++DIST_SOURCES = $(upstart_udev_bridge_SOURCES)
++am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
++am__vpath_adj = case $$p in \
++    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
++    *) f=$$p;; \
++  esac;
++am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
++am__install_max = 40
++am__nobase_strip_setup = \
++  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
++am__nobase_strip = \
++  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
++am__nobase_list = $(am__nobase_strip_setup); \
++  for p in $$list; do echo "$$p $$p"; done | \
++  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
++  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
++    if (++n[$$2] == $(am__install_max)) \
++      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
++    END { for (dir in files) print dir, files[dir] }'
++am__base_list = \
++  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
++  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
++man8dir = $(mandir)/man8
++NROFF = nroff
++MANS = $(dist_man_MANS)
++DATA = $(dist_init_DATA)
++ETAGS = etags
++CTAGS = ctags
++DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
++ACLOCAL = @ACLOCAL@
++ALLOCA = @ALLOCA@
++AMTAR = @AMTAR@
++AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
++AR = @AR@
++AUTOCONF = @AUTOCONF@
++AUTOHEADER = @AUTOHEADER@
++AUTOMAKE = @AUTOMAKE@
++AWK = @AWK@
++BUILD_INCLUDED_LIBINTL = @BUILD_INCLUDED_LIBINTL@
++CATOBJEXT = @CATOBJEXT@
++CC = @CC@
++CCDEPMODE = @CCDEPMODE@
++CFLAGS = @CFLAGS@
++CFLAG_VISIBILITY = @CFLAG_VISIBILITY@
++CPP = @CPP@
++CPPFLAGS = @CPPFLAGS@
++CYGPATH_W = @CYGPATH_W@
++DATADIRNAME = @DATADIRNAME@
++DBUS_CFLAGS = @DBUS_CFLAGS@
++DBUS_LIBS = @DBUS_LIBS@
++DEFS = @DEFS@
++DEPDIR = @DEPDIR@
++DSYMUTIL = @DSYMUTIL@
++DUMPBIN = @DUMPBIN@
++ECHO_C = @ECHO_C@
++ECHO_N = @ECHO_N@
++ECHO_T = @ECHO_T@
++EGREP = @EGREP@
++EXEEXT = @EXEEXT@
++FGREP = @FGREP@
++GENCAT = @GENCAT@
++GETTEXT_MACRO_VERSION = @GETTEXT_MACRO_VERSION@
++GLIBC2 = @GLIBC2@
++GLIBC21 = @GLIBC21@
++GMSGFMT = @GMSGFMT@
++GMSGFMT_015 = @GMSGFMT_015@
++GREP = @GREP@
++HAVE_ASPRINTF = @HAVE_ASPRINTF@
++HAVE_POSIX_PRINTF = @HAVE_POSIX_PRINTF@
++HAVE_SNPRINTF = @HAVE_SNPRINTF@
++HAVE_VISIBILITY = @HAVE_VISIBILITY@
++HAVE_WPRINTF = @HAVE_WPRINTF@
++INSTALL = @INSTALL@
++INSTALL_DATA = @INSTALL_DATA@
++INSTALL_PROGRAM = @INSTALL_PROGRAM@
++INSTALL_SCRIPT = @INSTALL_SCRIPT@
++INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
++INSTOBJEXT = @INSTOBJEXT@
++INTLBISON = @INTLBISON@
++INTLLIBS = @INTLLIBS@
++INTLOBJS = @INTLOBJS@
++INTL_LIBTOOL_SUFFIX_PREFIX = @INTL_LIBTOOL_SUFFIX_PREFIX@
++INTL_MACOSX_LIBS = @INTL_MACOSX_LIBS@
++LD = @LD@
++LDFLAGS = @LDFLAGS@
++LIBICONV = @LIBICONV@
++LIBINTL = @LIBINTL@
++LIBMULTITHREAD = @LIBMULTITHREAD@
++LIBOBJS = @LIBOBJS@
++LIBPTH = @LIBPTH@
++LIBPTH_PREFIX = @LIBPTH_PREFIX@
++LIBS = @LIBS@
++LIBTHREAD = @LIBTHREAD@
++LIBTOOL = @LIBTOOL@
++LIPO = @LIPO@
++LN_S = @LN_S@
++LTLIBC = @LTLIBC@
++LTLIBICONV = @LTLIBICONV@
++LTLIBINTL = @LTLIBINTL@
++LTLIBMULTITHREAD = @LTLIBMULTITHREAD@
++LTLIBOBJS = @LTLIBOBJS@
++LTLIBPTH = @LTLIBPTH@
++LTLIBTHREAD = @LTLIBTHREAD@
++MAINT = @MAINT@
++MAKEINFO = @MAKEINFO@
++MKDIR_P = @MKDIR_P@
++MSGFMT = @MSGFMT@
++MSGFMT_015 = @MSGFMT_015@
++MSGMERGE = @MSGMERGE@
++NIH_CFLAGS = @NIH_CFLAGS@
++NIH_DBUS_CFLAGS = @NIH_DBUS_CFLAGS@
++NIH_DBUS_LIBS = @NIH_DBUS_LIBS@
++NIH_DBUS_TOOL = @NIH_DBUS_TOOL@
++NIH_LIBS = @NIH_LIBS@
++NM = @NM@
++NMEDIT = @NMEDIT@
++OBJDUMP = @OBJDUMP@
++OBJEXT = @OBJEXT@
++OTOOL = @OTOOL@
++OTOOL64 = @OTOOL64@
++PACKAGE = @PACKAGE@
++PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
++PACKAGE_COPYRIGHT = @PACKAGE_COPYRIGHT@
++PACKAGE_NAME = @PACKAGE_NAME@
++PACKAGE_STRING = @PACKAGE_STRING@
++PACKAGE_TARNAME = @PACKAGE_TARNAME@
++PACKAGE_URL = @PACKAGE_URL@
++PACKAGE_VERSION = @PACKAGE_VERSION@
++PATH_SEPARATOR = @PATH_SEPARATOR@
++PKG_CONFIG = @PKG_CONFIG@
++POSUB = @POSUB@
++PRI_MACROS_BROKEN = @PRI_MACROS_BROKEN@
++RANLIB = @RANLIB@
++SED = @SED@
++SET_MAKE = @SET_MAKE@
++SHELL = @SHELL@
++STRIP = @STRIP@
++UDEV_CFLAGS = @UDEV_CFLAGS@
++UDEV_LIBS = @UDEV_LIBS@
++USE_INCLUDED_LIBINTL = @USE_INCLUDED_LIBINTL@
++USE_NLS = @USE_NLS@
++VERSION = @VERSION@
++WINDRES = @WINDRES@
++WOE32 = @WOE32@
++WOE32DLL = @WOE32DLL@
++XGETTEXT = @XGETTEXT@
++XGETTEXT_015 = @XGETTEXT_015@
++XGETTEXT_EXTRA_OPTIONS = @XGETTEXT_EXTRA_OPTIONS@
++abs_builddir = @abs_builddir@
++abs_srcdir = @abs_srcdir@
++abs_top_builddir = @abs_top_builddir@
++abs_top_srcdir = @abs_top_srcdir@
++ac_ct_CC = @ac_ct_CC@
++ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
++am__include = @am__include@
++am__leading_dot = @am__leading_dot@
++am__quote = @am__quote@
++am__tar = @am__tar@
++am__untar = @am__untar@
++bindir = @bindir@
++build = @build@
++build_alias = @build_alias@
++build_cpu = @build_cpu@
++build_os = @build_os@
++build_vendor = @build_vendor@
++builddir = @builddir@
++datadir = @datadir@
++datarootdir = @datarootdir@
++docdir = @docdir@
++dvidir = @dvidir@
++exec_prefix = @exec_prefix@
++host = @host@
++host_alias = @host_alias@
++host_cpu = @host_cpu@
++host_os = @host_os@
++host_vendor = @host_vendor@
++htmldir = @htmldir@
++includedir = @includedir@
++infodir = @infodir@
++install_sh = @install_sh@
++libdir = @libdir@
++libexecdir = @libexecdir@
++localedir = @localedir@
++localstatedir = @localstatedir@
++lt_ECHO = @lt_ECHO@
++mandir = @mandir@
++mkdir_p = @mkdir_p@
++oldincludedir = @oldincludedir@
++pdfdir = @pdfdir@
++prefix = @prefix@
++program_transform_name = @program_transform_name@
++psdir = @psdir@
++sbindir = @sbindir@
++sharedstatedir = @sharedstatedir@
++srcdir = @srcdir@
++sysconfdir = @sysconfdir@
++target_alias = @target_alias@
++top_build_prefix = @top_build_prefix@
++top_builddir = @top_builddir@
++top_srcdir = @top_srcdir@
++AM_CFLAGS = \
++	$(NIH_CFLAGS) \
++	$(NIH_DBUS_CFLAGS) \
++	$(DBUS_CFLAGS) \
++	$(UDEV_CFLAGS)
++
++AM_CPPFLAGS = \
++	-DLOCALEDIR="\"$(localedir)\"" \
++	-I$(top_builddir) -I$(top_srcdir) -iquote$(builddir) -iquote$(srcdir) \
++	-I$(top_srcdir)/intl
++
++initdir = $(sysconfdir)/init
++dist_init_DATA = \
++	conf/upstart-udev-bridge.conf
++
++dist_man_MANS = \
++	man/upstart-udev-bridge.8
++
++upstart_udev_bridge_SOURCES = \
++	upstart-udev-bridge.c
++
++nodist_upstart_udev_bridge_SOURCES = \
++	$(com_ubuntu_Upstart_OUTPUTS)
++
++upstart_udev_bridge_LDADD = \
++	$(LTLIBINTL) \
++	$(NIH_LIBS) \
++	$(NIH_DBUS_LIBS) \
++	$(DBUS_LIBS) \
++	$(UDEV_LIBS)
++
++com_ubuntu_Upstart_OUTPUTS = \
++	com.ubuntu.Upstart.c \
++	com.ubuntu.Upstart.h
++
++com_ubuntu_Upstart_XML = \
++	../dbus/com.ubuntu.Upstart.xml
++
++
++# These have to be built sources because we can't compile object files
++# without the header file existing first
++BUILT_SOURCES = \
++	$(com_ubuntu_Upstart_OUTPUTS)
++
++CLEANFILES = \
++	$(com_ubuntu_Upstart_OUTPUTS)
++
++all: $(BUILT_SOURCES)
++	$(MAKE) $(AM_MAKEFLAGS) all-am
++
++.SUFFIXES:
++.SUFFIXES: .c .lo .o .obj
++$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
++	@for dep in $?; do \
++	  case '$(am__configure_deps)' in \
++	    *$$dep*) \
++	      ( cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh ) \
++	        && { if test -f $@; then exit 0; else break; fi; }; \
++	      exit 1;; \
++	  esac; \
++	done; \
++	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu udev/Makefile'; \
++	$(am__cd) $(top_srcdir) && \
++	  $(AUTOMAKE) --gnu udev/Makefile
++.PRECIOUS: Makefile
++Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
++	@case '$?' in \
++	  *config.status*) \
++	    cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh;; \
++	  *) \
++	    echo ' cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe)'; \
++	    cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe);; \
++	esac;
++
++$(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
++	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
++
++$(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
++	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
++$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
++	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
++$(am__aclocal_m4_deps):
++install-sbinPROGRAMS: $(sbin_PROGRAMS)
++	@$(NORMAL_INSTALL)
++	test -z "$(sbindir)" || $(MKDIR_P) "$(DESTDIR)$(sbindir)"
++	@list='$(sbin_PROGRAMS)'; test -n "$(sbindir)" || list=; \
++	for p in $$list; do echo "$$p $$p"; done | \
++	sed 's/$(EXEEXT)$$//' | \
++	while read p p1; do if test -f $$p || test -f $$p1; \
++	  then echo "$$p"; echo "$$p"; else :; fi; \
++	done | \
++	sed -e 'p;s,.*/,,;n;h' -e 's|.*|.|' \
++	    -e 'p;x;s,.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/' | \
++	sed 'N;N;N;s,\n, ,g' | \
++	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1 } \
++	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
++	    if ($$2 == $$4) files[d] = files[d] " " $$1; \
++	    else { print "f", $$3 "/" $$4, $$1; } } \
++	  END { for (d in files) print "f", d, files[d] }' | \
++	while read type dir files; do \
++	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
++	    test -z "$$files" || { \
++	    echo " $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(sbindir)$$dir'"; \
++	    $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(sbindir)$$dir" || exit $$?; \
++	    } \
++	; done
++
++uninstall-sbinPROGRAMS:
++	@$(NORMAL_UNINSTALL)
++	@list='$(sbin_PROGRAMS)'; test -n "$(sbindir)" || list=; \
++	files=`for p in $$list; do echo "$$p"; done | \
++	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
++	      -e 's/$$/$(EXEEXT)/' `; \
++	test -n "$$list" || exit 0; \
++	echo " ( cd '$(DESTDIR)$(sbindir)' && rm -f" $$files ")"; \
++	cd "$(DESTDIR)$(sbindir)" && rm -f $$files
++
++clean-sbinPROGRAMS:
++	@list='$(sbin_PROGRAMS)'; test -n "$$list" || exit 0; \
++	echo " rm -f" $$list; \
++	rm -f $$list || exit $$?; \
++	test -n "$(EXEEXT)" || exit 0; \
++	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
++	echo " rm -f" $$list; \
++	rm -f $$list
++upstart-udev-bridge$(EXEEXT): $(upstart_udev_bridge_OBJECTS) $(upstart_udev_bridge_DEPENDENCIES) 
++	@rm -f upstart-udev-bridge$(EXEEXT)
++	$(AM_V_CCLD)$(LINK) $(upstart_udev_bridge_OBJECTS) $(upstart_udev_bridge_LDADD) $(LIBS)
++
++mostlyclean-compile:
++	-rm -f *.$(OBJEXT)
++
++distclean-compile:
++	-rm -f *.tab.c
++
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/com.ubuntu.Upstart.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/upstart-udev-bridge.Po@am__quote@
++
++.c.o:
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
++@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(COMPILE) -c $<
++
++.c.obj:
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
++@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
++
++.c.lo:
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
++@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
++
++mostlyclean-libtool:
++	-rm -f *.lo
++
++clean-libtool:
++	-rm -rf .libs _libs
++install-man8: $(dist_man_MANS)
++	@$(NORMAL_INSTALL)
++	test -z "$(man8dir)" || $(MKDIR_P) "$(DESTDIR)$(man8dir)"
++	@list=''; test -n "$(man8dir)" || exit 0; \
++	{ for i in $$list; do echo "$$i"; done; \
++	l2='$(dist_man_MANS)'; for i in $$l2; do echo "$$i"; done | \
++	  sed -n '/\.8[a-z]*$$/p'; \
++	} | while read p; do \
++	  if test -f $$p; then d=; else d="$(srcdir)/"; fi; \
++	  echo "$$d$$p"; echo "$$p"; \
++	done | \
++	sed -e 'n;s,.*/,,;p;h;s,.*\.,,;s,^[^8][0-9a-z]*$$,8,;x' \
++	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,' | \
++	sed 'N;N;s,\n, ,g' | { \
++	list=; while read file base inst; do \
++	  if test "$$base" = "$$inst"; then list="$$list $$file"; else \
++	    echo " $(INSTALL_DATA) '$$file' '$(DESTDIR)$(man8dir)/$$inst'"; \
++	    $(INSTALL_DATA) "$$file" "$(DESTDIR)$(man8dir)/$$inst" || exit $$?; \
++	  fi; \
++	done; \
++	for i in $$list; do echo "$$i"; done | $(am__base_list) | \
++	while read files; do \
++	  test -z "$$files" || { \
++	    echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(man8dir)'"; \
++	    $(INSTALL_DATA) $$files "$(DESTDIR)$(man8dir)" || exit $$?; }; \
++	done; }
++
++uninstall-man8:
++	@$(NORMAL_UNINSTALL)
++	@list=''; test -n "$(man8dir)" || exit 0; \
++	files=`{ for i in $$list; do echo "$$i"; done; \
++	l2='$(dist_man_MANS)'; for i in $$l2; do echo "$$i"; done | \
++	  sed -n '/\.8[a-z]*$$/p'; \
++	} | sed -e 's,.*/,,;h;s,.*\.,,;s,^[^8][0-9a-z]*$$,8,;x' \
++	      -e 's,\.[0-9a-z]*$$,,;$(transform);G;s,\n,.,'`; \
++	test -z "$$files" || { \
++	  echo " ( cd '$(DESTDIR)$(man8dir)' && rm -f" $$files ")"; \
++	  cd "$(DESTDIR)$(man8dir)" && rm -f $$files; }
++install-dist_initDATA: $(dist_init_DATA)
++	@$(NORMAL_INSTALL)
++	test -z "$(initdir)" || $(MKDIR_P) "$(DESTDIR)$(initdir)"
++	@list='$(dist_init_DATA)'; test -n "$(initdir)" || list=; \
++	for p in $$list; do \
++	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
++	  echo "$$d$$p"; \
++	done | $(am__base_list) | \
++	while read files; do \
++	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(initdir)'"; \
++	  $(INSTALL_DATA) $$files "$(DESTDIR)$(initdir)" || exit $$?; \
++	done
++
++uninstall-dist_initDATA:
++	@$(NORMAL_UNINSTALL)
++	@list='$(dist_init_DATA)'; test -n "$(initdir)" || list=; \
++	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
++	test -n "$$files" || exit 0; \
++	echo " ( cd '$(DESTDIR)$(initdir)' && rm -f" $$files ")"; \
++	cd "$(DESTDIR)$(initdir)" && rm -f $$files
++
++ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
++	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
++	unique=`for i in $$list; do \
++	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
++	  done | \
++	  $(AWK) '{ files[$$0] = 1; nonempty = 1; } \
++	      END { if (nonempty) { for (i in files) print i; }; }'`; \
++	mkid -fID $$unique
++tags: TAGS
++
++TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
++		$(TAGS_FILES) $(LISP)
++	set x; \
++	here=`pwd`; \
++	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
++	unique=`for i in $$list; do \
++	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
++	  done | \
++	  $(AWK) '{ files[$$0] = 1; nonempty = 1; } \
++	      END { if (nonempty) { for (i in files) print i; }; }'`; \
++	shift; \
++	if test -z "$(ETAGS_ARGS)$$*$$unique"; then :; else \
++	  test -n "$$unique" || unique=$$empty_fix; \
++	  if test $$# -gt 0; then \
++	    $(ETAGS) $(ETAGSFLAGS) $(AM_ETAGSFLAGS) $(ETAGS_ARGS) \
++	      "$$@" $$unique; \
++	  else \
++	    $(ETAGS) $(ETAGSFLAGS) $(AM_ETAGSFLAGS) $(ETAGS_ARGS) \
++	      $$unique; \
++	  fi; \
++	fi
++ctags: CTAGS
++CTAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
++		$(TAGS_FILES) $(LISP)
++	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
++	unique=`for i in $$list; do \
++	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
++	  done | \
++	  $(AWK) '{ files[$$0] = 1; nonempty = 1; } \
++	      END { if (nonempty) { for (i in files) print i; }; }'`; \
++	test -z "$(CTAGS_ARGS)$$unique" \
++	  || $(CTAGS) $(CTAGSFLAGS) $(AM_CTAGSFLAGS) $(CTAGS_ARGS) \
++	     $$unique
++
++GTAGS:
++	here=`$(am__cd) $(top_builddir) && pwd` \
++	  && $(am__cd) $(top_srcdir) \
++	  && gtags -i $(GTAGS_ARGS) "$$here"
++
++distclean-tags:
++	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH tags
++
++distdir: $(DISTFILES)
++	@list='$(MANS)'; if test -n "$$list"; then \
++	  list=`for p in $$list; do \
++	    if test -f $$p; then d=; else d="$(srcdir)/"; fi; \
++	    if test -f "$$d$$p"; then echo "$$d$$p"; else :; fi; done`; \
++	  if test -n "$$list" && \
++	    grep 'ab help2man is required to generate this page' $$list >/dev/null; then \
++	    echo "error: found man pages containing the \`missing help2man' replacement text:" >&2; \
++	    grep -l 'ab help2man is required to generate this page' $$list | sed 's/^/         /' >&2; \
++	    echo "       to fix them, install help2man, remove and regenerate the man pages;" >&2; \
++	    echo "       typically \`make maintainer-clean' will remove them" >&2; \
++	    exit 1; \
++	  else :; fi; \
++	else :; fi
++	@srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
++	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's/[].[^$$\\*]/\\\\&/g'`; \
++	list='$(DISTFILES)'; \
++	  dist_files=`for file in $$list; do echo $$file; done | \
++	  sed -e "s|^$$srcdirstrip/||;t" \
++	      -e "s|^$$topsrcdirstrip/|$(top_builddir)/|;t"`; \
++	case $$dist_files in \
++	  */*) $(MKDIR_P) `echo "$$dist_files" | \
++			   sed '/\//!d;s|^|$(distdir)/|;s,/[^/]*$$,,' | \
++			   sort -u` ;; \
++	esac; \
++	for file in $$dist_files; do \
++	  if test -f $$file || test -d $$file; then d=.; else d=$(srcdir); fi; \
++	  if test -d $$d/$$file; then \
++	    dir=`echo "/$$file" | sed -e 's,/[^/]*$$,,'`; \
++	    if test -d "$(distdir)/$$file"; then \
++	      find "$(distdir)/$$file" -type d ! -perm -700 -exec chmod u+rwx {} \;; \
++	    fi; \
++	    if test -d $(srcdir)/$$file && test $$d != $(srcdir); then \
++	      cp -fpR $(srcdir)/$$file "$(distdir)$$dir" || exit 1; \
++	      find "$(distdir)/$$file" -type d ! -perm -700 -exec chmod u+rwx {} \;; \
++	    fi; \
++	    cp -fpR $$d/$$file "$(distdir)$$dir" || exit 1; \
++	  else \
++	    test -f "$(distdir)/$$file" \
++	    || cp -p $$d/$$file "$(distdir)/$$file" \
++	    || exit 1; \
++	  fi; \
++	done
++check-am: all-am
++check: $(BUILT_SOURCES)
++	$(MAKE) $(AM_MAKEFLAGS) check-am
++all-am: Makefile $(PROGRAMS) $(MANS) $(DATA)
++installdirs:
++	for dir in "$(DESTDIR)$(sbindir)" "$(DESTDIR)$(man8dir)" "$(DESTDIR)$(initdir)"; do \
++	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
++	done
++install: $(BUILT_SOURCES)
++	$(MAKE) $(AM_MAKEFLAGS) install-am
++install-exec: install-exec-am
++install-data: install-data-am
++uninstall: uninstall-am
++
++install-am: all-am
++	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
++
++installcheck: installcheck-am
++install-strip:
++	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
++	  install_sh_PROGRAM="$(INSTALL_STRIP_PROGRAM)" INSTALL_STRIP_FLAG=-s \
++	  `test -z '$(STRIP)' || \
++	    echo "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'"` install
++mostlyclean-generic:
++
++clean-generic:
++	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
++
++distclean-generic:
++	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
++	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
++
++maintainer-clean-generic:
++	@echo "This command is intended for maintainers to use"
++	@echo "it deletes files that may require special tools to rebuild."
++	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
++clean: clean-am
++
++clean-am: clean-generic clean-libtool clean-local clean-sbinPROGRAMS \
++	mostlyclean-am
++
++distclean: distclean-am
++	-rm -rf ./$(DEPDIR)
++	-rm -f Makefile
++distclean-am: clean-am distclean-compile distclean-generic \
++	distclean-tags
++
++dvi: dvi-am
++
++dvi-am:
++
++html: html-am
++
++html-am:
++
++info: info-am
++
++info-am:
++
++install-data-am: install-dist_initDATA install-man
++
++install-dvi: install-dvi-am
++
++install-dvi-am:
++
++install-exec-am: install-sbinPROGRAMS
++
++install-html: install-html-am
++
++install-html-am:
++
++install-info: install-info-am
++
++install-info-am:
++
++install-man: install-man8
++
++install-pdf: install-pdf-am
++
++install-pdf-am:
++
++install-ps: install-ps-am
++
++install-ps-am:
++
++installcheck-am:
++
++maintainer-clean: maintainer-clean-am
++	-rm -rf ./$(DEPDIR)
++	-rm -f Makefile
++maintainer-clean-am: distclean-am maintainer-clean-generic \
++	maintainer-clean-local
++
++mostlyclean: mostlyclean-am
++
++mostlyclean-am: mostlyclean-compile mostlyclean-generic \
++	mostlyclean-libtool
++
++pdf: pdf-am
++
++pdf-am:
++
++ps: ps-am
++
++ps-am:
++
++uninstall-am: uninstall-dist_initDATA uninstall-man \
++	uninstall-sbinPROGRAMS
++
++uninstall-man: uninstall-man8
++
++.MAKE: all check install install-am install-strip
++
++.PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
++	clean-libtool clean-local clean-sbinPROGRAMS ctags distclean \
++	distclean-compile distclean-generic distclean-libtool \
++	distclean-tags distdir dvi dvi-am html html-am info info-am \
++	install install-am install-data install-data-am \
++	install-dist_initDATA install-dvi install-dvi-am install-exec \
++	install-exec-am install-html install-html-am install-info \
++	install-info-am install-man install-man8 install-pdf \
++	install-pdf-am install-ps install-ps-am install-sbinPROGRAMS \
++	install-strip installcheck installcheck-am installdirs \
++	maintainer-clean maintainer-clean-generic \
++	maintainer-clean-local mostlyclean mostlyclean-compile \
++	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
++	tags uninstall uninstall-am uninstall-dist_initDATA \
++	uninstall-man uninstall-man8 uninstall-sbinPROGRAMS
++
++
++$(com_ubuntu_Upstart_OUTPUTS): $(com_ubuntu_Upstart_XML)
++	$(AM_V_GEN)$(NIH_DBUS_TOOL) \
++		--package=$(PACKAGE) \
++		--mode=proxy --prefix=upstart \
++		--default-interface=com.ubuntu.Upstart0_6 \
++		--output=$@ $<
++
++clean-local:
++	rm -f *.gcno *.gcda
++
++maintainer-clean-local:
++	rm -f *.gcov
++
++# Tell versions [3.59,3.63) of GNU make to not export all variables.
++# Otherwise a system limit (for SysV at least) may be exceeded.
++.NOEXPORT:
+--- upstart-0.6.6.orig/udev/upstart-udev-bridge.c
++++ upstart-0.6.6/udev/upstart-udev-bridge.c
+@@ -0,0 +1,310 @@
++/* upstart
++ *
++ * Copyright © 2009 Canonical Ltd.
++ * Author: Scott James Remnant <scott@netsplit.com>.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2, as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License along
++ * with this program; if not, write to the Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
++ */
++
++#ifdef HAVE_CONFIG_H
++# include <config.h>
++#endif /* HAVE_CONFIG_H */
++
++
++#include <libudev.h>
++
++#include <stdlib.h>
++#include <string.h>
++#include <syslog.h>
++
++#include <nih/macros.h>
++#include <nih/alloc.h>
++#include <nih/string.h>
++#include <nih/io.h>
++#include <nih/option.h>
++#include <nih/main.h>
++#include <nih/logging.h>
++#include <nih/error.h>
++
++#include <nih-dbus/dbus_connection.h>
++#include <nih-dbus/dbus_proxy.h>
++
++#include "dbus/upstart.h"
++#include "com.ubuntu.Upstart.h"
++
++
++/* Prototypes for static functions */
++static void udev_monitor_watcher (struct udev_monitor *udev_monitor,
++				  NihIoWatch *watch, NihIoEvents events);
++static void upstart_disconnected (DBusConnection *connection);
++static void emit_event_error     (void *data, NihDBusMessage *message);
++
++
++/**
++ * daemonise:
++ *
++ * Set to TRUE if we should become a daemon, rather than just running
++ * in the foreground.
++ **/
++static int daemonise = FALSE;
++
++/**
++ * upstart:
++ *
++ * Proxy to Upstart daemon.
++ **/
++static NihDBusProxy *upstart = NULL;
++
++
++/**
++ * options:
++ *
++ * Command-line options accepted by this program.
++ **/
++static NihOption options[] = {
++	{ 0, "daemon", N_("Detach and run in the background"),
++	  NULL, NULL, &daemonise, NULL },
++
++	NIH_OPTION_LAST
++};
++
++
++int
++main (int   argc,
++      char *argv[])
++{
++	char **              args;
++	DBusConnection *     connection;
++	struct udev *        udev;
++	struct udev_monitor *udev_monitor;
++	int                  ret;
++
++	nih_main_init (argv[0]);
++
++	nih_option_set_synopsis (_("Bridge udev events into upstart"));
++	nih_option_set_help (
++		_("By default, upstart-udev-bridge does not detach from the "
++		  "console and remains in the foreground.  Use the --daemon "
++		  "option to have it detach."));
++
++	args = nih_option_parser (NULL, argc, argv, options, FALSE);
++	if (! args)
++		exit (1);
++
++	/* Initialise the connection to Upstart */
++	connection = NIH_SHOULD (nih_dbus_connect (DBUS_ADDRESS_UPSTART, upstart_disconnected));
++	if (! connection) {
++		NihError *err;
++
++		err = nih_error_get ();
++		nih_fatal ("%s: %s", _("Could not connect to Upstart"),
++			   err->message);
++		nih_free (err);
++
++		exit (1);
++	}
++
++	upstart = NIH_SHOULD (nih_dbus_proxy_new (NULL, connection,
++						  NULL, DBUS_PATH_UPSTART,
++						  NULL, NULL));
++	if (! upstart) {
++		NihError *err;
++
++		err = nih_error_get ();
++		nih_fatal ("%s: %s", _("Could not create Upstart proxy"),
++			   err->message);
++		nih_free (err);
++
++		exit (1);
++	}
++
++	/* Initialise the connection to udev */
++	nih_assert (udev = udev_new ());
++	nih_assert (udev_monitor = udev_monitor_new_from_netlink (udev, "udev"));
++	nih_assert (udev_monitor_enable_receiving (udev_monitor) == 0);
++	udev_monitor_set_receive_buffer_size(udev_monitor, 128*1024*1024);
++
++	NIH_MUST (nih_io_add_watch (NULL, udev_monitor_get_fd (udev_monitor),
++				    NIH_IO_READ,
++				    (NihIoWatcher)udev_monitor_watcher,
++				    udev_monitor));
++
++	/* Become daemon */
++	if (daemonise) {
++		if (nih_main_daemonise () < 0) {
++			NihError *err;
++
++			err = nih_error_get ();
++			nih_fatal ("%s: %s", _("Unable to become daemon"),
++				   err->message);
++			nih_free (err);
++
++			exit (1);
++		}
++
++		/* Send all logging output to syslog */
++		openlog (program_name, LOG_PID, LOG_DAEMON);
++		nih_log_set_logger (nih_logger_syslog);
++	}
++
++	/* Handle TERM and INT signals gracefully */
++	nih_signal_set_handler (SIGTERM, nih_signal_handler);
++	NIH_MUST (nih_signal_add_handler (NULL, SIGTERM, nih_main_term_signal, NULL));
++
++	if (! daemonise) {
++		nih_signal_set_handler (SIGINT, nih_signal_handler);
++		NIH_MUST (nih_signal_add_handler (NULL, SIGINT, nih_main_term_signal, NULL));
++	}
++
++	ret = nih_main_loop ();
++
++	return ret;
++}
++
++
++static void
++udev_monitor_watcher (struct udev_monitor *udev_monitor,
++		      NihIoWatch *         watch,
++		      NihIoEvents          events)
++{
++	struct udev_device *    udev_device;
++	const char *            subsystem;
++	const char *            action;
++	const char *            kernel;
++	const char *            devpath;
++	const char *            devname;
++	nih_local char *        name = NULL;
++	nih_local char **       env = NULL;
++	size_t                  env_len = 0;
++	DBusPendingCall *       pending_call;
++
++	udev_device = udev_monitor_receive_device (udev_monitor);
++	if (! udev_device)
++		return;
++
++	subsystem = udev_device_get_subsystem (udev_device);
++	action = udev_device_get_action (udev_device);
++	kernel = udev_device_get_sysname (udev_device);
++	devpath = udev_device_get_devpath (udev_device);
++	devname = udev_device_get_devnode (udev_device);
++
++	if (! strcmp (action, "add")) {
++		name = NIH_MUST (nih_sprintf (NULL, "%s-device-added",
++					      subsystem));
++	} else if (! strcmp (action, "change")) {
++		name = NIH_MUST (nih_sprintf (NULL, "%s-device-changed",
++					      subsystem));
++	} else if (! strcmp (action, "remove")) {
++		name = NIH_MUST (nih_sprintf (NULL, "%s-device-removed",
++					      subsystem));
++	} else {
++		name = NIH_MUST (nih_sprintf (NULL, "%s-device-%s",
++					      subsystem, action));
++	}
++
++	env = NIH_MUST (nih_str_array_new (NULL));
++
++	if (kernel) {
++		nih_local char *var = NULL;
++
++		var = NIH_MUST (nih_sprintf (NULL, "KERNEL=%s", kernel));
++		NIH_MUST (nih_str_array_addp (&env, NULL, &env_len, var));
++	}
++
++	if (devpath) {
++		nih_local char *var = NULL;
++
++		var = NIH_MUST (nih_sprintf (NULL, "DEVPATH=%s", devpath));
++		NIH_MUST (nih_str_array_addp (&env, NULL, &env_len, var));
++	}
++
++	if (devname) {
++		nih_local char *var = NULL;
++
++		var = NIH_MUST (nih_sprintf (NULL, "DEVNAME=%s", devname));
++		NIH_MUST (nih_str_array_addp (&env, NULL, &env_len, var));
++	}
++
++	if (subsystem) {
++		nih_local char *var = NULL;
++
++		var = NIH_MUST (nih_sprintf (NULL, "SUBSYSTEM=%s", subsystem));
++		NIH_MUST (nih_str_array_addp (&env, NULL, &env_len, var));
++	}
++
++	if (action) {
++		nih_local char *var = NULL;
++
++		var = NIH_MUST (nih_sprintf (NULL, "ACTION=%s", action));
++		NIH_MUST (nih_str_array_addp (&env, NULL, &env_len, var));
++	}
++
++	for (struct udev_list_entry *list_entry = udev_device_get_properties_list_entry (udev_device);
++	     list_entry != NULL;
++	     list_entry = udev_list_entry_get_next (list_entry)) {
++		const char *    key;
++		nih_local char *var = NULL;
++
++		key = udev_list_entry_get_name (list_entry);
++		if (! strcmp (key, "DEVPATH"))
++			continue;
++		if (! strcmp (key, "DEVNAME"))
++			continue;
++		if (! strcmp (key, "SUBSYSTEM"))
++			continue;
++		if (! strcmp (key, "ACTION"))
++			continue;
++
++		var = NIH_MUST (nih_sprintf (NULL, "%s=%s", key,
++					     udev_list_entry_get_value (list_entry)));
++		NIH_MUST (nih_str_array_addp (&env, NULL, &env_len, var));
++	}
++
++	nih_debug ("%s %s", name, devname);
++
++	pending_call = NIH_SHOULD (upstart_emit_event (upstart,
++						       name, env, FALSE,
++						       NULL, emit_event_error, NULL,
++						       NIH_DBUS_TIMEOUT_NEVER));
++	if (! pending_call) {
++		NihError *err;
++
++		err = nih_error_get ();
++		nih_warn ("%s", err->message);
++		nih_free (err);
++	}
++
++	dbus_pending_call_unref (pending_call);
++
++	udev_device_unref (udev_device);
++}
++
++
++static void
++upstart_disconnected (DBusConnection *connection)
++{
++	nih_fatal (_("Disconnected from Upstart"));
++	nih_main_loop_exit (1);
++}
++
++static void
++emit_event_error (void *          data,
++		  NihDBusMessage *message)
++{
++	NihError *err;
++
++	err = nih_error_get ();
++	nih_warn ("%s", err->message);
++	nih_free (err);
++}
+--- upstart-0.6.6.orig/udev/Makefile.am
++++ upstart-0.6.6/udev/Makefile.am
+@@ -0,0 +1,67 @@
++## Process this file with automake to produce Makefile.in
++
++AM_CFLAGS = \
++	$(NIH_CFLAGS) \
++	$(NIH_DBUS_CFLAGS) \
++	$(DBUS_CFLAGS) \
++	$(UDEV_CFLAGS)
++
++AM_CPPFLAGS = \
++	-DLOCALEDIR="\"$(localedir)\"" \
++	-I$(top_builddir) -I$(top_srcdir) -iquote$(builddir) -iquote$(srcdir) \
++	-I$(top_srcdir)/intl
++
++
++initdir = $(sysconfdir)/init
++dist_init_DATA = \
++	conf/upstart-udev-bridge.conf
++
++
++dist_man_MANS = \
++	man/upstart-udev-bridge.8
++
++
++sbin_PROGRAMS = \
++	upstart-udev-bridge
++
++upstart_udev_bridge_SOURCES = \
++	upstart-udev-bridge.c
++nodist_upstart_udev_bridge_SOURCES = \
++	$(com_ubuntu_Upstart_OUTPUTS)
++upstart_udev_bridge_LDADD = \
++	$(LTLIBINTL) \
++	$(NIH_LIBS) \
++	$(NIH_DBUS_LIBS) \
++	$(DBUS_LIBS) \
++	$(UDEV_LIBS)
++
++
++com_ubuntu_Upstart_OUTPUTS = \
++	com.ubuntu.Upstart.c \
++	com.ubuntu.Upstart.h
++
++com_ubuntu_Upstart_XML = \
++	../dbus/com.ubuntu.Upstart.xml
++
++$(com_ubuntu_Upstart_OUTPUTS): $(com_ubuntu_Upstart_XML)
++	$(AM_V_GEN)$(NIH_DBUS_TOOL) \
++		--package=$(PACKAGE) \
++		--mode=proxy --prefix=upstart \
++		--default-interface=com.ubuntu.Upstart0_6 \
++		--output=$@ $<
++
++
++# These have to be built sources because we can't compile object files
++# without the header file existing first
++BUILT_SOURCES = \
++	$(com_ubuntu_Upstart_OUTPUTS)
++
++CLEANFILES = \
++	$(com_ubuntu_Upstart_OUTPUTS)
++
++
++clean-local:
++	rm -f *.gcno *.gcda
++
++maintainer-clean-local:
++	rm -f *.gcov
+--- upstart-0.6.6.orig/udev/man/upstart-udev-bridge.8
++++ upstart-0.6.6/udev/man/upstart-udev-bridge.8
+@@ -0,0 +1,35 @@
++.TH upstart-udev-bridge 8 2009-09-07 upstart
++.\"
++.SH NAME
++upstart-udev-bridge \- Bridge between Upstart and udev
++.\"
++.SH SYNOPSIS
++.B upstart-udev-bridge
++.RI [ OPTIONS ]...
++.\"
++.SH DESCRIPTION
++.B upstart-udev-bridge
++receives information about kernel uevents that
++.BR udev (8)
++has completed and creates
++.BR init (8)
++events for them.
++
++This is a temporary tool until
++.BR init (8)
++itself gains the functionality to read them directly; you should not
++rely on its behaviour.
++.\"
++.SH AUTHOR
++Written by Scott James Remnant
++.RB < scott@netsplit.com >
++.\"
++.SH BUGS
++Report bugs at 
++.RB < https://launchpad.net/ubuntu/+source/upstart/+bugs >
++.\"
++.SH COPYRIGHT
++Copyright \(co 2009 Canonical Ltd.
++.PP
++This is free software; see the source for copying conditions.  There is NO
++warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+--- upstart-0.6.6.orig/udev/conf/upstart-udev-bridge.conf
++++ upstart-0.6.6/udev/conf/upstart-udev-bridge.conf
+@@ -0,0 +1,14 @@
++# upstart-udev-bridge - Bridge udev events into upstart
++#
++# This helper daemon receives udev events from the netlink socket and
++# emits equivalent Upstart events.
++
++description	"Bridge udev events into upstart"
++
++start on starting udev
++stop on stopped udev
++
++expect daemon
++respawn
++
++exec upstart-udev-bridge --daemon
+--- upstart-0.6.6.orig/conf/rc-sysinit.conf
++++ upstart-0.6.6/conf/rc-sysinit.conf
+@@ -6,7 +6,7 @@
+ description	"System V initialisation compatibility"
+ author		"Scott James Remnant <scott@netsplit.com>"
+ 
+-start on startup
++start on filesystem and net-device-up IFACE=lo
+ stop on runlevel
+ 
+ # Default runlevel, this may be overriden on the kernel command-line
+@@ -21,9 +21,11 @@
+ env RUNLEVEL=
+ env PREVLEVEL=
+ 
++console output
++env INIT_VERBOSE
++
+ task
+ 
+-console owner
+ script
+     # Check for default runlevel in /etc/inittab
+     if [ -r /etc/inittab ]
+--- upstart-0.6.6.orig/conf/rc.conf
++++ upstart-0.6.6/conf/rc.conf
+@@ -12,7 +12,9 @@
+ export RUNLEVEL
+ export PREVLEVEL
+ 
++console output
++env INIT_VERBOSE
++
+ task
+ 
+-console output
+ exec /etc/init.d/rc $RUNLEVEL

@@ -1,0 +1,32 @@
+From d7b06862499ec2e94127ddeb81fd4618a3907ce6 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Tue, 10 Dec 2019 20:13:31 +0100
+Subject: [PATCH] mount: Add support for "nosymfollow" mount option
+
+---
+ util-linux/mount.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/util-linux/mount.c b/util-linux/mount.c
+index 84c85c057..cc7cb3d74 100644
+--- a/util-linux/mount.c
++++ b/util-linux/mount.c
+@@ -370,6 +370,7 @@ static const int32_t mount_options[] ALIGN4 = {
+ 		/* "nostrictatime"*/ ~MS_STRICTATIME,
+ 		/* "lazytime"    */ MS_LAZYTIME,
+ 		/* "nolazytime"  */ ~MS_LAZYTIME,
++		/* "symfollow"   */ ~MS_NOSYMFOLLOW,
+ 		/* "nosymfollow" */ MS_NOSYMFOLLOW,
+ 		/* "mand"        */ MS_MANDLOCK,
+ 		/* "nomand"      */ ~MS_MANDLOCK,
+@@ -432,6 +433,7 @@ static const char mount_option_str[] ALIGN1 =
+ 		"nostrictatime""\0"
+ 		"lazytime"     "\0"
+ 		"nolazytime"   "\0"
++		"symfollow"    "\0"
+ 		"nosymfollow"  "\0"
+ 		"mand"         "\0"
+ 		"nomand"       "\0"
+-- 
+2.24.0
+

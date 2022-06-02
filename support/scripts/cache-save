@@ -1,0 +1,136 @@
+#!/bin/bash
+
+# SHARED_CACHE_DIR=
+# PACKAGE_NAME=
+# PACKAGE_DIR=
+# PACKAGE_PKGDIR=
+# BUILDROOT_DIR=
+# BASE_DIR=
+# BUILD_DIR=
+# PER_PACKAGE_DIR=
+
+set -euo pipefail
+
+WARNING=
+CACHE_FILENAME=
+STAMP_CACHE_HIT_FILENAME="${PACKAGE_DIR}/.stamp_cache_hit"
+STAMP_CACHE_MISS_FILENAME="${PACKAGE_DIR}/.stamp_cache_miss"
+STAMP_CACHE_SAVED_FILENAME="${PACKAGE_DIR}/.stamp_cache_saved"
+STAMP_CACHE_ERROR_FILENAME="${PACKAGE_DIR}/.stamp_cache_error"
+
+error_handler(){
+	if [ -n "${WARNING}" ]; then
+		echo "WARNING: ${WARNING}"
+	fi
+	echo "Cache not created for: ${PACKAGE_NAME}"
+	echo "${CACHE_FILENAME}" > "${STAMP_CACHE_ERROR_FILENAME}"
+	rm -f "${STAMP_CACHE_SAVED_FILENAME}"
+	exit 0
+}
+
+trap 'error_handler $WARNING' ERR
+
+if [ -f "${STAMP_CACHE_MISS_FILENAME}" ]; then
+	CACHE_FILENAME=$(cat "${STAMP_CACHE_MISS_FILENAME}")
+elif [ -f "${STAMP_CACHE_HIT_FILENAME}" ]; then
+	CACHE_FILENAME=$(cat "${STAMP_CACHE_HIT_FILENAME}")
+else
+	WARNING="Missing both cache stamp files: ${STAMP_CACHE_MISS_FILENAME} and ${STAMP_CACHE_HIT_FILENAME}." error_handler
+fi
+
+echo "Cache filename: ${CACHE_FILENAME}"
+CACHE_FILENAME_TMP="${CACHE_FILENAME}.tmp"
+CACHE_FILENAME_LOCK="${CACHE_FILENAME}.lock"
+
+if [ -f "${CACHE_FILENAME}" ]; then
+	touch "${CACHE_FILENAME}"
+	echo "Cache file exists: ${CACHE_FILENAME}"
+else
+	if [ ! -d "${SHARED_CACHE_DIR}" ] && [ ! -L "${SHARED_CACHE_DIR}" ]; then
+		mkdir --parents --verbose "${SHARED_CACHE_DIR}"
+	fi
+
+	if [ -d "${PACKAGE_DIR}" ]; then
+		PER_PACKAGE_DIRECTORIES_IS_ENABLED=FALSE
+		DIRECTORIES_TO_CACHE=("${PACKAGE_DIR#$BASE_DIR/}")
+		if [ -d "${PER_PACKAGE_DIR}"/"${PACKAGE_NAME}" ]; then
+			PER_PACKAGE_DIRECTORIES_IS_ENABLED=TRUE
+			DIRECTORIES_TO_CACHE+=("${PER_PACKAGE_DIR#$BASE_DIR/}"/"${PACKAGE_NAME}")
+		fi
+		echo "DIRECTORIES_TO_CACHE = ${DIRECTORIES_TO_CACHE[@]}"
+
+		WARNING="Could not lock file: ${CACHE_FILENAME_TMP}"
+		(
+			flock --timeout 30 --exclusive 9 || exit 0
+			rm -f "${STAMP_CACHE_ERROR_FILENAME}"
+			rm -f "${STAMP_CACHE_SAVED_FILENAME}"
+			WARNING="Could not create tar with cache: ${CACHE_FILENAME_TMP}"
+
+			DELETED_PACKAGE_DIR_FILES="FALSE"
+			if [[ "${PER_PACKAGE_DIRECTORIES_IS_ENABLED}" == "TRUE" ]]; then
+				# Don't delete the source/intermediate files if this package uses kconfig.
+				# The kconfig rule will invalidate whenever the timestamps of $($(PKG)_KCONFIG_FILE)
+				# or $($(PKG)_KCONFIG_FRAGMENT_FILES) change, either of which can live in the
+				# buildroot or firmware repos. And because git sets the timestamp of these files
+				# to the first git checkout, we cannot be assured that these timestamps will always
+				# be older than the current build.
+				#
+				# For example, busybox's .stamp_dotconfig build step file will be invalidated whenever
+				# its package/busybox/busybox.config file changes, or whenever any files listed in
+				# BR2_PACKAGE_BUSYBOX_CONFIG_FRAGMENT_FILES change.
+				# I.e. BR2_PACKAGE_BUSYBOX_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_TESLA_PATH)/product/autopilot/ap-hw3.busybox".
+				# Because in package/pkg-kconfig.mk the dependency is listed as:
+				#
+				# $$($(2)_DIR)/$$($(2)_KCONFIG_STAMP_DOTCONFIG): $$($(2)_KCONFIG_FILE) $$($(2)_KCONFIG_FRAGMENT_FILES)
+				#
+				# The problem is that the cached tarball could have been created yesterday (and therefore the timestamps
+				# of these .stamp_* files when extracted in a cache hit are from yesterday), but we could be building in
+				# a fresh firmware or buildroot repo checkout where the timestamps of those repo files are from today,
+				# which would cause .stamp_dotconfig to be invalidated. If .stamp_dotconfig is invalidated then buildroot
+				# reruns the configure/build step which will fail if the extracted tarball doesn't contain the busybox sources,
+				# which is why we need to keep them.
+				if [[ -f "${PACKAGE_DIR}"/.stamp_dotconfig ]]; then
+					echo "Keeping ${PACKAGE_DIR} files due to ${PACKAGE_DIR}/.stamp_dotconfig"
+
+				# Don't delete the source/intermediate files if this package installs to the BINARIES_DIR.
+				# The BINARIES_DIR (i.e. BASE_DIR/images) is not saved in the per-package directories,
+				# therefore, packages which install these files need to reinstall them every build.
+				elif [[ -f "${PACKAGE_DIR}"/.stamp_images_installed ]]; then
+					echo "Keeping ${PACKAGE_DIR} files due to ${PACKAGE_DIR}/.stamp_images_installed"
+
+				# Otherwise delete everything except the .stamp_* and other hidden files
+				# which * doesn't match. The needed outputs should have already been
+				# installed to the per-package directory, meaning the source/intermediate files
+				# are no longer needed.
+				else
+					rm -Rf "${PACKAGE_DIR}"/*
+					DELETED_PACKAGE_DIR_FILES="TRUE"
+				fi
+			fi
+
+			STAMP_FILE_TAR_EXCLUSIONS=(--exclude='.stamp_cache_*')
+			if [[ "${DELETED_PACKAGE_DIR_FILES}" == "FALSE" ]]; then
+				# If we didn't delete the files then we exclude the .stamp_install files from the .tar
+				# so that these steps will rerun.
+				STAMP_FILE_TAR_EXCLUSIONS+=(
+					--exclude='.stamp_installed'
+					--exclude='.stamp_*_installed'
+				)
+			fi
+
+			tar \
+				--create \
+				--file "${CACHE_FILENAME_TMP}" \
+				--directory="${BASE_DIR}" \
+				${STAMP_FILE_TAR_EXCLUSIONS[@]} \
+				${DIRECTORIES_TO_CACHE[@]}
+			WARNING="Could not move cache file: '${CACHE_FILENAME_TMP}' -> '${CACHE_FILENAME}'"
+			mv -v "${CACHE_FILENAME_TMP}" "${CACHE_FILENAME}"
+			echo "Cache saved to: ${CACHE_FILENAME} from: ${PACKAGE_DIR} for: ${PACKAGE_NAME}"
+			echo "${CACHE_FILENAME}" > "${STAMP_CACHE_SAVED_FILENAME}"
+		) 9> "${CACHE_FILENAME_LOCK}"
+		rm -f -v "${CACHE_FILENAME_LOCK}"
+	else
+		WARNING="Missing dir: ${PACKAGE_DIR}" error_handler
+	fi
+fi

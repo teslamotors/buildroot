@@ -1,6 +1,7 @@
 config BR2_PACKAGE_PYTHON_PYJWT
 	bool "python-pyjwt"
 	depends on BR2_PACKAGE_PYTHON3
+	depends on BR2_PACKAGE_PYTHON_CRYPTOGRAPHY
 	help
 	  JSON Web Token implementation in Python.
 

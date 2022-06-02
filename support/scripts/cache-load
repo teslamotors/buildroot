@@ -1,0 +1,179 @@
+#!/bin/bash
+
+# SHARED_CACHE_DIR=
+# PACKAGE_NAME=
+# PACKAGE_DIR=
+# PACKAGE_PKGDIR=
+# BUILDROOT_DIR=
+# BASE_DIR=
+# BUILD_DIR=
+# PER_PACKAGE_DIR=
+# SERIALIZED_VARS=
+
+set -euo pipefail
+
+WARNING=
+CACHE_FILENAME=
+STAMP_CACHE_HIT_FILENAME="${PACKAGE_DIR}/.stamp_cache_hit"
+STAMP_CACHE_MISS_FILENAME="${PACKAGE_DIR}/.stamp_cache_miss"
+STAMP_CACHE_SAVED_FILENAME="${PACKAGE_DIR}/.stamp_cache_saved"
+STAMP_CACHE_ERROR_FILENAME="${PACKAGE_DIR}/.stamp_cache_error"
+
+error_handler(){
+	if [ -n "${WARNING}" ]; then
+		echo "WARNING: ${WARNING}"
+	fi
+	echo "Cache not loaded for: ${PACKAGE_NAME}"
+	if [ -n "$CACHE_FILENAME" ]; then
+		echo "${CACHE_FILENAME}" > "${STAMP_CACHE_ERROR_FILENAME}"
+	fi
+	rm -f "${STAMP_CACHE_SAVED_FILENAME}"
+	exit 0
+}
+
+trap 'error_handler $WARNING' ERR
+
+extract_cache(){
+	if [ -f "${CACHE_FILENAME}" ]; then
+		WARNING="Could not load cache from: ${CACHE_FILENAME}"
+
+		# Avoid any possible race conditions between parallel tar extractions
+		# conflicting while creating these dirs
+		mkdir -p "${BUILD_DIR}" "${PER_PACKAGE_DIR}"
+
+		tar -xf "${CACHE_FILENAME}" --directory "${BASE_DIR}"
+
+		# Create the output directories that .stamp_configured would have created
+		# but which would otherwise be bypassed when loading packages from the cache
+		mkdir -p "${HOST_DIR}" "${TARGET_DIR}" "${STAGING_DIR}" "${BINARIES_DIR}"
+
+		echo "Cache loaded from: ${CACHE_FILENAME} to: ${PACKAGE_DIR} for: ${PACKAGE_NAME}"
+		echo "${CACHE_FILENAME}" > "${STAMP_CACHE_HIT_FILENAME}"
+		rm -f "${STAMP_CACHE_MISS_FILENAME}"
+	else
+		echo "Cache file not found: ${CACHE_FILENAME}"
+		echo "${CACHE_FILENAME}" > "${STAMP_CACHE_MISS_FILENAME}"
+		rm -f "${STAMP_CACHE_HIT_FILENAME}"
+	fi
+}
+
+# shellcheck disable=SC1090
+DEPENDENCIES_PATHS=$*
+DEPENDENCIES_FILES=${PACKAGE_DIR}/.dependencies.txt
+DEPENDENCIES_FILES_MD5=${PACKAGE_DIR}/.dependencies_md5.txt
+
+# package dir doesn't exist at this point,
+# but cache needs it for dependency files
+mkdir -pv "${PACKAGE_DIR}"
+WARNING="Could not process dependencies paths: ${DEPENDENCIES_PATHS}"
+# shellcheck disable=SC2086
+find -L ${DEPENDENCIES_PATHS} -name .git -type d -prune -o -type f -print | sort -u > ${DEPENDENCIES_FILES}
+
+# hashdeep generates format like 6698,03a8e79609771ff91b09a05eafec0ca5,./utils/getdeveloperlib.py
+# cut off first five lines (hashdeep tool header), sort by filename (3rd column)
+# remove first column (filesize)
+hashdeep -c md5 -f "${DEPENDENCIES_FILES}" \
+| sed -e '1,5d' | sort --field-separator=',' -k 3 \
+| cut -d',' -f 2,3 > "${DEPENDENCIES_FILES_MD5}"
+
+# shellcheck disable=SC2046,SC2002,SC2086
+PACKAGE_KEY=$(md5sum ${DEPENDENCIES_FILES_MD5} | cut -d' ' -f1)
+CACHE_KEY=${PACKAGE_KEY}
+
+# Load BUILDROOT_KEY varilable
+# shellcheck disable=SC1090
+source "${BASE_DIR}/.shared_cache.env"
+
+# If $SHARED_CACHE_HELPER is set it could redefine $CACHE_KEY
+if [ -x "${SHARED_CACHE_HELPER}" ]; then
+  # shellcheck disable=SC1090
+  source "${SHARED_CACHE_HELPER}"
+fi
+
+if [ -n "${SHARED_CACHE_DEBUG_DIR}" ]; then
+  PACKAGE_DEBUG_FILENAME="${SHARED_CACHE_DEBUG_DIR}/package-${PACKAGE_NAME}-${CACHE_KEY}.txt"
+  if [ ! -f "${PACKAGE_DEBUG_FILENAME}" ]; then
+    if [ ! -d "${SHARED_CACHE_DEBUG_DIR}" ]; then
+      mkdir -pv "${SHARED_CACHE_DEBUG_DIR}"
+    fi
+    cp -v "${DEPENDENCIES_FILES_MD5}" "${PACKAGE_DEBUG_FILENAME}"
+  fi
+fi
+
+if [ -f "${SERIALIZED_VARS_FILENAME}" ]; then
+    SERIALIZED_VARS_MD5=$(md5sum "${SERIALIZED_VARS_FILENAME}" | cut -d' ' -f1)
+    CACHE_FILENAME="${SHARED_CACHE_DIR}/${PACKAGE_NAME}-${CACHE_KEY}-${SERIALIZED_VARS_MD5}.tar"
+else
+    CACHE_FILENAME="${SHARED_CACHE_DIR}/${PACKAGE_NAME}-${CACHE_KEY}.tar"
+fi
+
+echo "Dependencies paths: ${DEPENDENCIES_PATHS}"
+echo "Cache filename: ${CACHE_FILENAME}"
+
+mkdir --parents --verbose "${PACKAGE_DIR}"
+rm -f "${STAMP_CACHE_SAVED_FILENAME}"
+# Check type of environment and attempt HTTP fetch for cache in dev environment.
+if [ -d "$HOME/.run-dev" ]; then
+	CACHE_PROTOCOL="https"
+	CACHE_DOMAIN="firmware-artifacts.teslamotors.com"
+	CACHE_BUCKET="cache_buildroot"
+	URL="${CACHE_PROTOCOL}://${CACHE_DOMAIN}/${CACHE_BUCKET}/$(basename "$(dirname "$CACHE_FILENAME")")/$(basename "$CACHE_FILENAME")"
+	if [ -z ${RUN_DEV_BUILDROOT_CACHE_COPY+x} ]; then
+		echo "Downloading cache for ${PACKAGE_NAME} from ${URL} to ${CACHE_FILENAME}."
+		# shellcheck disable=SC2046
+		(
+			curl \
+				$(git config --file "$HOME/.run-dev/config" --get buildroot.cache.curl-options || true) \
+				--silent \
+				--fail \
+				--show-error \
+				--request GET \
+				"$URL" \
+		| tar -x --directory "${PACKAGE_DIR}" \
+		&& echo "Cache loaded from: ${URL} to: ${PACKAGE_DIR} for: ${PACKAGE_NAME}" \
+		&& echo "${URL}" > "${STAMP_CACHE_HIT_FILENAME}" \
+		&& rm -f "${STAMP_CACHE_MISS_FILENAME}" \
+		) || (
+			echo "Download cache failed for ${PACKAGE_NAME} from ${URL} to ${CACHE_FILENAME}." \
+			&& echo "Cache file not found: ${CACHE_FILENAME}" \
+			&& echo "${CACHE_FILENAME}" > "${STAMP_CACHE_MISS_FILENAME}" \
+			&& rm -f "${STAMP_CACHE_HIT_FILENAME}" \
+		)
+	else
+		mkdir -pv "$(dirname "$CACHE_FILENAME")"
+		CACHE_FILENAME_LOCK="${CACHE_FILENAME}.lock"
+		CACHE_FILENAME_TMP="${CACHE_FILENAME}.tmp"
+		WARNING="Could not lock file: ${CACHE_FILENAME_TMP}"
+		(
+			flock --timeout 30 --exclusive 9 || exit 0
+			if [ ! -f "${CACHE_FILENAME}" ]; then
+				echo "Downloading cache for ${PACKAGE_NAME} from ${URL} to ${CACHE_FILENAME}."
+				# shellcheck disable=SC2046
+				(
+					curl \
+						$(git config --file "$HOME/.run-dev/config" --get buildroot.cache.curl-options || true) \
+						--silent \
+						--fail \
+						--show-error \
+						--request GET \
+						--output "$CACHE_FILENAME_TMP" \
+						"$URL" \
+				&& echo "Cache downloaded from: ${URL} to: ${CACHE_FILENAME_TMP} for: ${PACKAGE_NAME}" \
+				&& mv -v "${CACHE_FILENAME_TMP}" "${CACHE_FILENAME}" \
+				&& echo "Cache moved from: ${CACHE_FILENAME_TMP} to: ${CACHE_FILENAME} for: ${PACKAGE_NAME}" \
+				&& echo "${CACHE_FILENAME}" > "${STAMP_CACHE_HIT_FILENAME}" \
+				&& rm -f "${STAMP_CACHE_MISS_FILENAME}" \
+				) || (
+					echo "Download cache failed for ${PACKAGE_NAME} from ${URL} to ${CACHE_FILENAME}." \
+					&& echo "Cache file not found: ${CACHE_FILENAME}" \
+					&& echo "${CACHE_FILENAME}" > "${STAMP_CACHE_MISS_FILENAME}" \
+					&& rm -f "${STAMP_CACHE_HIT_FILENAME}" \
+				)
+			fi
+		) 9> "${CACHE_FILENAME_LOCK}"
+		rm -f -v "${CACHE_FILENAME_LOCK}"
+		extract_cache
+	fi
+else
+	extract_cache
+fi

@@ -1,0 +1,4 @@
+config BR2_PACKAGE_PYTHON_ZIPP
+	bool "python-zipp"
+	help
+        A pathlib-compatible Zipfile object wrapper. A backport of the Path object.

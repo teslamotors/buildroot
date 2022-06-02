@@ -1,10 +1,12 @@
 From b68c7118c54a3d5be56ebe883ecfdb0127fce801 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
 Date: Fri, 4 Aug 2017 16:34:53 -0700
 Subject: [PATCH] SW-112235: python: Always pass -lcrypt
 
 gcc/glibc require -lcrypt to link against glibc when crypt is used,
 even though the function is within libc.
 
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
 ---
  setup.py | 6 +-----
  1 file changed, 1 insertion(+), 5 deletions(-)

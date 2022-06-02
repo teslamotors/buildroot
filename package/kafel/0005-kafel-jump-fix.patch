@@ -1,0 +1,15 @@
+diff --git a/src/codegen.c b/src/codegen.c
+index 4ab10ec..3290cd9 100644
+--- a/src/codegen.c
++++ b/src/codegen.c
+@@ -223,8 +223,9 @@ static int add_jump(struct codegen_ctxt *ctxt, __u16 type, __u32 k, int tloc,
+ 
+   __u8 tpos = resolve_location(ctxt, tloc);
+   __u8 fpos = resolve_location(ctxt, floc);
+-  // do tloc one more time as instruction added by floc may make it unreachable
++  // do tloc/floc one more time as instruction added by floc/tfloc may make it unreachable
+   tpos = resolve_location(ctxt, tloc);
++  fpos = resolve_location(ctxt, floc);
+   return ADD_INSTR(BPF_JUMP(BPF_JMP | type, k, tpos, fpos));
+ }
+ 

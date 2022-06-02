@@ -1,0 +1,5 @@
+config BR2_PACKAGE_EXFAT_LINUX
+	bool "exfat-linux (arter97)"
+	help
+	  Third party kernel module for supporting exFAT
+	  https://github.com/arter97/exfat-linux

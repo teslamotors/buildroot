@@ -13,14 +13,14 @@ config BR2_PACKAGE_JPEG
 
 if BR2_PACKAGE_JPEG
 
-choice
-	prompt "jpeg variant"
+choice JPEG_PROVIDER
+	prompt "jpeg provider"
 	default BR2_PACKAGE_JPEG_TURBO if BR2_PACKAGE_JPEG_SIMD_SUPPORT
 	help
 	  Select the normal libjpeg or libjpeg-turbo.
 
 config BR2_PACKAGE_LIBJPEG
-	bool "jpeg"
+	bool "libjpeg"
 	select BR2_PACKAGE_HAS_JPEG
 	help
 	  The ubiquitous C library for manipulating JPEG images.

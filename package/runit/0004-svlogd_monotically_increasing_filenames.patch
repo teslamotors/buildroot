@@ -4,6 +4,7 @@ If svlogd is launced with -M option, it will enforece monotonically increasing t
 log file rotation. These timestamps are used by svlogd to remove old log files. With this change,
 we ensure that log files created before system clock sync dont get removed immediately.
 
+Author: Tesla OpenSource <opensource@tesla.com>
 
 --- runit-2.1.2/src/Makefile
 +++ runit-2.1.2/src/Makefile

@@ -1,0 +1,53 @@
+From 2dd1240d41cef030d6f22384e1a75ee6403b6735 Mon Nov 11 00:00:00 2019
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Mon, 11 Nov 2019 17:21:00 -0700
+Subject: [PATCH] libcurl: Remove ability to load CLI config files or find .curlrc
+
+Curl has built in behavior to find and load in .curlrc config files.
+Files can also be provided by using the -K or --config params.
+This behavior can be used to escalate to root privledges on target.
+This patch removes all function calls to parseconfig and short circuits the fn.
+---
+ src/tool_getparam.c               | 6 ------
+ src/tool_operate.c                | 1 -
+ src/tool_parsecfg.c               | 3 +++
+ 3 files changed, 3 insertions(+), 7 deletions(-)
+
+diff --git a/src/tool_getparam.c b/src/tool_getparam.c
+index f1393c3..8d6c68f 100644
+--- a/src/tool_getparam.c
++++ b/src/tool_getparam.c
+@@ -296,7 +296,6 @@ static const struct LongShort aliases[]= {
+   {"J",  "remote-header-name",       ARG_BOOL},
+   {"k",  "insecure",                 ARG_BOOL},
+   {"kd", "doh-insecure",             ARG_BOOL},
+-  {"K",  "config",                   ARG_FILENAME},
+   {"l",  "list-only",                ARG_BOOL},
+   {"L",  "location",                 ARG_BOOL},
+   {"Lt", "location-trusted",         ARG_BOOL},
+diff --git a/src/tool_operate.c b/src/tool_operate.c
+index 9426432..906c4ab 100644
+--- a/src/tool_operate.c
++++ b/src/tool_operate.c
+@@ -2592,7 +2592,6 @@ CURLcode operate(struct GlobalConfig *global, int argc, argv_item_t argv[])
+   if((argc == 1) ||
+      (first_arg && strncmp(first_arg, "-q", 2) &&
+       !curl_strequal(first_arg, "--disable"))) {
+-    parseconfig(NULL, global); /* ignore possible failure */
+ 
+     /* If we had no arguments then make sure a url was specified in .curlrc */
+     if((argc < 2) && (!global->first->url_list)) {
+diff --git a/src/tool_parsecfg.c b/src/tool_parsecfg.c
+index d26774f..a92728f 100644
+--- a/src/tool_parsecfg.c
++++ b/src/tool_parsecfg.c
+@@ -82,6 +82,9 @@ int parseconfig(const char *filename, struct GlobalConfig *global)
+   struct OperationConfig *operation = global->last;
+   char *pathalloc = NULL;
+ 
++  // SW-218398 Return immediately, never use configuration files.
++  return rc;
++
+   if(!filename || !*filename) {
+     /* NULL or no file name attempts to load .curlrc from the homedir! */
+ 

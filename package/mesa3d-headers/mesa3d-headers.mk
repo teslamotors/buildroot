@@ -12,12 +12,15 @@ endif
 
 # Not possible to directly refer to mesa3d variables, because of
 # first/second expansion trickery...
-MESA3D_HEADERS_VERSION = 20.3.5
+MESA3D_HEADERS_VERSION = 21.0.3
 MESA3D_HEADERS_SOURCE = mesa-$(MESA3D_HEADERS_VERSION).tar.xz
 MESA3D_HEADERS_SITE = https://mesa.freedesktop.org/archive
 MESA3D_HEADERS_DL_SUBDIR = mesa3d
 MESA3D_HEADERS_LICENSE = MIT, SGI, Khronos
 MESA3D_HEADERS_LICENSE_FILES = docs/license.rst
+MESA3D_HEADERS_CPE_ID_VENDOR = mesa3d
+MESA3D_HEADERS_CPE_ID_PRODUCT = mesa
+
 
 # Only installs header files
 MESA3D_HEADERS_INSTALL_STAGING = YES

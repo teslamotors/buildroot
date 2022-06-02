@@ -13,4 +13,10 @@ PYTHON_TORNADO_CPE_ID_VENDOR = tornadoweb
 PYTHON_TORNADO_CPE_ID_PRODUCT = tornado
 PYTHON_TORNADO_SETUP_TYPE = setuptools
 
+define PYTHON_TORNADO_INSTALL_TARGET_FIXUP
+	find $(TARGET_DIR)/usr/lib/python*/site-packages/tornado -type d -name test -exec rm -rfv '{}' \+
+endef
+
+PYTHON_TORNADO_POST_INSTALL_TARGET_HOOKS += PYTHON_TORNADO_INSTALL_TARGET_FIXUP
+
 $(eval $(python-package))

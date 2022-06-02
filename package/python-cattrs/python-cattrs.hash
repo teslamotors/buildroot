@@ -1,0 +1,5 @@
+# md5, sha256 from https://pypi.org/pypi/cattrs/json
+md5	c57222f5475f0158d2bffb87ac1411f9  cattrs-1.0.0.tar.gz
+sha256	b7ab5cf8ad127c42eefd01410c1c6e28569a45a255ea80ed968511873c433c7a  cattrs-1.0.0.tar.gz
+# Locally computed sha256 checksums
+sha256	f5fb9d1ede37a88ca47f420c499dca0f4a05bc993e12c77d23520aad291c01bf  LICENSE

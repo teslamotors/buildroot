@@ -7,5 +7,34 @@ config BR2_PACKAGE_XDRIVER_XF86_INPUT_EVDEV
 	help
 	  Generic Linux input driver
 
+if BR2_PACKAGE_XDRIVER_XF86_INPUT_EVDEV
+
+choice
+	prompt "xf86-input-evdev version"
+	default BR2_PACKAGE_XDRIVER_XF86_INPUT_EVDEV_VERSION_UPSTREAM
+	help
+	  Version of xf86-input-evdev to use
+
+config BR2_PACKAGE_XDRIVER_XF86_INPUT_EVDEV_VERSION_UPSTREAM
+	bool "Upstream buildroot version"
+	help
+	  Choose this version.
+
+config BR2_PACKAGE_XDRIVER_XF86_INPUT_EVDEV_2_3_2
+	bool "Version 2.3.2"
+	help
+	  This version corresponds to Ubuntu 10.x and is needed when
+	  building xserver 1.9.0
+
+config BR2_PACKAGE_XDRIVER_XF86_INPUT_EVDEV_2_7_0
+	bool "Version 2.7.0"
+	help
+	  This version corresponds to Ubuntu 12.04 and is needed when
+	  building xserver 1.11.4
+
+endchoice
+
+endif
+
 comment "xf86-input-evdev requires udev to be enabled"
 	depends on !BR2_PACKAGE_HAS_UDEV

@@ -24,10 +24,7 @@ ifeq ($(BR2_TOOLCHAIN_HAS_FORTRAN),)
 OPENBLAS_MAKE_OPTS += ONLY_CBLAS=1
 endif
 
-# Enable/Disable multi-threading (not for static-only since it uses dlfcn.h)
-ifeq ($(BR2_PACKAGE_OPENBLAS_USE_THREAD),y)
-OPENBLAS_MAKE_OPTS += USE_THREAD=1
-else
+# Tesla: Disable threading
 OPENBLAS_MAKE_OPTS += USE_THREAD=0
 
 ifeq ($(BR2_PACKAGE_OPENBLAS_USE_LOCKING),y)

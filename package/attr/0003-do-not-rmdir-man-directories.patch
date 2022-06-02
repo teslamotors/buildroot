@@ -1,0 +1,25 @@
+diff --git a/man/Makemodule.am b/man/Makemodule.am
+index 860654f..f9720ac 100644
+--- a/man/Makemodule.am
++++ b/man/Makemodule.am
+@@ -21,5 +21,4 @@ install-data-hook:
+ 			echo $(LN_S) $$dst $$ln; \
+ 			$(LN_S) $$dst $$ln; \
+ 		done; \
+-	done; \
+-	rmdir */ 2>/dev/null || :
++	done;
+diff --git a/Makefile.in b/Makefile.in
+index deb6df6..5d9094c 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -1849,8 +1849,7 @@ install-data-hook:
+ 			echo $(LN_S) $$dst $$ln; \
+ 			$(LN_S) $$dst $$ln; \
+ 		done; \
+-	done; \
+-	rmdir */ 2>/dev/null || :
++	done;
+ 
+ # Tell versions [3.59,3.63) of GNU make to not export all variables.
+ # Otherwise a system limit (for SysV at least) may be exceeded.

@@ -14,9 +14,15 @@ APPARMOR_LICENSE_FILES = LICENSE parser/COPYING.GPL
 APPARMOR_CPE_ID_VENDOR = canonical
 
 APPARMOR_DEPENDENCIES = libapparmor
+HOST_APPARMOR_DEPENDENCIES = host-libapparmor host-python3
 
 APPARMOR_TOOLS = parser
 APPARMOR_MAKE_OPTS = USE_SYSTEM=1 DISTRO=unknown POD2MAN=true POD2HTML=true
+
+HOST_APPARMOR_MAKE_OPTS = USE_SYSTEM=1 DISTRO=unknown POD2MAN=true POD2HTML=true \
+    PYTHON=$(HOST_DIR)/bin/python3 \
+    PYTHON_CONFIG=$(HOST_DIR)/bin/python3-config \
+    CFLAGS="-DSUPPORT_CROSS_COMPILATION"
 
 ifeq ($(BR2_PACKAGE_GETTEXT_PROVIDES_LIBINTL),y)
 APPARMOR_DEPENDENCIES += gettext
@@ -65,6 +71,10 @@ APPARMOR_POST_CONFIGURE_HOOKS += APPARMOR_FIXUP_APXS
 endif
 endif
 
+define HOST_APPARMOR_BUILD_CMDS
+    $(HOST_MAKE_ENV) $(HOST_CONFIGURE_OPTS) $(MAKE) -C $(@D)/parser $(HOST_APPARMOR_MAKE_OPTS)
+endef
+
 define APPARMOR_BUILD_CMDS
 	$(foreach tool,$(APPARMOR_TOOLS),\
 		$(TARGET_MAKE_ENV) $(TARGET_CONFIGURE_OPTS) \
@@ -72,12 +82,19 @@ define APPARMOR_BUILD_CMDS
 	)
 endef
 
+define HOST_APPARMOR_INSTALL_CMDS
+    $(INSTALL) -D -m 0755 $(@D)/parser/apparmor_parser $(HOST_DIR)/sbin/apparmor_parser
+endef
+
 define APPARMOR_INSTALL_TARGET_CMDS
-	$(foreach tool,$(APPARMOR_TOOLS),\
-		$(TARGET_MAKE_ENV) $(TARGET_CONFIGURE_OPTS) \
-		$(MAKE) -C $(@D)/$(tool) $(APPARMOR_MAKE_OPTS) \
-			DESTDIR=$(TARGET_DIR) install
-	)
+    $(INSTALL) -D -m 0755 $(@D)/parser/apparmor_parser $(TARGET_DIR)/sbin/apparmor_parser
+    # install all tunables/abstractions, and some profiles
+    $(INSTALL) -D -m 0644 $(@D)/profiles/apparmor.d/usr.sbin.ntpd $(TARGET_DIR)/etc/apparmor.d/usr.sbin.ntpd
+    $(INSTALL) -D -m 0644 $(@D)/profiles/apparmor.d/bin.ping $(TARGET_DIR)/etc/apparmor.d/bin.ping
+    rsync -a $(@D)/profiles/apparmor.d/abstractions $(TARGET_DIR)/etc/apparmor.d/
+    rsync -a $(@D)/profiles/apparmor.d/abi $(TARGET_DIR)/etc/apparmor.d/
+    rsync -a $(@D)/profiles/apparmor.d/tunables $(TARGET_DIR)/etc/apparmor.d/
+    rsync -a $(@D)/profiles/apparmor.d/local $(TARGET_DIR)/etc/apparmor.d
 endef
 
 # Despite its name, apparmor.systemd is a sysv-init compatible startup script
@@ -94,3 +111,4 @@ define APPARMOR_INSTALL_INIT_SYSTEMD
 endef
 
 $(eval $(generic-package))
+$(eval $(host-generic-package))

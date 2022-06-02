@@ -1,4 +1,5 @@
 From bd6bc7ebb48adad04a6a115f6f4167ae40d9f697 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
 Date: Tue, 7 Mar 2017 18:28:42 -0800
 Subject: [PATCH] Define O_FSYNC in libconstants.gen.c
 

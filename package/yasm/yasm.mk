@@ -18,5 +18,7 @@ endef
 YASM_PRE_CONFIGURE_HOOKS += YASM_PRE_CONFIGURE_FIXUP
 HOST_YASM_PRE_CONFIGURE_HOOKS += YASM_PRE_CONFIGURE_FIXUP
 
+HOST_YASM_INSTALL_OPTS = --jobs=1 install
+
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))

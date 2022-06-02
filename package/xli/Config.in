@@ -1,0 +1,9 @@
+config BR2_PACKAGE_XLI
+       bool "xli"
+       select BR2_PACKAGE_JPEG
+       select BR2_PACKAGE_XLIB_LIBX11
+       select BR2_PACKAGE_XLIB_LIBXEXT
+       help
+         XLI - X11 Image Loading Utility
+
+         ftp://ftp.ibiblio.org/pub/Linux/apps/graphics/viewers/X/xli-1.16.README

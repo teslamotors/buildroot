@@ -15,6 +15,11 @@ config BR2_PACKAGE_LIBAPPARMOR
 
 	  http://wiki.apparmor.net
 
+config BR2_PACKAGE_HOST_LIBAPPARMOR
+	bool "host libapparmor"
+	help
+	    Host libapparmor needed for cross-compilation at build time.
+
 comment "libapparmor needs a toolchain w/ headers >= 3.16, threads"
 	depends on BR2_TOOLCHAIN_HAS_SYNC_4
 	depends on !BR2_TOOLCHAIN_HAS_THREADS \

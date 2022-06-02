@@ -1,0 +1,22 @@
+diff --git a/MANIFEST.in b/MANIFEST.in
+index 8cf60a4..644532a 100644
+--- a/MANIFEST.in
++++ b/MANIFEST.in
+@@ -8,6 +8,10 @@ include setup.py
+ # better to package too much than not enough
+ graft pvlib
+ 
++# don't include data files used for testing
++prune pvlib/data
++include pvlib/data/sam-*.csv pvlib/data/adr-*.csv pvlib/data/Linke*
++
+ # we included pvlib files needed to compile NREL SPA code in graft above,
+ # now we exclude the NREL code itself to comply with their license
+ global-exclude */spa.c
+@@ -32,4 +36,4 @@ global-exclude \#*
+ global-exclude .ipynb_checkpoints
+ 
+ include versioneer.py
+-include pvlib/_version.py
+\ No newline at end of file
++include pvlib/_version.py

@@ -1,0 +1,80 @@
+From 7a68045b5d3ca52ea9db6f4c2606ae16546187ea Mon Sep 17 00:00:00 2001
+From: Eric Engestrom <eric@engestrom.ch>
+Date: Fri, 5 Jun 2020 01:05:46 +0200
+Subject: [PATCH] glapi: remove deprecated .getchildren() that has been replace
+ with an iterator
+
+Cc: mesa-stable
+Closes: https://gitlab.freedesktop.org/mesa/mesa/-/issues/3086
+Signed-off-by: Eric Engestrom <eric@engestrom.ch>
+Reviewed-by: Vinson Lee <vlee@freedesktop.org>
+Part-of: <https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/5342>
+---
+ src/mapi/glapi/gen/glX_XML.py | 4 ++--
+ src/mapi/glapi/gen/gl_XML.py  | 8 ++++----
+ 2 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/src/mapi/glapi/gen/glX_XML.py b/src/mapi/glapi/gen/glX_XML.py
+index ff0011bf9ce..3b54a967fdc 100644
+--- a/src/mapi/glapi/gen/glX_XML.py
++++ b/src/mapi/glapi/gen/glX_XML.py
+@@ -48,7 +48,7 @@ class glx_enum(gl_XML.gl_enum):
+ 
+         self.functions = {}
+ 
+-        for child in element.getchildren():
++        for child in element:
+             if child.tag == "size":
+                 n = child.get( "name" )
+                 c = child.get( "count" )
+@@ -130,7 +130,7 @@ class glx_function(gl_XML.gl_function):
+                     self.counter_list.append(param.counter)
+ 
+ 
+-        for child in element.getchildren():
++        for child in element:
+             if child.tag == "glx":
+                 rop = child.get( 'rop' )
+                 sop = child.get( 'sop' )
+diff --git a/src/mapi/glapi/gen/gl_XML.py b/src/mapi/glapi/gen/gl_XML.py
+index 7f1edbde9dd..94e742f7b9b 100644
+--- a/src/mapi/glapi/gen/gl_XML.py
++++ b/src/mapi/glapi/gen/gl_XML.py
+@@ -716,7 +716,7 @@ class gl_function( gl_item ):
+ 
+         parameters = []
+         return_type = "void"
+-        for child in element.getchildren():
++        for child in element:
+             if child.tag == "return":
+                 return_type = child.get( "type", "void" )
+             elif child.tag == "param":
+@@ -746,7 +746,7 @@ class gl_function( gl_item ):
+                 if param.is_image():
+                     self.images.append( param )
+ 
+-        if element.getchildren():
++        if list(element):
+             self.initialized = 1
+             self.entry_point_parameters[name] = parameters
+         else:
+@@ -876,7 +876,7 @@ class gl_api(object):
+ 
+ 
+     def process_OpenGLAPI(self, file_name, element):
+-        for child in element.getchildren():
++        for child in element:
+             if child.tag == "category":
+                 self.process_category( child )
+             elif child.tag == "OpenGLAPI":
+@@ -896,7 +896,7 @@ class gl_api(object):
+         [cat_type, key] = classify_category(cat_name, cat_number)
+         self.categories[cat_type][key] = [cat_name, cat_number]
+ 
+-        for child in cat.getchildren():
++        for child in cat:
+             if child.tag == "function":
+                 func_name = real_function_name( child )
+ 
+-- 
+GitLab

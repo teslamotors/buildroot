@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-GST1_PLUGINS_BASE_VERSION = 1.18.4
+GST1_PLUGINS_BASE_VERSION = 1.18.5
 GST1_PLUGINS_BASE_SOURCE = gst-plugins-base-$(GST1_PLUGINS_BASE_VERSION).tar.xz
 GST1_PLUGINS_BASE_SITE = https://gstreamer.freedesktop.org/src/gst-plugins-base
 GST1_PLUGINS_BASE_INSTALL_STAGING = YES
@@ -233,6 +233,11 @@ ifeq ($(BR2_PACKAGE_ZLIB),y)
 GST1_PLUGINS_BASE_DEPENDENCIES += zlib
 endif
 
+# Include additional headers needed to compile meson jobs locally
+ifeq ($(BR2_PACKAGE_MISC_GRAPHICS_HEADERS_GST1_PLUGINS_BASE),y)
+GST1_PLUGINS_BASE_DEPENDENCIES += misc-graphics-headers
+endif
+
 ifeq ($(BR2_PACKAGE_XORG7),y)
 GST1_PLUGINS_BASE_DEPENDENCIES += xlib_libX11 xlib_libXext xlib_libXv
 GST1_PLUGINS_BASE_CONF_OPTS += \
@@ -294,5 +299,11 @@ GST1_PLUGINS_BASE_DEPENDENCIES += libvorbis
 else
 GST1_PLUGINS_BASE_CONF_OPTS += -Dvorbis=disabled
 endif
+
+define GST1_PLUGINS_BASE_INSTALL_TARGET_FIXUP
+    rm -rf $(TARGET_DIR)/usr/lib/gstreamer-1.0/include/gst/gl
+endef
+
+GST1_PLUGINS_BASE_POST_INSTALL_TARGET_HOOKS += GST1_PLUGINS_BASE_INSTALL_TARGET_FIXUP
 
 $(eval $(meson-package))

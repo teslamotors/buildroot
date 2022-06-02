@@ -5,7 +5,7 @@
 ################################################################################
 
 # LLVM, Clang and lld should be version bumped together
-CLANG_VERSION = 9.0.1
+CLANG_VERSION = 11.0.1
 CLANG_SITE = https://github.com/llvm/llvm-project/releases/download/llvmorg-$(CLANG_VERSION)
 CLANG_SOURCE = clang-$(CLANG_VERSION).src.tar.xz
 CLANG_LICENSE = Apache-2.0 with exceptions
@@ -14,7 +14,7 @@ CLANG_CPE_ID_VENDOR = llvm
 CLANG_SUPPORTS_IN_SOURCE_BUILD = NO
 CLANG_INSTALL_STAGING = YES
 
-HOST_CLANG_DEPENDENCIES = host-llvm host-libxml2
+HOST_CLANG_DEPENDENCIES = host-lld host-llvm host-libxml2
 CLANG_DEPENDENCIES = llvm host-clang
 
 # LLVM >= 9.0 will soon require C++14 support, building llvm 8.x using a
@@ -54,13 +54,17 @@ HOST_CLANG_CONF_OPTS += \
 	-DCLANG_INCLUDE_DOCS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF
 
+ifeq ($(BR2_TOOLCHAIN_EXTERNAL),y)
+HOST_CLANG_CONF_OPTS += -DGCC_INSTALL_PREFIX=$(TOOLCHAIN_EXTERNAL_INSTALL_DIR)
+endif
+
 CLANG_CONF_OPTS += \
 	-DCLANG_BUILD_EXAMPLES=OFF \
 	-DCLANG_INCLUDE_DOCS=OFF \
 	-DCLANG_INCLUDE_TESTS=OFF
 
 HOST_CLANG_CONF_OPTS += -DLLVM_DIR=$(HOST_DIR)/lib/cmake/llvm \
-	-DCLANG_DEFAULT_LINKER=$(TARGET_LD)
+
 CLANG_CONF_OPTS += -DLLVM_DIR=$(STAGING_DIR)/usr/lib/cmake/llvm \
 	-DCLANG_TABLEGEN:FILEPATH=$(HOST_DIR)/bin/clang-tblgen \
 	-DLLVM_TABLEGEN_EXE:FILEPATH=$(HOST_DIR)/bin/llvm-tblgen

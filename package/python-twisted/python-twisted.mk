@@ -19,7 +19,8 @@ define PYTHON_TWISTED_INSTALL_TARGET_FIXUP
 	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/twisted/internet/iocpreactor/iocpsupport/*.c
 	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/twisted/python/*.c
 	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/twisted/runner/*.c
-	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/twisted/test/*.c
+	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/twisted/trial
+	find $(TARGET_DIR)/usr/lib/python*/site-packages/twisted -type d -name test -exec rm -rf '{}' \+
 endef
 
 PYTHON_TWISTED_POST_INSTALL_TARGET_HOOKS += PYTHON_TWISTED_INSTALL_TARGET_FIXUP

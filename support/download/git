@@ -118,19 +118,18 @@ fi
 
 _git remote set-url origin "'${uri}'"
 
-printf "Fetching all references\n"
-_git fetch origin
-_git fetch origin -t
-
-# Try to get the special refs exposed by some forges (pull-requests for
-# github, changes for gerrit...). There is no easy way to know whether
-# the cset the user passed us is such a special ref or a tag or a sha1
-# or whatever else. We'll eventually fail at checking out that cset,
-# below, if there is an issue anyway. Since most of the cset we're gonna
-# have to clone are not such special refs, consign the output to oblivion
-# so as not to alarm unsuspecting users, but still trace it as a warning.
-if ! _git fetch origin "'${cset}:${cset}'" >/dev/null 2>&1; then
-    printf "Could not fetch special ref '%s'; assuming it is not special.\n" "${cset}"
+# Try to fetch with limited depth, since it is faster than a full clone - but
+# that only works if the version is a ref (tag or branch). Check if commit already exists
+# locally, and fallback to another commit fetch if not. Do not use full fetch
+# to save time for both CI and developers.
+#
+# Messages for the type of clone used are provided to ease debugging in
+# case of problems
+if test "$(_git cat-file -t "'${cset}'" 2>&1)" != "commit"; then
+    printf "Performing a new shallow fetch\n"
+    _git fetch "${@}" --depth 1 origin "'${cset}:${cset}'"
+else
+    printf "Commit already fetched\n"
 fi
 
 # Check that the changeset does exist. If it does not, re-cloning from
@@ -180,9 +179,12 @@ _git clean -ffdx
 # %ci is ISO 8601, so it's fully qualified, with TZ and all.
 date="$( _git log -1 --pretty=format:%ci )"
 
-# There might be submodules, so fetch them.
+# Use the number of physical cores to download submodules in parallel
+CPU_NUM=$(getconf _NPROCESSORS_ONLN || echo 1)
+
+# There might be submodules, so fetch them, in shallow-clone mode.
 if [ ${recurse} -eq 1 ]; then
-    _git submodule update --init --recursive
+    _git submodule update --init --recursive --jobs="$CPU_NUM" --depth 1
 
     # Older versions of git will store the absolute path of the git tree
     # in the .git of submodules, while newer versions just use relative

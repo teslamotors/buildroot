@@ -192,10 +192,12 @@ TARGET_CXXFLAGS += -mid-shared-library -mshared-library-id=0
 endif
 
 ifeq ($(BR2_TOOLCHAIN_BUILDROOT),y)
-TARGET_CROSS = $(HOST_DIR)/bin/$(GNU_TARGET_NAME)-
+TARGET_CROSS_TRIPLE = $(GNU_TARGET_NAME)
 else
-TARGET_CROSS = $(HOST_DIR)/bin/$(TOOLCHAIN_EXTERNAL_PREFIX)-
+TARGET_CROSS_TRIPLE = $(TOOLCHAIN_EXTERNAL_PREFIX)
 endif
+
+TARGET_CROSS = $(HOST_DIR)/bin/$(TARGET_CROSS_TRIPLE)-
 
 # Define TARGET_xx variables for all common binutils/gcc
 TARGET_AR       = $(TARGET_CROSS)ar
@@ -214,7 +216,7 @@ TARGET_OBJDUMP  = $(TARGET_CROSS)objdump
 ifeq ($(BR2_STRIP_strip),y)
 STRIP_STRIP_DEBUG := --strip-debug
 TARGET_STRIP = $(TARGET_CROSS)strip
-STRIPCMD = $(TARGET_CROSS)strip --remove-section=.comment --remove-section=.note
+STRIPCMD = $(TARGET_CROSS)strip --remove-section=.comment --remove-section=.note --remove-section=.stack_sizes
 else
 TARGET_STRIP = /bin/true
 STRIPCMD = $(TARGET_STRIP)
@@ -428,3 +430,5 @@ include package/pkg-waf.mk
 include package/pkg-golang.mk
 include package/pkg-meson.mk
 include package/pkg-qmake.mk
+include package/pkg-runit.mk
+include package/intrumentation-bear.mk

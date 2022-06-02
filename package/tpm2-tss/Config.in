@@ -58,3 +58,15 @@ endif
 comment "tpm2-tss needs a toolchain w/ dynamic library"
 	depends on BR2_PACKAGE_LIBOPENSSL_ARCH_SUPPORTS
 	depends on BR2_STATIC_LIBS
+
+if BR2_PACKAGE_TPM2_TSS
+
+config BR2_PACKAGE_TPM2_TSS_DELETE_TCTI_DEFAULT
+	bool "delete libtss2-tcti-default.so"
+	help
+	  Since version 2.3.0, tpm2-tss installs libtss2-tcti-default.so
+	  by default as a symbolic link to libtss2-tcti-device.so, so
+	  unless this config is set, only the device TCTI will ever be used,
+	  even if tpm2-abrmd or a TPM simulator are available.
+
+endif

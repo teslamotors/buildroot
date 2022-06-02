@@ -38,12 +38,14 @@ endef
 define HOST_KAFEL_BUILD_CMDS
     mkdir -p $(@HOST_DIR)/usr/include/
     cd $(@D) && $(HOST_MAKE_ENV) $(HOST_CONFIGURE_OPTS) $(MAKE)
+    echo "#!$(HOST_DIR)/usr/bin/python" | cat - $(KAFEL_PKGDIR)/check-kafel.py > $(@D)/check-kafel
 endef
 
 define HOST_KAFEL_INSTALL_CMDS
     $(INSTALL) -D -m 0444 $(@D)/include/kafel.h $(HOST_DIR)/usr/include/kafel.h
     $(INSTALL) -D -m 0755 $(@D)/libkafel.a $(HOST_DIR)/usr/lib/libkafel.a
     $(INSTALL) -D -m 0755 $(@D)/libkafel.so $(HOST_DIR)/usr/lib/libkafel.so
+    $(INSTALL) -D -m 0755 $(@D)/check-kafel $(HOST_DIR)/usr/bin/check-kafel
 endef
 
 $(eval $(generic-package))

@@ -1,0 +1,5 @@
+config BR2_PACKAGE_SNDIO
+	bool "sndio"
+	select BR2_PACKAGE_ALSA_LIB
+	help
+	  Sndio is a small audio and MIDI framework. It provides a lightweight audio & MIDI server and a fully documented user-space API to access either the server or directly the hardware in a uniform way.

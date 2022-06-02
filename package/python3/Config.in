@@ -120,4 +120,11 @@ config BR2_PACKAGE_PYTHON3_ZLIB
 
 endmenu
 
+config BR2_PACKAGE_PYTHON3_LIBSUBDIR_REMOVE
+	string "subdirs to remove from installation (coma-separated)"
+	default "turtledemo,unittest" 
+	help
+	  Comma-separated list of things like "turtledemo", "unittest",
+	  ensurepip, distutils, etc. see /usr/lib/python*/{here}
+
 endif

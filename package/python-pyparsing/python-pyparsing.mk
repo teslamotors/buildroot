@@ -11,9 +11,4 @@ PYTHON_PYPARSING_LICENSE = MIT
 PYTHON_PYPARSING_LICENSE_FILES = LICENSE
 PYTHON_PYPARSING_SETUP_TYPE = setuptools
 
-define PYTHON_PYPARSING_EXTRACT_CMDS
-	mkdir -p $(@D)
-	tar -C $(@D) --strip-components=2 -xzf $(PYTHON_PYPARSING_DL_DIR)/$(PYTHON_PYPARSING_SOURCE)
-endef
-
 $(eval $(python-package))

@@ -4,8 +4,8 @@
 #
 ################################################################################
 
-FILE_VERSION = 5.38
-FILE_SITE = ftp://ftp.astron.com/pub/file
+FILE_VERSION = 5.41
+FILE_SITE = http://ftp.astron.com/pub/file
 FILE_DEPENDENCIES = host-file
 HOST_FILE_DEPENDENCIES = host-zlib
 FILE_CONF_ENV = ac_cv_prog_cc_c99='-std=gnu99'

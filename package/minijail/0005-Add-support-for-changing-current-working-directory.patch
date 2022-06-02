@@ -1,4 +1,5 @@
 From 618bb5283a5f4499ac5410c5b591ab0ed55a2695 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
 Date: Thu, 27 Jun 2019 22:02:18 -0700
 Subject: [PATCH] Add support for changing current working directory
 

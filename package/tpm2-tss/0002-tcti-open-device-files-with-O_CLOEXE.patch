@@ -1,0 +1,25 @@
+From 326958ac7671313544ad2c8182068cdef11958e6 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Mon, 8 Mar 2021 11:45:43 -0800
+Subject: [PATCH] tcti: open device files with O_CLOEXEC
+
+---
+ src/tss2-tcti/tcti-device.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/tss2-tcti/tcti-device.c b/src/tss2-tcti/tcti-device.c
+index 94db070..12a132e 100644
+--- a/src/tss2-tcti/tcti-device.c
++++ b/src/tss2-tcti/tcti-device.c
+@@ -375,7 +375,7 @@ static int open_tpm (
+ #ifdef __VXWORKS__
+         return open (pathname, O_RDWR | O_NONBLOCK, (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP));
+ #else
+-        return open (pathname, O_RDWR | O_NONBLOCK);
++        return open (pathname, O_RDWR | O_NONBLOCK | O_CLOEXEC);
+ #endif
+ }
+ 
+-- 
+2.17.1
+

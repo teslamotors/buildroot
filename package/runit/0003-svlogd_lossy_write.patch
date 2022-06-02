@@ -4,6 +4,7 @@ When -L is specified, svlogd will drop log messages on the floor
 if it is unable to write to current and other space-making remedies
 have failed.
 
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
 
 --- runit-2.1.2/doc/svlogd.8.html	2014-08-10 11:22:36.000000000 -0700
 +++ runit-2.1.2/doc/svlogd.8.html	2017-06-21 18:07:45.737449048 -0700

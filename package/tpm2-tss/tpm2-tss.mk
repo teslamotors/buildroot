@@ -24,4 +24,15 @@ else
 TPM2_TSS_CONF_OPTS += --disable-fapi
 endif
 
+define TPM2_TSS_USERS
+	tss -1 tss -1 * - - - TPM user/group
+endef
+
+ifeq ($(BR2_PACKAGE_TPM2_TSS_DELETE_TCTI_DEFAULT),y)
+define TPM2_TSS_DELETE_TCTI_DEFAULT
+	rm -f $(TARGET_DIR)/usr/lib/libtss2-tcti-default.so
+endef
+TPM2_TSS_POST_INSTALL_TARGET_HOOKS += TPM2_TSS_DELETE_TCTI_DEFAULT
+endif
+
 $(eval $(autotools-package))

@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-GST1_PLUGINS_UGLY_VERSION = 1.18.4
+GST1_PLUGINS_UGLY_VERSION = 1.18.5
 GST1_PLUGINS_UGLY_SOURCE = gst-plugins-ugly-$(GST1_PLUGINS_UGLY_VERSION).tar.xz
 GST1_PLUGINS_UGLY_SITE = https://gstreamer.freedesktop.org/src/gst-plugins-ugly
 GST1_PLUGINS_UGLY_LICENSE_FILES = COPYING
@@ -32,13 +32,6 @@ GST1_PLUGINS_UGLY_CONF_OPTS += -Dorc=enabled
 GST1_PLUGINS_UGLY_DEPENDENCIES += orc
 else
 GST1_PLUGINS_UGLY_CONF_OPTS += -Dorc=disabled
-endif
-
-ifeq ($(BR2_PACKAGE_GST1_PLUGINS_UGLY_PLUGIN_AMRNB),y)
-GST1_PLUGINS_UGLY_CONF_OPTS += --enable-amrnb
-GST1_PLUGINS_UGLY_DEPENDENCIES += opencore-amr
-else
-GST1_PLUGINS_UGLY_CONF_OPTS += --disable-amrnb
 endif
 
 ifeq ($(BR2_PACKAGE_GST1_PLUGINS_UGLY_PLUGIN_ASFDEMUX),y)

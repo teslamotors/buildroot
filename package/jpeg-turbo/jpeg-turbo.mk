@@ -50,4 +50,7 @@ endef
 JPEG_TURBO_POST_INSTALL_TARGET_HOOKS += JPEG_TURBO_REMOVE_TOOLS
 endif
 
+# make jpeg-turbo unavailable for target builds if not selected in config
+ifeq ($(BR2_PACKAGE_JPEG_TURBO),y)
 $(eval $(cmake-package))
+endif

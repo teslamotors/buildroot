@@ -1,0 +1,44 @@
+From 09b86b85acbc5c4fb706ad27583875ea4b799186 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Tue, 17 Mar 2020 23:28:15 -0700
+Subject: [PATCH 1/4] sb600spi: Add Picasso support
+
+Change-Id: I3dc390f020653856a2abcbd996aacf1ea0c2811a
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
+---
+ sb600spi.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/sb600spi.c b/sb600spi.c
+index a649253..94d01de 100644
+--- a/sb600spi.c
++++ b/sb600spi.c
+@@ -50,6 +50,7 @@ enum amd_chipset {
+ 	CHIPSET_BOLTON,
+ 	CHIPSET_YANGTZE,
+ 	CHIPSET_PROMONTORY,
++	CHIPSET_PICASSO,
+ };
+ static enum amd_chipset amd_gen = CHIPSET_AMD_UNKNOWN;
+ 
+@@ -146,6 +147,9 @@ static int determine_generation(struct pci_dev *dev)
+ 		} else if (rev == 0x4b) {
+ 			amd_gen = CHIPSET_PROMONTORY;
+ 			msg_pdbg("Promontory detected.\n");
++		} else if (rev == 0x61) {
++			amd_gen = CHIPSET_PICASSO;
++			msg_pdbg("Picasso detected.\n");
+ 		} else {
+ 			msg_pwarn("FCH device found but SMBus revision 0x%02x does not match known values.\n"
+ 				  "Please report this to flashrom@flashrom.org and include this log and\n"
+@@ -672,6 +676,7 @@ int sb600_probe_spi(struct pci_dev *dev)
+ 	case CHIPSET_HUDSON234:
+ 	case CHIPSET_YANGTZE:
+ 	case CHIPSET_PROMONTORY:
++	case CHIPSET_PICASSO:
+ 		msg_pdbg(", SpiBusy=%i", (tmp >> 31) & 0x1);
+ 	default: break;
+ 	}
+-- 
+2.17.2
+

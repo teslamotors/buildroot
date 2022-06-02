@@ -22,4 +22,8 @@ MINICOM_CONF_OPTS = \
 	--enable-dfl-port=/dev/ttyS1 \
 	--enable-lock-dir=/var/lock
 
+MINICOM_CONF_OPTS = \
+	--enable-dfl-port=/dev/ttyS1 \
+	--enable-lock-dir=/var/lock
+
 $(eval $(autotools-package))

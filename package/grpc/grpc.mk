@@ -4,6 +4,11 @@
 #
 ################################################################################
 
+ifeq ($(BR2_PACKAGE_GRPC_VERSION_V_1_16_1),y)
+# Including 1.16.1 .mk file
+include package/grpc/1.16.1/grpc/grpc.mk
+else
+
 GRPC_VERSION = 1.35.0
 GRPC_SITE = $(call github,grpc,grpc,v$(GRPC_VERSION))
 GRPC_LICENSE = Apache-2.0
@@ -80,3 +85,4 @@ HOST_GRPC_CONF_OPTS = \
 
 $(eval $(cmake-package))
 $(eval $(host-cmake-package))
+endif # BR2_PACKAGE_GRPC_VERSION_V_1_16_1

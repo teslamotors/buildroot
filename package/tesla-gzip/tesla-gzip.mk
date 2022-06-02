@@ -10,7 +10,8 @@ TESLA_GZIP_SITE = $(BR2_GNU_MIRROR)/gzip
 # Some other tools expect it to be in /bin
 TESLA_GZIP_CONF_OPTS = --exec-prefix=/
 # Prefer full gzip over potentially lightweight/slower from busybox
-TESLA_GZIP_DEPENDENCIES = $(if $(BR2_PACKAGE_BUSYBOX),busybox)
+TESLA_GZIP_DEPENDENCIES = $(if $(BR2_PACKAGE_BUSYBOX),busybox) \
+                          host-autoconf
 TESLA_GZIP_LICENSE = GPLv2
 TESLA_GZIP_LICENSE_FILES = COPYING
 TESLA_GZIP_CONF_ENV += gl_cv_func_fflush_stdin=yes

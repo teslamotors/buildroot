@@ -1,0 +1,66 @@
+From 4145fe1c087708bf5d6608e328342282ecb93ab0 Mon Sep 17 00:00:00 2001
+From: Chase Douglas <chase.douglas@canonical.com>
+Date: Wed, 6 Jun 2012 12:07:12 -0700
+Subject: [PATCH] Fix buffer overrun when populating axis label property array
+
+The axis label property array currently only has enough elements for the
+non-multitouch axes. This change allocates enough space for all axes,
+which prevents an array overrun write. This may manifest as stack
+corruption on some platforms.
+
+Signed-off-by: Chase Douglas <chase.douglas@canonical.com>
+Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+---
+ src/evdev.c |    8 +++++---
+ src/evdev.h |    1 +
+ 2 files changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/src/evdev.c b/src/evdev.c
+index 4b86f66..a628273 100644
+--- a/src/evdev.c
++++ b/src/evdev.c
+@@ -1304,6 +1304,7 @@ EvdevAddAbsValuatorClass(DeviceIntPtr device)
+     }
+ #ifdef MULTITOUCH
+     if (num_mt_axes_total > 0) {
++        pEvdev->num_mt_vals = num_mt_axes_total;
+         pEvdev->mt_mask = valuator_mask_new(num_mt_axes_total);
+         if (!pEvdev->mt_mask) {
+             xf86Msg(X_ERROR, "%s: failed to allocate MT valuator mask.\n",
+@@ -2879,7 +2880,8 @@ EvdevInitProperty(DeviceIntPtr dev)
+         if ((pEvdev->num_vals > 0) && (prop_axis_label = XIGetKnownProperty(AXIS_LABEL_PROP)))
+         {
+             int mode;
+-            Atom atoms[pEvdev->num_vals];
++            int num_axes = pEvdev->num_vals + pEvdev->num_mt_vals;
++            Atom atoms[num_axes];
+ 
+             if (pEvdev->flags & EVDEV_ABSOLUTE_EVENTS)
+                 mode = Absolute;
+@@ -2890,9 +2892,9 @@ EvdevInitProperty(DeviceIntPtr dev)
+                 mode = Absolute;
+             }
+ 
+-            EvdevInitAxesLabels(pEvdev, mode, pEvdev->num_vals, atoms);
++            EvdevInitAxesLabels(pEvdev, mode, num_axes, atoms);
+             XIChangeDeviceProperty(dev, prop_axis_label, XA_ATOM, 32,
+-                                   PropModeReplace, pEvdev->num_vals, atoms, FALSE);
++                                   PropModeReplace, num_axes, atoms, FALSE);
+             XISetDevicePropertyDeletable(dev, prop_axis_label, FALSE);
+         }
+         /* Button labelling */
+diff --git a/src/evdev.h b/src/evdev.h
+index 309b215..c2f9246 100644
+--- a/src/evdev.h
++++ b/src/evdev.h
+@@ -153,6 +153,7 @@ typedef struct {
+     int grabDevice;         /* grab the event device? */
+ 
+     int num_vals;           /* number of valuators */
++    int num_mt_vals;        /* number of multitouch valuators */
+     int axis_map[max(ABS_CNT, REL_CNT)]; /* Map evdev <axis> to index */
+     ValuatorMask *vals;     /* new values coming in */
+     ValuatorMask *old_vals; /* old values for calculating relative motion */
+-- 
+1.7.9.5
+

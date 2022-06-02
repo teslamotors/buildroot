@@ -1,0 +1,33 @@
+From 54070c3b36b002c13e56d42ec35893d8b5f0046b Mon Sep 17 00:00:00 2001
+From: Povilas Kanapickas <povilas@radix.lt>
+Date: Tue, 14 Dec 2021 15:00:02 +0200
+Subject: [PATCH 3/4] Xext: Fix out of bounds access in
+ SProcScreenSaverSuspend()
+
+ZDI-CAN-14951, CVE-2021-4010
+
+This vulnerability was discovered and the fix was suggested by:
+Jan-Niklas Sohn working with Trend Micro Zero Day Initiative
+
+Signed-off-by: Povilas Kanapickas <povilas@radix.lt>
+---
+ Xext/saver.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Xext/saver.c b/Xext/saver.c
+index c27a66c80..c23907dbb 100644
+--- a/Xext/saver.c
++++ b/Xext/saver.c
+@@ -1351,8 +1351,8 @@ SProcScreenSaverSuspend(ClientPtr client)
+     REQUEST(xScreenSaverSuspendReq);
+ 
+     swaps(&stuff->length);
+-    swapl(&stuff->suspend);
+     REQUEST_SIZE_MATCH(xScreenSaverSuspendReq);
++    swapl(&stuff->suspend);
+     return ProcScreenSaverSuspend(client);
+ }
+ 
+-- 
+2.17.1
+

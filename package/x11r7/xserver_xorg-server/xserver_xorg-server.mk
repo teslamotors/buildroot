@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-XSERVER_XORG_SERVER_VERSION = 1.20.11
+XSERVER_XORG_SERVER_VERSION = $(call qstrip,$(BR2_PACKAGE_XSERVER_XORG_SERVER_VERSION))
 XSERVER_XORG_SERVER_SOURCE = xorg-server-$(XSERVER_XORG_SERVER_VERSION).tar.bz2
 XSERVER_XORG_SERVER_SITE = https://xorg.freedesktop.org/archive/individual/xserver
 XSERVER_XORG_SERVER_LICENSE = MIT
@@ -98,7 +98,7 @@ XSERVER_XORG_SERVER_CONF_OPTS += --disable-kdrive
 endif
 
 ifeq ($(BR2_PACKAGE_HAS_LIBGL),y)
-XSERVER_XORG_SERVER_CONF_OPTS += --enable-dri --enable-glx
+XSERVER_XORG_SERVER_CONF_OPTS += --enable-dri --enable-glx-tls
 XSERVER_XORG_SERVER_DEPENDENCIES += libgl
 else
 XSERVER_XORG_SERVER_CONF_OPTS += --disable-dri --disable-glx
@@ -117,8 +117,10 @@ endif
 endif
 
 ifeq ($(BR2_PACKAGE_DBUS),y)
+ifneq ($(BR2_PACKAGE_XSERVER_XORG_SERVER_V_1_11)$(BR2_PACKAGE_XSERVER_XORG_SERVER_V_1_9),y)
 XSERVER_XORG_SERVER_DEPENDENCIES += dbus
 XSERVER_XORG_SERVER_CONF_OPTS += --enable-config-dbus
+endif
 endif
 
 ifeq ($(BR2_PACKAGE_FREETYPE),y)
@@ -133,6 +135,8 @@ XSERVER_XORG_SERVER_CONF_OPTS += --disable-libunwind
 endif
 
 ifneq ($(BR2_PACKAGE_XLIB_LIBXVMC),y)
+XSERVER_XORG_SERVER_CONF_OPTS += --disable-xvmc
+else ifeq ($(BR2_PACKAGE_XSERVER_XORG_SERVER_V_1_11)$(BR2_PACKAGE_XSERVER_XORG_SERVER_V_1_9),y)
 XSERVER_XORG_SERVER_CONF_OPTS += --disable-xvmc
 endif
 
@@ -180,6 +184,11 @@ XSERVER_XORG_SERVER_DEPENDENCIES += libgcrypt
 else
 XSERVER_XORG_SERVER_CONF_OPTS += --with-sha1=libsha1
 XSERVER_XORG_SERVER_DEPENDENCIES += libsha1
+endif
+
+ifeq ($(BR2_PACKAGE_XSERVER_XORG_SERVER_V_1_11)$(BR2_PACKAGE_XSERVER_XORG_SERVER_V_1_9),y)
+XSERVER_XORG_SERVER_CONF_OPTS += --disable-xfbdev
+XSERVER_XORG_SERVER_CONF_OPTS += --disable-xvfb
 endif
 
 define XSERVER_XORG_SERVER_INSTALL_INIT_SYSTEMD

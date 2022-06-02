@@ -1,0 +1,73 @@
+From b2eedbd7274d927b0b86983720aeeee38b13d42e Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Wed, 9 Feb 2022 14:06:17 -0800
+Subject: [PATCH] apparmor: Support better cross compilation
+
+This change ensures we don't look at any system-level
+configuration / procfs files when the SUPPORT_CROSS_COMPILATION
+flag is defined, guaranteeing that we are truly cross-compiling
+a binary profile.
+---
+ parser/parser_common.c | 4 ++++
+ parser/parser_main.c   | 6 ++++++
+ 2 files changed, 10 insertions(+)
+
+diff --git a/parser/parser_common.c b/parser/parser_common.c
+index e9c5fde..8da9695 100644
+--- a/parser/parser_common.c
++++ b/parser/parser_common.c
+@@ -63,7 +63,11 @@ uint32_t kernel_abi_version = 5;
+ 
+ int force_complain = 0;
+ int perms_create = 0;                   /* perms contain create flag */
++#ifdef SUPPORT_CROSS_COMPILATION
++int net_af_max_override = 0;           /* use kernel to determine af_max */
++#else
+ int net_af_max_override = -1;           /* use kernel to determine af_max */
++#endif
+ int kernel_load = 1;
+ int kernel_supports_setload = 0;	/* kernel supports atomic set loads */
+ int features_supports_network = 0;	/* kernel supports network rules */
+diff --git a/parser/parser_main.c b/parser/parser_main.c
+index 9b9a21d..0cd54ad 100644
+--- a/parser/parser_main.c
++++ b/parser/parser_main.c
+@@ -1055,6 +1055,7 @@ int process_profile(int option, aa_kernel_interface *kernel_interface,
+ 		else
+ 			basename = profilename;
+ 
++#ifndef SUPPORT_CROSS_COMPILATION
+ 		if (test_for_dir_mode(basename, "disable")) {
+  			if (!conf_quiet)
+  				PERROR("Skipping profile in %s/disable: %s\n", basedir, basename);
+@@ -1065,6 +1066,7 @@ int process_profile(int option, aa_kernel_interface *kernel_interface,
+ 			PERROR("Warning: found %s in %s/force-complain, forcing complain mode\n", basename, basedir);
+  			force_complain = 1;
+  		}
++#endif
+ 
+ 		/* setup cachename and tstamp */
+ 		if (!force_complain && pc) {
+@@ -1413,7 +1415,9 @@ int main(int argc, char *argv[])
+ 	capabilities_init();
+ 
+ 	process_early_args(argc, argv);
++#ifndef SUPPORT_CROSS_COMPILATION
+ 	process_config_file(config_file);
++#endif
+ 	optind = process_args(argc, argv);
+ 
+ 	setup_parallel_compile();
+@@ -1428,7 +1432,9 @@ int main(int argc, char *argv[])
+ 		return retval;
+ 	}
+ 
++#ifndef SUPPORT_CROSS_COMPILATION
+ 	if (!binary_input) parse_default_paths();
++#endif
+ 
+ 	if (!get_kernel_features(&kernel_features)) {
+ 		PERROR(_("Kernel features abi not found"));
+-- 
+2.17.1
+

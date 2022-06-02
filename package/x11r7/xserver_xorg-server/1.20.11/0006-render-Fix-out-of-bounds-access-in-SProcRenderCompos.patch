@@ -1,0 +1,52 @@
+From 64c406950951ebe938a5bf9a7bd573304c3e8845 Mon Sep 17 00:00:00 2001
+From: Povilas Kanapickas <povilas@radix.lt>
+Date: Tue, 14 Dec 2021 15:00:03 +0200
+Subject: [PATCH 1/4] render: Fix out of bounds access in
+ SProcRenderCompositeGlyphs()
+
+ZDI-CAN-14192, CVE-2021-4008
+
+This vulnerability was discovered and the fix was suggested by:
+Jan-Niklas Sohn working with Trend Micro Zero Day Initiative
+
+Signed-off-by: Povilas Kanapickas <povilas@radix.lt>
+---
+ render/render.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/render/render.c b/render/render.c
+index c376090ca..456f156d4 100644
+--- a/render/render.c
++++ b/render/render.c
+@@ -2309,6 +2309,9 @@ SProcRenderCompositeGlyphs(ClientPtr client)
+ 
+         i = elt->len;
+         if (i == 0xff) {
++            if (buffer + 4 > end) {
++                return BadLength;
++            }
+             swapl((int *) buffer);
+             buffer += 4;
+         }
+@@ -2319,12 +2322,18 @@ SProcRenderCompositeGlyphs(ClientPtr client)
+                 buffer += i;
+                 break;
+             case 2:
++                if (buffer + i * 2 > end) {
++                    return BadLength;
++                }
+                 while (i--) {
+                     swaps((short *) buffer);
+                     buffer += 2;
+                 }
+                 break;
+             case 4:
++                if (buffer + i * 4 > end) {
++                    return BadLength;
++                }
+                 while (i--) {
+                     swapl((int *) buffer);
+                     buffer += 4;
+-- 
+2.17.1
+

@@ -1,0 +1,49 @@
+Fixes a hang during parallel python installation processes. Seems to be
+a bug in the multiprocessing module. By explicitly using -j1 we avoid the
+hang (instead of -j0 which uses use all cores).
+
+This bug looks to have been introduced in python3.8
+
+https://bugs.gentoo.org/720050
+---
+diff --git a/Makefile.pre.in b/Makefile.pre.in
+index 6ba93de..1e61e49 100644
+--- a/Makefile.pre.in
++++ b/Makefile.pre.in
+@@ -1606,30 +1606,30 @@ libinstall:	build_all $(srcdir)/Modules/xxmodule.c
+ ifeq (@PYC_BUILD@,yes)
+ 	-PYTHONPATH=$(DESTDIR)$(LIBDEST)  $(RUNSHARED) \
+ 		$(PYTHON_FOR_BUILD) -Wi $(DESTDIR)$(LIBDEST)/compileall.py \
+-		-j0 -d $(LIBDEST) -f \
++		-j1 -d $(LIBDEST) -f \
+ 		-x 'bad_coding|badsyntax|site-packages|lib2to3/tests/data' \
+ 		$(DESTDIR)$(LIBDEST)
+ 	-PYTHONPATH=$(DESTDIR)$(LIBDEST) $(RUNSHARED) \
+ 		$(PYTHON_FOR_BUILD) -Wi -O $(DESTDIR)$(LIBDEST)/compileall.py \
+-		-j0 -d $(LIBDEST) -f \
++		-j1 -d $(LIBDEST) -f \
+ 		-x 'bad_coding|badsyntax|site-packages|lib2to3/tests/data' \
+ 		$(DESTDIR)$(LIBDEST)
+ 	-PYTHONPATH=$(DESTDIR)$(LIBDEST) $(RUNSHARED) \
+ 		$(PYTHON_FOR_BUILD) -Wi -OO $(DESTDIR)$(LIBDEST)/compileall.py \
+-		-j0 -d $(LIBDEST) -f \
++		-j1 -d $(LIBDEST) -f \
+ 		-x 'bad_coding|badsyntax|site-packages|lib2to3/tests/data' \
+ 		$(DESTDIR)$(LIBDEST)
+ 	-PYTHONPATH=$(DESTDIR)$(LIBDEST) $(RUNSHARED) \
+ 		$(PYTHON_FOR_BUILD) -Wi $(DESTDIR)$(LIBDEST)/compileall.py \
+-		-j0 -d $(LIBDEST)/site-packages -f \
++		-j1 -d $(LIBDEST)/site-packages -f \
+ 		-x badsyntax $(DESTDIR)$(LIBDEST)/site-packages
+ 	-PYTHONPATH=$(DESTDIR)$(LIBDEST) $(RUNSHARED) \
+ 		$(PYTHON_FOR_BUILD) -Wi -O $(DESTDIR)$(LIBDEST)/compileall.py \
+-		-j0 -d $(LIBDEST)/site-packages -f \
++		-j1 -d $(LIBDEST)/site-packages -f \
+ 		-x badsyntax $(DESTDIR)$(LIBDEST)/site-packages
+ 	-PYTHONPATH=$(DESTDIR)$(LIBDEST) $(RUNSHARED) \
+ 		$(PYTHON_FOR_BUILD) -Wi -OO $(DESTDIR)$(LIBDEST)/compileall.py \
+-		-j0 -d $(LIBDEST)/site-packages -f \
++		-j1 -d $(LIBDEST)/site-packages -f \
+ 		-x badsyntax $(DESTDIR)$(LIBDEST)/site-packages
+ endif
+ ifeq (@LIB2TO3@,yes)

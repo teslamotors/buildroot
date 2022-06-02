@@ -1,6 +1,7 @@
 config BR2_PACKAGE_CAPICXX_DBUS_RUNTIME
        bool "Common API DBus Runtime"
        select BR2_PACKAGE_DBUS
+       select BR2_PACKAGE_CAPICXX_CORE_RUNTIME_AVB
        help
          CommonAPI C++ is a C++ framework for interprocess and network communication.
 

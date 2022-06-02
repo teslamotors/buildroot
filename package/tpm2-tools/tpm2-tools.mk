@@ -18,4 +18,12 @@ TPM2_TOOLS_CONF_OPTS = --disable-hardening
 # do not build man pages
 TPM2_TOOLS_CONF_ENV += ac_cv_prog_PANDOC=''
 
+ifneq ($(BR2_PACKAGE_TPM2_TOOLS_BINS),)
+TPM2_TOOLS_BINS := $(foreach bin,$(call qstrip,$(BR2_PACKAGE_TPM2_TOOLS_BINS)),tools/tpm2_$(bin))
+TPM2_TOOLS_INSTALL_TARGET_OPTS = \
+	bin_PROGRAMS="$(TPM2_TOOLS_BINS)" \
+	DESTDIR=$(TARGET_DIR) \
+	install
+endif
+
 $(eval $(autotools-package))

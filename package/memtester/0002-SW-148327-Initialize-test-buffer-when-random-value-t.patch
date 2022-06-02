@@ -1,4 +1,5 @@
 From f49684c514c911d36c408a9a8996b7c5e0f28652 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
 Date: Thu, 28 Jun 2018 13:03:53 -0700
 Subject: [PATCH] SW-148327: Initialize test buffer when random value test was
  skipped

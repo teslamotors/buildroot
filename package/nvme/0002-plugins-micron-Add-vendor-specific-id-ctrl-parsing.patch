@@ -1,0 +1,122 @@
+From e550f5630f487bb7a07143a21f60a7babb54af4b Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Mon, 29 Jun 2020 22:54:16 -0700
+Subject: [PATCH 2/4] plugins/micron: Add vendor-specific id-ctrl parsing
+
+Add support for Micron-specific fields in id-ctrl command reponse.
+
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
+---
+ plugins/micron/micron-nvme.c | 72 ++++++++++++++++++++++++++++++++++++
+ plugins/micron/micron-nvme.h |  1 +
+ 2 files changed, 73 insertions(+)
+
+diff --git a/plugins/micron/micron-nvme.c b/plugins/micron/micron-nvme.c
+index 165fcf0..e5c6e91 100644
+--- a/plugins/micron/micron-nvme.c
++++ b/plugins/micron/micron-nvme.c
+@@ -14,6 +14,7 @@
+ #include "nvme-ioctl.h"
+ #include <sys/ioctl.h>
+ #include <limits.h>
++#include <stdint.h>
+ 
+ #define CREATE_CMD
+ #include "micron-nvme.h"
+@@ -24,6 +25,24 @@
+ #define MaxLogChunk 16 * 1024
+ #define CommonChunkSize 16 * 4096
+ 
++/*
++ * Micron's vendor-specific fields located within "vs" (bytes 4095:3072) of the
++ * Identify Controller structure
++ */
++struct micron_vs_id_ctrl {
++	uint8_t		rsvd208[208];
++	uint8_t		pcm_status;
++	uint8_t		slc_max_ns;
++	uint8_t		tlc_max_ns;
++	uint8_t		slc_byte_capacity[16];
++	uint8_t		tlc_byte_capacity[16];
++	uint8_t		rsvd781[781];
++};
++
++#define MICRON_ID_CTRL_PCM_STATUS_SUPPORTED	(1 << 0)
++#define MICRON_ID_CTRL_PCM_STATUS_LOCKED	(1 << 1)
++#define MICRON_ID_CTRL_PCM_STATUS_FACTORY	(1 << 2)
++
+ typedef struct _LogPageHeader_t {
+ 	unsigned char numDwordsInLogPageHeaderLo;
+ 	unsigned char logPageHeaderFormatVersion;
+@@ -1178,3 +1197,56 @@ static int micron_internal_logs(int argc, char **argv, struct command *cmd,
+  out:
+ 	return err;
+ }
++
++static void micron_id_ctrl_pcm(uint8_t *vs, struct json_object *root)
++{
++	struct micron_vs_id_ctrl *id = (struct micron_vs_id_ctrl *) vs;
++	int pcmcap = 0, pcmlocked = 0, pcmfactory = 0;
++	uint64_t slc_cap, tlc_cap;
++
++	if (id->pcm_status & MICRON_ID_CTRL_PCM_STATUS_SUPPORTED)
++		pcmcap = 1;
++	if (id->pcm_status & MICRON_ID_CTRL_PCM_STATUS_LOCKED)
++		pcmlocked = 1;
++	if (id->pcm_status & MICRON_ID_CTRL_PCM_STATUS_FACTORY)
++		pcmfactory = 1;
++
++	/*
++	 * Byte capacity fields are 128 bits little-endian format.
++	 * We will ignore the most significant 64 of them.  Sorry,
++	 * only 16,384 Petabytes supported.
++	 */
++	slc_cap = le64_to_cpu(*((__le64 *) &(id->slc_byte_capacity)));
++	tlc_cap = le64_to_cpu(*((__le64 *) &(id->tlc_byte_capacity)));
++
++	if (root) {
++		json_object_add_value_int(root, "pcmcap", pcmcap);
++		json_object_add_value_int(root, "pcmlocked", pcmlocked);
++		json_object_add_value_int(root, "pcmfactory", pcmfactory);
++		json_object_add_value_int(root, "slcmaxns", id->slc_max_ns);
++		json_object_add_value_int(root, "tlcmaxns", id->tlc_max_ns);
++		json_object_add_value_uint(root, "slcbytes", slc_cap);
++		json_object_add_value_uint(root, "tlcbytes", tlc_cap);
++		return;
++	}
++
++	printf("pcmcap    : %d\n", pcmcap);
++	printf("pcmlocked : %d\n", pcmlocked);
++	printf("pcmfactory: %d\n", pcmfactory);
++	printf("slcmaxns  : %d\n", id->slc_max_ns);
++	printf("tlcmaxns  : %d\n", id->tlc_max_ns);
++	printf("slcbytes  : %"PRIu64"\n", slc_cap);
++	printf("tlcbytes  : %"PRIu64"\n", tlc_cap);
++
++}
++
++/* Append Micron-specific output to id-ctrl command */
++static void micron_id_ctrl(uint8_t *vs, struct json_object *root)
++{
++	micron_id_ctrl_pcm(vs, root);
++}
++
++static int id_ctrl(int argc, char **argv, struct command *cmd, struct plugin *plugin)
++{
++	return __id_ctrl(argc, argv, cmd, plugin, micron_id_ctrl);
++}
+diff --git a/plugins/micron/micron-nvme.h b/plugins/micron/micron-nvme.h
+index add36e4..dc9c074 100644
+--- a/plugins/micron/micron-nvme.h
++++ b/plugins/micron/micron-nvme.h
+@@ -13,6 +13,7 @@ PLUGIN(NAME("micron", "Micron vendor specific extensions"),
+ 		ENTRY("clear-pcie-correctable-errors", "Clear correctable PCIe errors", micron_clear_pcie_correctable_errors)
+ 		ENTRY("vs-internal-log", "Retrieve Micron logs", micron_internal_logs)
+ 		ENTRY("vs-nand-stats", "Retrieve NAND Stats", micron_nand_stats)
++		ENTRY("id-ctrl", "Send NVMe Identify Controller", id_ctrl)
+ 	)
+ );
+ 
+-- 
+2.17.2
+

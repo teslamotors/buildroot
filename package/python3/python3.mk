@@ -35,7 +35,9 @@ HOST_PYTHON3_CONF_OPTS += \
 	--enable-unicodedata \
 	--disable-test-modules \
 	--disable-idle3 \
-	--disable-ossaudiodev
+	--disable-ossaudiodev \
+	--disable-openssl \
+	--disable-uuid
 
 # Make sure that LD_LIBRARY_PATH overrides -rpath.
 # This is needed because libpython may be installed at the same time that
@@ -202,6 +204,10 @@ define HOST_PYTHON3_MAKE_REGEN_IMPORTLIB
 endef
 
 HOST_PYTHON3_PRE_BUILD_HOOKS += HOST_PYTHON3_MAKE_REGEN_IMPORTLIB
+# Make package cache compatible, and deploy to host if build was skipped
+# due to chache hit.
+HOST_PYTHON3_PRE_INSTALL_HOOKS += HOST_PYTHON3_MAKE_REGEN_IMPORTLIB
+
 #
 # ... And then, when building the target python we first buid
 # 'Programs/_freeze_importlib' to force GNU Make to update all of the
@@ -216,6 +222,9 @@ define PYTHON3_MAKE_REGEN_IMPORTLIB
 endef
 
 PYTHON3_PRE_BUILD_HOOKS += PYTHON3_MAKE_REGEN_IMPORTLIB
+# Make package cache compatible, and deploy to host if build was skipped
+# due to chache hit.
+PYTHON3_PRE_INSTALL_HOOKS += PYTHON3_MAKE_REGEN_IMPORTLIB
 
 #
 # Remove useless files. In the config/ directory, only the Makefile
@@ -236,6 +245,9 @@ define PYTHON3_REMOVE_USELESS_FILES
 	rm -rf $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR)/collections/__pycache__
 	rm -rf $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR)/importlib/__pycache__
 	rm -rf $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR)/config-$(PYTHON3_VERSION_MAJOR)*
+	if [ -n $(BR2_PACKAGE_PYTHON3_LIBSUBDIR_REMOVE) ]; then \
+		rm -rf $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR)/{$(subst $\",,$(BR2_PACKAGE_PYTHON3_LIBSUBDIR_REMOVE))}; \
+	fi
 endef
 
 PYTHON3_POST_INSTALL_TARGET_HOOKS += PYTHON3_REMOVE_USELESS_FILES

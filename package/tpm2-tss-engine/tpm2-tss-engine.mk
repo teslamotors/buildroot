@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-TPM2_TSS_ENGINE_VERSION = 1.0.0 
+TPM2_TSS_ENGINE_VERSION = 1.1.0-rc0
 TPM2_TSS_ENGINE_SITE = https://github.com/tpm2-software/tpm2-tss-engine/releases/download/v$(TPM2_TSS_ENGINE_VERSION)/tpm2-tss-engine-$(TPM2_TSS_ENGINE_VERSION).tar.gz 
 TPM2_TSS_ENGINE_LICENSE = BSD-2-Clause
 TPM2_TSS_ENGINE_LICENSE_FILES = LICENSE

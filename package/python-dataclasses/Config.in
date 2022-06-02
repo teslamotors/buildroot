@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PYTHON_DATACLASSES
+	bool "python-dataclasses"
+	help
+	  A backport of the dataclasses module for Python 3.6.
+
+	  https://github.com/ericvsmith/dataclasses

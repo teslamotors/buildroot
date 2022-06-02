@@ -4,7 +4,12 @@
 #
 ################################################################################
 
+ifeq ($(BR2_PACKAGE_EUDEV_3_2_2),y)
+EUDEV_VERSION = 3.2.2
+else
 EUDEV_VERSION = 3.2.9
+endif
+
 EUDEV_SITE = http://dev.gentoo.org/~blueness/eudev
 EUDEV_LICENSE = GPL-2.0+ (programs), LGPL-2.1+ (libraries)
 EUDEV_LICENSE_FILES = COPYING

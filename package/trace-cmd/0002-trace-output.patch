@@ -1,0 +1,47 @@
+Subject: Fix "error in size of file /sys/kernel/debug/tracing/saved_cmdlines"
+Currently file is read twice, once for size (get_size()) and later for contents
+(copy_file()) and bails out when first size and second size differs.
+
+Instead read once and after writing the contents in the dat file,
+go back to the size field and update with the correct size.
+
+----
+
+
+--- a/lib/trace-cmd/trace-output.c     2018-02-01 14:35:28.000000000 -0800
++++ b/lib/trace-cmd/trace-output.c     2021-05-19 19:07:52.648762545 -0700
+@@ -745,7 +745,6 @@
+ 	unsigned long long endian8;
+ 	char *file = NULL;
+ 	struct stat st;
+-	off64_t check_size;
+ 	off64_t size;
+ 	int ret = -1;
+ 
+@@ -755,16 +754,19 @@
+ 
+ 	ret = stat(file, &st);
+ 	if (ret >= 0) {
+-		size = get_size(file);
+-		endian8 = convert_endian_8(handle, size);
++        /* first write zero size */
++        endian8 = convert_endian_8(handle, 0);
+ 		if (do_write_check(handle, &endian8, 8))
+ 			goto out_free;
+-		check_size = copy_file(handle, file);
+-		if (size != check_size) {
+-			errno = EINVAL;
+-			warning("error in size of file '%s'", file);
++        size = copy_file(handle, file);
++
++        /* now that we know the right size, go back and
++         fix the size field */
++        lseek(handle->fd, -(size + 8), SEEK_CUR);
++        endian8 = convert_endian_8(handle, size);
++        if (do_write_check(handle, &endian8, 8))
+ 			goto out_free;
+-		}
++        lseek(handle->fd, size, SEEK_CUR);
+ 	} else {
+ 		size = 0;
+ 		endian8 = convert_endian_8(handle, size);

@@ -1,0 +1,15 @@
+diff --git a/src/processor/basic_source_line_resolver.cc b/src/processor/basic_source_line_resolver.cc
+index dccbd74..2c5786a 100644
+--- a/src/processor/basic_source_line_resolver.cc
++++ b/src/processor/basic_source_line_resolver.cc
+@@ -447,8 +447,8 @@ bool BasicSourceLineResolver::Module::ParseInlineOrigin(
+                                            &origin_id, &source_file_id,
+                                            &origin_name)) {
+     inline_origins_.insert(make_pair(
+-        origin_id,
+-        new InlineOrigin(has_file_id, source_file_id, origin_name)));
++        static_cast<int>(origin_id),
++        linked_ptr<InlineOrigin>(new InlineOrigin(has_file_id, source_file_id, origin_name))));
+     return true;
+   }
+   return false;

@@ -59,6 +59,14 @@ Additionally, there are some other useful make targets:
 |===================================================
 | command/target    | Description
 
+| +cache-load+      | Load build cache for package
+
+| +cache-save+      | Save build cache for package
+
+| +all-cache-load+  | Load build cache for package and all recursive dependencies
+
+| +all-cache-save+  | Save build cache for package and all recursive dependencies
+
 | +show-depends+    | Displays the first-order dependencies required to build the
 package
 

@@ -1,14 +1,24 @@
 menu "Kernel"
 
+config BR2_LINUX_KERNEL_SOURCE
+	bool "Linux kernel source"
+	help
+	  This option represents only downloading, extracting and
+	  patching the linux kernel source. This is useful for cases
+	  where you only need to code to be extracted and patched,
+	  but not built and installed. Such as to build and install
+	  linux-tools like perf.
+
 config BR2_LINUX_KERNEL
 	bool "Linux Kernel"
 	select BR2_PACKAGE_HOST_KMOD # Unconditional, even if modules not enabled
 	select BR2_PACKAGE_HOST_IMAGEMAGICK if BR2_LINUX_KERNEL_CUSTOM_LOGO_PATH != ""
+	select BR2_LINUX_KERNEL_SOURCE
 	help
 	  Enable this option if you want to build a Linux kernel for
 	  your embedded device
 
-if BR2_LINUX_KERNEL
+if BR2_LINUX_KERNEL_SOURCE
 
 # Packages that need to have a kernel with support for loadable modules,
 # but do not use the kernel-modules infrastructure, should select that
@@ -267,11 +277,11 @@ config BR2_LINUX_KERNEL_SIMPLEIMAGE
 
 config BR2_LINUX_KERNEL_IMAGE
 	bool "Image"
-	depends on BR2_aarch64 || BR2_riscv
+	depends on BR2_aarch64 || BR2_arm || BR2_riscv
 
 config BR2_LINUX_KERNEL_IMAGEGZ
 	bool "Image.gz"
-	depends on BR2_aarch64 || BR2_riscv
+	depends on BR2_aarch64 || BR2_arm || BR2_riscv
 
 config BR2_LINUX_KERNEL_LINUX_BIN
 	bool "linux.bin"
@@ -497,6 +507,6 @@ source "linux/Config.ext.in"
 # Linux tools
 source "package/linux-tools/Config.in"
 
-endif # BR2_LINUX_KERNEL
+endif # BR2_LINUX_KERNEL_SOURCE
 
 endmenu

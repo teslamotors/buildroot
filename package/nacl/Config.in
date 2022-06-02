@@ -4,3 +4,9 @@ config BR2_PACKAGE_NACL
          NaCl -- Networking and Cryptography library
 
          https://nacl.cr.yp.to
+
+config BR2_PACKAGE_NACL_BINARY
+    bool "nacl binary"
+    default n
+    help
+      Installs the nacl binary

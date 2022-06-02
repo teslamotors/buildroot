@@ -1,0 +1,67 @@
+From d9a2e8a9b2e31f2e164ca9fc41b30082bc01cd00 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Wed, 23 Feb 2022 22:43:25 -0800
+Subject: [PATCH] svlogd: Add "-f" arg to specify config file
+
+This change adds the "-f" flag to svlogd to allow
+a caller to specify which config file to use, instead
+of defaulting to the "config" file within the service's
+directory.
+---
+ src/svlogd.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/src/svlogd.c b/src/svlogd.c
+index b152694..2e79219 100644
+--- a/src/svlogd.c
++++ b/src/svlogd.c
+@@ -33,7 +33,7 @@
+ #include "ndelay.h"
+ #include "iopause.h"
+ 
+-#define USAGE " [-ttttvLMV] [-r c] [-R abc] [-l len] [-b buflen] dir ..."
++#define USAGE " [-ttttvLMV] [-r c] [-R abc] [-l len] [-b buflen] [-f config] dir ..."
+ #define VERSION "$Id: 5e55a90e0a1b35ec47fed3021453c50675ea1117+tesla_mods $"
+ 
+ #define FATAL "svlogd: fatal: "
+@@ -54,6 +54,8 @@ unsigned long linelen;
+ const char *replace ="";
+ char repl =0;
+ 
++const char *config_file ="config";
++
+ const char **fndir;
+ int fdwdir;
+ struct stat st;
+@@ -445,7 +447,7 @@ unsigned int logdir_open(struct logdir *ld, const char *fn) {
+   nanosecond.nano =1;
+ 
+   /* read config */
+-  if ((i =openreadclose("config", &sa, 128)) == -1)
++  if ((i =openreadclose(config_file, &sa, 128)) == -1)
+     warn2("unable to read config", ld->name);
+ 
+   if ((ld->fddir =open_read(fn)) == -1) {
+@@ -745,7 +747,7 @@ int main(int argc, const char **argv) {
+ 
+   progname =*argv;
+ 
+-  while ((opt =getopt(argc, argv, "R:r:l:b:tvLMV")) != opteof) {
++  while ((opt =getopt(argc, argv, "R:r:f:l:b:tvLMV")) != opteof) {
+     switch(opt) {
+     case 'R':
+       replace =optarg;
+@@ -755,6 +757,10 @@ int main(int argc, const char **argv) {
+       repl =*optarg;
+       if (! repl || *(optarg +1)) usage();
+       break;
++    case 'f':
++      config_file =optarg;
++      if (! config_file) usage();
++      break;
+     case 'l':
+       scan_ulong(optarg, &linemax);
+       if (linemax == 0) linemax =1000;
+-- 
+2.17.1
+

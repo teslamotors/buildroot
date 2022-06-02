@@ -10,5 +10,8 @@ PYTHON_PACKAGING_SITE = https://files.pythonhosted.org/packages/55/fd/fc1aca9cf5
 PYTHON_PACKAGING_SETUP_TYPE = setuptools
 PYTHON_PACKAGING_LICENSE = Apache-2.0 or BSD-2-Clause
 PYTHON_PACKAGING_LICENSE_FILES = LICENSE LICENSE.APACHE LICENSE.BSD
+PYTHON_PACKAGING_DEPENDENCIES = \
+	python-pyparsing \
+	python-six
 
 $(eval $(python-package))

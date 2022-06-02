@@ -4,6 +4,7 @@ When a firstline is specified with 0<firstline> in a configuration
 file, new log files will have a <firstline> log before any other logs
 lines, including any timestamp and prefix.
 
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
 --- runit-2.1.2/doc/svlogd.8.html	2017-10-11 02:49:10.672462231 -0700
 +++ runit-2.1.2/doc/svlogd.8.html	2017-10-11 04:08:54.896385757 -0700
 @@ -125,6 +125,10 @@ concerning sending udp packages still go

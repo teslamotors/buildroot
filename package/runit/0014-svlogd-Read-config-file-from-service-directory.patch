@@ -1,0 +1,37 @@
+From 877d83f2e3b3f5f7d8b002482a9850aa20eafcf0 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Thu, 26 Aug 2021 11:36:45 -0700
+Subject: [PATCH] svlogd: Read config file from service directory
+
+---
+ src/svlogd.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/src/svlogd.c b/src/svlogd.c
+index a8e1bc0..b152694 100644
+--- a/src/svlogd.c
++++ b/src/svlogd.c
+@@ -444,6 +444,10 @@ unsigned int logdir_open(struct logdir *ld, const char *fn) {
+   taia_uint(&nanosecond, 0);
+   nanosecond.nano =1;
+ 
++  /* read config */
++  if ((i =openreadclose("config", &sa, 128)) == -1)
++    warn2("unable to read config", ld->name);
++
+   if ((ld->fddir =open_read(fn)) == -1) {
+     warn2("unable to open log directory", (char*)fn);
+     return(0);
+@@ -479,9 +483,6 @@ unsigned int logdir_open(struct logdir *ld, const char *fn) {
+   while (! stralloc_copys(&ld->inst, "")) pause_nomem();
+   while (! stralloc_copys(&ld->processor, "")) pause_nomem();
+ 
+-  /* read config */
+-  if ((i =openreadclose("config", &sa, 128)) == -1)
+-    warn2("unable to read config", ld->name);
+   if (i != 0) {
+     int len, c;
+     unsigned long port;
+-- 
+2.17.1
+

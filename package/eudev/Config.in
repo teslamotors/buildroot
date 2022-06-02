@@ -36,9 +36,9 @@ config BR2_PACKAGE_EUDEV_ENABLE_HWDB
 	  Enables hardware database installation to /etc/udev/hwdb.bin
 
 config BR2_PACKAGE_EUDEV_3_2_2
-	bool "Use eudev 3.2.2 instead of the default 3.2.7."
+	bool "Use eudev 3.2.2 instead of the default 3.2.9."
 	help
-		Use Eudev 3.2.7 for vehicle projects and 3.2.2 for energy projects
+		Use Eudev 3.2.9 for vehicle projects and 3.2.2 for energy projects
 
 endif
 

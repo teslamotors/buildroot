@@ -8,3 +8,10 @@ config BR2_PACKAGE_XDRIVER_XF86_VIDEO_INTEL
 	select BR2_PACKAGE_XORGPROTO
 	help
 	  Intel video driver
+
+
+if BR2_PACKAGE_XDRIVER_XF86_VIDEO_INTEL
+config BR2_PACKAGE_XF86_VIDEO_INTEL_DEBUG
+	bool "Enable Verbose Debugging in Intel Video Driver"
+	default n
+endif

@@ -1,4 +1,5 @@
 From f44fdc58881ba89e5086877b5f940d8b8ebb81cb Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
 Date: Thu, 10 Oct 2019 12:31:44 -0700
 Subject: [PATCH] package/kexec: Disable kexec_test build
 

@@ -21,4 +21,11 @@ endif
 
 GLIBMM_CONF_ENV += CXXFLAGS="$(GLIBMM_CXXFLAGS)"
 
+define GLIBMM_INSTALL_TARGET_FIXUP
+	rm -rf $(TARGET_DIR)/usr/lib/glibmm-*
+	rm -rf $(TARGET_DIR)/usr/lib/giomm-*
+endef
+
+GLIBMM_POST_INSTALL_TARGET_HOOKS += GLIBMM_INSTALL_TARGET_FIXUP
+
 $(eval $(autotools-package))

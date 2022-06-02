@@ -7,7 +7,6 @@ config BR2_PACKAGE_CIRCUS
 	select BR2_PACKAGE_PYTHON_PSUTIL # runtime
 	select BR2_PACKAGE_PYTHON_PYZMQ # runtime
 	select BR2_PACKAGE_PYTHON_TORNADO # runtime
-	select BR2_PACKAGE_PYTHON_SETUPTOOLS # runtime
 	help
 	  Circus is a program that will let you run and watch multiple
 	  processes and sockets.

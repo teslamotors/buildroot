@@ -242,6 +242,53 @@ $(BUILD_DIR)/%/.stamp_configured:
 	@$(call step_end,configure)
 	$(Q)touch $@
 
+# Load package cache
+.PHONY: $(BUILD_DIR)/%/.stamp_cache_loaded
+$(BUILD_DIR)/%/.stamp_cache_loaded: cache-bootstrap
+	@$(call MESSAGE,"Loading cache ...")
+	$(if $(or $(findstring YES,$($(PKG)_SHARED_CACHE_DISABLED)),$(findstring YES,$($(PKG)_SHARED_CACHE_DISABLED_AUTO))),\
+		$(shell rm -f $(wildcard $(@D)/.stamp_cache_*) && mkdir -p $(@D))\
+		$(if $(findstring YES,$($(PKG)_SHARED_CACHE_DISABLED_AUTO)),\
+			@$(call MESSAGE,"Cache disabled (auto). Disabled dependencies: $($(PKG)_SHARED_CACHE_DISABLED_DEPENDENCIES).")$(shell echo $($(PKG)_SHARED_CACHE_DISABLED_DEPENDENCIES) > $(@D)/.stamp_cache_disabled_auto),\
+			@$(call MESSAGE,"Cache disabled.")$(shell touch $(@D)/.stamp_cache_disabled)\
+		),\
+		$(Q)SHARED_CACHE_DIR=$(SHARED_CACHE_DIR) \
+		SHARED_CACHE_DEBUG_DIR=$(SHARED_CACHE_DEBUG_DIR) \
+		BUILDROOT_DIR=$(CANONICAL_CURDIR) \
+		PACKAGE_NAME=$($(PKG)_NAME) \
+		PACKAGE_DIR=$($(PKG)_DIR) \
+		PACKAGE_PKGDIR=$($(PKG)_PKGDIR) \
+		BASE_DIR=$(BASE_DIR) \
+		BUILD_DIR=$(BUILD_DIR) \
+		PER_PACKAGE_DIR=$(PER_PACKAGE_DIR) \
+		SERIALIZED_VARS_FILENAME=$($(PKG)_SHARED_CACHE_SERIALIZED_VARS_FILENAME) \
+		$(TOPDIR)/support/scripts/cache-load \
+		$($(PKG)_SHARED_CACHE_DEPENDENCIES_PATHS)\
+	)
+
+# Save package cache
+.PHONY: $(BUILD_DIR)/%/.stamp_cache_saved
+$(BUILD_DIR)/%/.stamp_cache_saved:
+	@$(call MESSAGE,"Saving cache ...")
+	$(if $(or $(findstring YES,$($(PKG)_SHARED_CACHE_DISABLED)),$(findstring YES,$($(PKG)_SHARED_CACHE_DISABLED_AUTO))),\
+		$(shell rm -f $(wildcard $(@D)/.stamp_cache_*) && mkdir -p $(@D))\
+		$(if $(findstring YES,$($(PKG)_SHARED_CACHE_DISABLED_AUTO)),\
+			@$(call MESSAGE,"Cache disabled (auto). Disabled dependencies: $($(PKG)_SHARED_CACHE_DISABLED_DEPENDENCIES).")$(shell echo $($(PKG)_SHARED_CACHE_DISABLED_DEPENDENCIES) > $(@D)/.stamp_cache_disabled_auto),\
+			@$(call MESSAGE,"Cache disabled.")$(shell touch $(@D)/.stamp_cache_disabled)\
+		),\
+		$(Q)SHARED_CACHE_DIR=$(SHARED_CACHE_DIR) \
+		SHARED_CACHE_DEBUG_DIR=$(SHARED_CACHE_DEBUG_DIR) \
+		BUILDROOT_DIR=$(CANONICAL_CURDIR) \
+		PACKAGE_NAME=$($(PKG)_NAME) \
+		PACKAGE_DIR=$($(PKG)_DIR) \
+		PACKAGE_PKGDIR=$($(PKG)_PKGDIR) \
+		BASE_DIR=$(BASE_DIR) \
+		BUILD_DIR=$(BUILD_DIR) \
+		PER_PACKAGE_DIR=$(PER_PACKAGE_DIR) \
+		$(TOPDIR)/support/scripts/cache-save \
+		$($(PKG)_SHARED_CACHE_DEPENDENCIES_PATHS) \
+	)
+
 # Build
 $(BUILD_DIR)/%/.stamp_built::
 	@$(call step_start,build)
@@ -301,7 +348,18 @@ $(BUILD_DIR)/%/.stamp_staging_installed:
 				$(addprefix $(STAGING_DIR)/usr/bin/,$($(PKG)_CONFIG_SCRIPTS)) ;\
 	fi
 	@$(call MESSAGE,"Fixing libtool files")
-	for la in $$(find $(STAGING_DIR)/usr/lib* -name "*.la"); do \
+	( \
+	flock -w 30 -e 9 || exit 0; \
+	if [[ -f "$(@D)/.files-list-staging.txt" ]]; then \
+	for la in $$(for la_in_list in $$(for file_in_list in $$(cat $(wildcard $(@D)/.files-list-staging.txt) \
+		| awk -F ':' '{print $$5}' \
+		| awk -F ',' '{print $$2}'); do \
+		filename=$$(basename -- "$${file_in_list}"); \
+		extension="$${filename##*.}"; \
+		if [ "$$extension" = "la" ]; then echo $${file_in_list}; fi; \
+		done;); do if [[ -f "$(STAGING_DIR)/$${la_in_list}" ]] || \
+		[[ -L "$(STAGING_DIR)/$${la_in_list}" && ! -d "$(STAGING_DIR)/$${la_in_list}" ]]; \
+		then echo "$(STAGING_DIR)/$${la_in_list}"; fi; done;); do \
 		cp -a "$${la}" "$${la}.fixed" && \
 		$(SED) "s:$(BASE_DIR):@BASE_DIR@:g" \
 			-e "s:$(STAGING_DIR):@STAGING_DIR@:g" \
@@ -319,7 +377,9 @@ $(BUILD_DIR)/%/.stamp_staging_installed:
 		else \
 			mv "$${la}.fixed" "$${la}"; \
 		fi || exit 1; \
-	done
+	done \
+	fi; \
+	) 9>"$(STAGING_DIR)/.br2_staging_libtool_lockfile"
 	@$(call step_end,install-staging)
 	$(Q)touch $@
 
@@ -394,6 +454,97 @@ define pkg-graph-depends
 	dot $$(BR2_GRAPH_DOT_OPTS) -T$$(BR_GRAPH_OUT) \
 		-o $$(GRAPHS_DIR)/$$(@).$$(BR_GRAPH_OUT) \
 		$$(GRAPHS_DIR)/$$(@).dot
+endef
+
+################################################################################
+# shared-cache-add-site-dependency -- Check $(PKG)_SITE if it is a directory and
+# should be used as depenedency
+#
+# argument 1 is the upper-case name of the package
+#
+################################################################################
+define shared-cache-add-site-dependency
+$(if $(strip $($(1)_SITE)),$(if $(wildcard $(shell test -d $($(1)_SITE) && realpath $($(1)_SITE))),$($(1)_SITE)))
+endef
+
+################################################################################
+# shared-cache-get-dependencies -- convert lisf of package names to list of
+# package directories excluding duplicates.
+#
+# argument 1 is the list of lower-case names of the packages
+#
+################################################################################
+define shared-cache-get-dependencies
+$(sort \
+	$(foreach PACKAGE_NAME_UPPERCASE,\
+		$(foreach PACKAGE_NAME,$(1),$(call UPPERCASE,$(PACKAGE_NAME))),\
+		$($(PACKAGE_NAME_UPPERCASE)_PKGDIR) \
+		$(if $($(PACKAGE_NAME_UPPERCASE)_NAME),$(wildcard $(addsuffix /$($(PACKAGE_NAME_UPPERCASE)_RAWNAME),$(call qstrip,$(BR2_GLOBAL_PATCH_DIR))))) \
+		$($(PACKAGE_NAME_UPPERCASE)_SHARED_CACHE_DEPENDENCIES_CUSTOM_PATHS)\
+		$(call shared-cache-add-site-dependency,$(PACKAGE_NAME_UPPERCASE))\
+	)\
+)
+endef
+
+################################################################################
+# shared-cache-check-dependencies -- check package dependencies and set flag if
+# any of dependencies have cache disabled.
+#
+# argument 1 is the list of lower-case names of the packages
+#
+################################################################################
+define shared-cache-check-dependencies
+$(foreach PACKAGE_NAME_UPPERCASE,\
+	$(foreach PACKAGE_NAME,$(1),$(call UPPERCASE,$(PACKAGE_NAME))),\
+	$($(PACKAGE_NAME_UPPERCASE)_SHARED_CACHE_DISABLED)\
+)
+endef
+
+################################################################################
+# shared-cache-get-disabled-dependencies -- return list of dependencies with
+# cache disabled.
+#
+# argument 1 is the list of lower-case names of the packages
+#
+################################################################################
+define shared-cache-get-disabled-dependencies
+       $(foreach PACKAGE_NAME,$(1),$(if $(findstring YES,$($(call UPPERCASE,$(PACKAGE_NAME))_SHARED_CACHE_DISABLED)),$(PACKAGE_NAME)))
+endef
+
+################################################################################
+# shared-cache-serialize-vars -- serialize list of valiables as list of KEY=VALUE
+# items.
+#
+# argument 1 is the list of not expanded vars changing cache key
+# argument 2 is the filename to store vars names and values
+#
+################################################################################
+define shared-cache-serialize-vars
+$(info shared-cache-serialize-vars $(1) $(2)) \
+$(foreach var_name,$(sort $1),$(shell mkdir -p $$(dirname $(2)) && echo $(var_name)=$($(var_name)) >> $(2)))
+endef
+
+################################################################################
+# shared-cache-get-serialized-vars -- convert lisf of package names to list of
+# serialized vars changing cache key by removing "host-" prefix and excluding duplicates
+# from input list.
+#
+# It returns argument 2
+#
+# argument 1 is the list of lower-case names of the packages
+# argument 2 is the filename to store vars names and values
+#
+################################################################################
+define shared-cache-get-serialized-vars
+$(info shared-cache-get-serialized-vars $(1) $(2)) \
+$(call shared-cache-serialize-vars,$(sort \
+	$(foreach PACKAGE_NAME_UPPERCASE,\
+		$(foreach PACKAGE_NAME_STRIPPED,\
+			$(foreach PACKAGE_NAME,$(sort $(1)),$(PACKAGE_NAME)),\
+		$(call UPPERCASE,$(PACKAGE_NAME_STRIPPED))),\
+		$($(PACKAGE_NAME_UPPERCASE)_SHARED_CACHE_CUSTOM_VARS)\
+	)\
+),$(2))$(2)
 endef
 
 ################################################################################
@@ -775,6 +926,8 @@ $(2)_TARGET_INSTALL_STAGING =	$$($(2)_DIR)/.stamp_staging_installed
 $(2)_TARGET_INSTALL_IMAGES =	$$($(2)_DIR)/.stamp_images_installed
 $(2)_TARGET_INSTALL_HOST =	$$($(2)_DIR)/.stamp_host_installed
 $(2)_TARGET_BUILD =		$$($(2)_DIR)/.stamp_built
+$(2)_TARGET_CACHE_LOAD =	$$($(2)_DIR)/.stamp_cache_loaded
+$(2)_TARGET_CACHE_SAVE =	$$($(2)_DIR)/.stamp_cache_saved
 $(2)_TARGET_CONFIGURE =		$$($(2)_DIR)/.stamp_configured
 $(2)_TARGET_RSYNC =		$$($(2)_DIR)/.stamp_rsynced
 $(2)_TARGET_PATCH =		$$($(2)_DIR)/.stamp_patched
@@ -790,6 +943,18 @@ $(2)_EXTRACT_CMDS ?= \
 		-C $$($(2)_DIR) \
 		$$(foreach x,$$($(2)_EXCLUDES),--exclude='$$(x)' ) \
 		$$(TAR_OPTIONS) -)
+
+# list of dirs based on all package dependencies
+$(2)_SHARED_CACHE_DEPENDENCIES_PATHS = $$($(2)_PKGDIR) $$(call shared-cache-get-dependencies,$$($(2)_FINAL_RECURSIVE_DEPENDENCIES)) $$(call shared-cache-add-site-dependency,$(2))
+# remove " (double quotes) from $(BR2_GLOBAL_PATCH_DIR) and append it to dependency if subdir with package name exists
+$(2)_SHARED_CACHE_DEPENDENCIES_PATHS += $$(wildcard $$(addsuffix /$$($(2)_RAWNAME),$$(call qstrip,$$(BR2_GLOBAL_PATCH_DIR))))
+# automatically disable cache if any dependencies already have cache disabled manually
+$(2)_SHARED_CACHE_DISABLED_AUTO = $$(sort $$(call shared-cache-check-dependencies,$$($(2)_FINAL_RECURSIVE_DEPENDENCIES)))
+# list of dependencies with cache disabled
+$(2)_SHARED_CACHE_DISABLED_DEPENDENCIES = $$(sort $$(call shared-cache-get-disabled-dependencies,$$($(2)_FINAL_RECURSIVE_DEPENDENCIES)))
+# add package specific custom paths
+$(2)_SHARED_CACHE_DEPENDENCIES_PATHS += $($(2)_SHARED_CACHE_DEPENDENCIES_CUSTOM_PATHS)
+$(2)_SHARED_CACHE_SERIALIZED_VARS_FILENAME = $$(sort $$(call shared-cache-get-serialized-vars,$$($(2)_NAME) $$($(2)_FINAL_RECURSIVE_DEPENDENCIES),$(SHARED_CACHE_DEBUG_DIR)/package-$(pkgname).vars.txt))
 
 # pre/post-steps hooks
 $(2)_PRE_DOWNLOAD_HOOKS         ?=
@@ -826,6 +991,7 @@ endif
 # human-friendly targets and target sequencing
 $(1):			$(1)-install
 $(1)-install:		$$($(2)_TARGET_INSTALL)
+$$($(2)_TARGET_INSTALL): $$($(2)_TARGET_BUILD)
 
 ifeq ($$($(2)_TYPE),host)
 $$($(2)_TARGET_INSTALL): $$($(2)_TARGET_INSTALL_HOST)
@@ -846,14 +1012,14 @@ endif
 
 ifeq ($$($(2)_INSTALL_TARGET),YES)
 $(1)-install-target:		$$($(2)_TARGET_INSTALL_TARGET)
-$$($(2)_TARGET_INSTALL_TARGET):	$$($(2)_TARGET_BUILD)
+$$($(2)_TARGET_INSTALL_TARGET):	$$($(2)_TARGET_BUILD) | $$($(2)_FINAL_DEPENDENCIES)
 else
 $(1)-install-target:
 endif
 
 ifeq ($$($(2)_INSTALL_STAGING),YES)
 $(1)-install-staging:			$$($(2)_TARGET_INSTALL_STAGING)
-$$($(2)_TARGET_INSTALL_STAGING):	$$($(2)_TARGET_BUILD)
+$$($(2)_TARGET_INSTALL_STAGING):	$$($(2)_TARGET_BUILD) | $$($(2)_FINAL_DEPENDENCIES)
 # Some packages use install-staging stuff for install-target
 $$($(2)_TARGET_INSTALL_TARGET):		$$($(2)_TARGET_INSTALL_STAGING)
 else
@@ -862,13 +1028,18 @@ endif
 
 ifeq ($$($(2)_INSTALL_IMAGES),YES)
 $(1)-install-images:		$$($(2)_TARGET_INSTALL_IMAGES)
-$$($(2)_TARGET_INSTALL_IMAGES):	$$($(2)_TARGET_BUILD)
+$$($(2)_TARGET_INSTALL_IMAGES):	$$($(2)_TARGET_BUILD) | $$($(2)_FINAL_DEPENDENCIES)
 else
 $(1)-install-images:
 endif
 
 $(1)-install-host:		$$($(2)_TARGET_INSTALL_HOST)
-$$($(2)_TARGET_INSTALL_HOST):	$$($(2)_TARGET_BUILD)
+$$($(2)_TARGET_INSTALL_HOST):	$$($(2)_TARGET_BUILD) | $$($(2)_FINAL_DEPENDENCIES)
+
+$(1)-cache-load: 		$$($(2)_TARGET_CACHE_LOAD)
+$(1)-cache-save:		$$($(2)_TARGET_CACHE_SAVE)
+
+$$($(2)_TARGET_CACHE_SAVE) : $$($(2)_TARGET_BUILD)
 
 $(1)-build:		$$($(2)_TARGET_BUILD)
 $$($(2)_TARGET_BUILD):	$$($(2)_TARGET_CONFIGURE)
@@ -976,6 +1147,12 @@ $(1)-graph-depends: graph-depends-requirements
 $(1)-graph-rdepends: graph-depends-requirements
 	$(call pkg-graph-depends,$(1),--reverse)
 
+$(1)-all-cache-load:	$(1)-cache-load
+$(1)-all-cache-load:	$$(foreach p,$$($(2)_FINAL_ALL_DEPENDENCIES),$$(p)-all-cache-load)
+
+$(1)-all-cache-save:	$(1)-cache-save
+$(1)-all-cache-save:	$$(foreach p,$$($(2)_FINAL_ALL_DEPENDENCIES),$$(p)-all-cache-save)
+
 $(1)-all-source:	$(1)-source
 $(1)-all-source:	$$(foreach p,$$($(2)_FINAL_ALL_DEPENDENCIES),$$(p)-all-source)
 
@@ -1017,6 +1194,8 @@ $$($(2)_TARGET_INSTALL_STAGING):	PKG=$(2)
 $$($(2)_TARGET_INSTALL_IMAGES):		PKG=$(2)
 $$($(2)_TARGET_INSTALL_HOST):		PKG=$(2)
 $$($(2)_TARGET_BUILD):			PKG=$(2)
+$$($(2)_TARGET_CACHE_LOAD):		PKG=$(2)
+$$($(2)_TARGET_CACHE_SAVE):		PKG=$(2)
 $$($(2)_TARGET_CONFIGURE):		PKG=$(2)
 $$($(2)_TARGET_CONFIGURE):		NAME=$(1)
 $$($(2)_TARGET_RSYNC):			SRCDIR=$$($(2)_OVERRIDE_SRCDIR)
@@ -1189,10 +1368,14 @@ DL_TOOLS_DEPENDENCIES += $$(call extractor-system-dependency,$$($(2)_SOURCE))
 
 # Ensure all virtual targets are PHONY. Listed alphabetically.
 .PHONY:	$(1) \
+	$(1)-all-cache-load \
+	$(1)-all-cache-save \
 	$(1)-all-external-deps \
 	$(1)-all-legal-info \
 	$(1)-all-source \
 	$(1)-build \
+	$(1)-cache-load \
+	$(1)-cache-save \
 	$(1)-clean-for-rebuild \
 	$(1)-clean-for-reconfigure \
 	$(1)-clean-for-reinstall \

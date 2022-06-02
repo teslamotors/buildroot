@@ -27,3 +27,18 @@ comment "grpc needs a toolchain w/ C++, threads, dynamic library, gcc >= 4.9, ho
 		|| BR2_STATIC_LIBS || !BR2_TOOLCHAIN_GCC_AT_LEAST_4_9 \
 		|| !BR2_HOST_GCC_AT_LEAST_4_9
 	depends on BR2_PACKAGE_PROTOBUF_ARCH_SUPPORTS
+
+if BR2_PACKAGE_GRPC
+
+choice
+	bool "gRPC Library Version"
+
+config BR2_PACKAGE_GRPC_VERSION_V_1_35_0
+	bool "1.35.0"
+
+config BR2_PACKAGE_GRPC_VERSION_V_1_16_1
+	bool "1.16.1"
+
+endchoice
+
+endif # BR2_PACKAGE_GRPC

@@ -18,6 +18,8 @@ SPICE_DEPENDENCIES = \
 	openssl \
 	pixman \
 	spice-protocol
+# We're patching subprojects/spice-common/configure.ac
+SPICE_AUTORECONF = YES
 
 # We disable everything for now, because the dependency tree can become
 # quite deep if we try to enable some features, and I have not tested that.

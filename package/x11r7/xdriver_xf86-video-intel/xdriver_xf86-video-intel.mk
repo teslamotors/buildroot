@@ -40,4 +40,9 @@ XDRIVER_XF86_VIDEO_INTEL_CONF_OPTS += \
 	--enable-uxa
 endif
 
+ifeq ($(BR2_PACKAGE_XF86_VIDEO_INTEL_DEBUG),y)
+XDRIVER_XF86_VIDEO_INTEL_CONF_OPTS += \
+	--enable-debug=full
+endif
+
 $(eval $(autotools-package))

@@ -1,0 +1,164 @@
+From 6ab9b5bf7f9cc4be17da037706eaf3e8dc32b20b Mon Sep 17 00:00:00 2001
+From: Vincent Chen <vincent.chen@intel.com>
+Date: Sat, 11 Aug 2018 19:37:38 +0800
+Subject: [PATCH] common-api-c++-dbus: fix implicit type conversion from
+ sizeof... to int
+
+Fixed Defects:
+  - ID: 245120
+
+Description:
+  - fix the common-api-c++-dbus compilation error with yocto sumo default gcc flags
+  - develop/preintegration-4.14
+---
+ include/CommonAPI/DBus/DBusErrorEvent.hpp                |  4 ++--
+ include/CommonAPI/DBus/DBusEvent.hpp                     |  4 ++--
+ include/CommonAPI/DBus/DBusProxyAsyncCallbackHandler.hpp |  6 +++---
+ include/CommonAPI/DBus/DBusProxyHelper.hpp               |  2 +-
+ include/CommonAPI/DBus/DBusStubAdapterHelper.hpp         | 16 ++++++++--------
+ 5 files changed, 16 insertions(+), 16 deletions(-)
+
+diff --git a/include/CommonAPI/DBus/DBusErrorEvent.hpp b/include/CommonAPI/DBus/DBusErrorEvent.hpp
+index 966f9e1..cf31efe 100644
+--- a/include/CommonAPI/DBus/DBusErrorEvent.hpp
++++ b/include/CommonAPI/DBus/DBusErrorEvent.hpp
+@@ -54,7 +54,7 @@ public:
+     DBusErrorEvent(const std::string &_errorName,
+                    const std::tuple<DeplIn_Args*...> &_in) :
+         errorName_(_errorName) {
+-        initialize(typename make_sequence_range<sizeof...(DeplIn_Args), 0>::type(), _in);
++        initialize(typename make_sequence_range<(int)sizeof...(DeplIn_Args), 0>::type(), _in);
+     }
+ 
+     DBusErrorEvent(const DBusErrorEvent &_source) :
+@@ -68,7 +68,7 @@ public:
+     }
+ 
+     void notifyErrorEventListeners(const DBusMessage &_reply) {
+-        deserialize(_reply, typename make_sequence_range<sizeof...(InArgs_), 0>::type());
++        deserialize(_reply, typename make_sequence_range<(int)sizeof...(InArgs_), 0>::type());
+     }
+ 
+ private:
+diff --git a/include/CommonAPI/DBus/DBusEvent.hpp b/include/CommonAPI/DBus/DBusEvent.hpp
+index c954a88..78fb1a2 100644
+--- a/include/CommonAPI/DBus/DBusEvent.hpp
++++ b/include/CommonAPI/DBus/DBusEvent.hpp
+@@ -100,13 +100,13 @@ public:
+ 
+         virtual void onSignalDBusMessage(const DBusMessage &_message) {
+             if(auto itsProxy = proxy_.lock()) {
+-                dbusEvent_->handleSignalDBusMessage(_message, typename make_sequence<sizeof...(Arguments_)>::type());
++                dbusEvent_->handleSignalDBusMessage(_message, typename make_sequence<(int)sizeof...(Arguments_)>::type());
+             }
+         }
+ 
+         virtual void onInitialValueSignalDBusMessage(const DBusMessage&_message, const uint32_t tag) {
+             if(auto itsProxy = proxy_.lock()) {
+-                dbusEvent_->handleSignalDBusMessage(tag, _message, typename make_sequence<sizeof...(Arguments_)>::type());
++                dbusEvent_->handleSignalDBusMessage(tag, _message, typename make_sequence<(int)sizeof...(Arguments_)>::type());
+             }
+         }
+ 
+diff --git a/include/CommonAPI/DBus/DBusProxyAsyncCallbackHandler.hpp b/include/CommonAPI/DBus/DBusProxyAsyncCallbackHandler.hpp
+index 25b2ecd..31f4995 100644
+--- a/include/CommonAPI/DBus/DBusProxyAsyncCallbackHandler.hpp
++++ b/include/CommonAPI/DBus/DBusProxyAsyncCallbackHandler.hpp
+@@ -70,7 +70,7 @@ class DBusProxyAsyncCallbackHandler :
+             const DBusMessage& _dbusMessage) {
+         promise_.set_value(handleDBusMessageReply(_dbusMessageCallStatus,
+                 _dbusMessage,
+-                typename make_sequence<sizeof...(ArgTypes_)>::type(), args_));
++                typename make_sequence<(int)sizeof...(ArgTypes_)>::type(), args_));
+     }
+ 
+     virtual void setExecutionStarted() {
+@@ -190,7 +190,7 @@ public:
+         this->promise_.set_value(handleDBusMessageReply(
+                 _dbusMessageCallStatus,
+                 _dbusMessage,
+-                typename make_sequence<sizeof...(ArgTypes_)>::type(), this->args_));
++                typename make_sequence<(int)sizeof...(ArgTypes_)>::type(), this->args_));
+     }
+ 
+ private:
+@@ -219,7 +219,7 @@ private:
+                 if(auto itsDelegateObject = this->delegate_.object_.lock()) {
+                     DBusErrorEventHelper::notifyListeners(_dbusMessage,
+                                                           _dbusMessage.getError(),
+-                                                          typename make_sequence_range<sizeof...(ErrorEvents_), 0>::type(),
++                                                          typename make_sequence_range<(int)sizeof...(ErrorEvents_), 0>::type(),
+                                                           errorEvents_);
+                 }
+             }
+diff --git a/include/CommonAPI/DBus/DBusProxyHelper.hpp b/include/CommonAPI/DBus/DBusProxyHelper.hpp
+index 7113d9d..1372d9b 100644
+--- a/include/CommonAPI/DBus/DBusProxyHelper.hpp
++++ b/include/CommonAPI/DBus/DBusProxyHelper.hpp
+@@ -358,7 +358,7 @@ struct DBusProxyHelper<In_<DBusInputStream, DBusOutputStream, InArgs_...>,
+         if (error) {
+             DBusErrorEventHelper::notifyListeners(reply,
+                                                   error.getName(),
+-                                                  typename make_sequence_range<sizeof...(ErrorEvents_), 0>::type(),
++                                                  typename make_sequence_range<(int)sizeof...(ErrorEvents_), 0>::type(),
+                                                   _errorEvents);
+             _status = CallStatus::REMOTE_ERROR;
+             return;
+diff --git a/include/CommonAPI/DBus/DBusStubAdapterHelper.hpp b/include/CommonAPI/DBus/DBusStubAdapterHelper.hpp
+index 9463edf..75cd170 100644
+--- a/include/CommonAPI/DBus/DBusStubAdapterHelper.hpp
++++ b/include/CommonAPI/DBus/DBusStubAdapterHelper.hpp
+@@ -308,11 +308,11 @@ class DBusMethodStubDispatcher<StubClass_, In_<InArgs_...>, DeplIn_<DeplIn_Args.
+ 
+     DBusMethodStubDispatcher(StubFunctor_ stubFunctor, std::tuple<DeplIn_Args*...> _in):
+             stubFunctor_(stubFunctor) {
+-            initialize(typename make_sequence_range<sizeof...(DeplIn_Args), 0>::type(), _in);
++            initialize(typename make_sequence_range<(int)sizeof...(DeplIn_Args), 0>::type(), _in);
+     }
+ 
+     bool dispatchDBusMessage(const DBusMessage& dbusMessage, const std::shared_ptr<StubClass_>& stub, DBusStubAdapterHelperType& dbusStubAdapterHelper) {
+-        return handleDBusMessage(dbusMessage, stub, dbusStubAdapterHelper, typename make_sequence_range<sizeof...(InArgs_), 0>::type());
++        return handleDBusMessage(dbusMessage, stub, dbusStubAdapterHelper, typename make_sequence_range<(int)sizeof...(InArgs_), 0>::type());
+     }
+ 
+  private:
+@@ -379,7 +379,7 @@ class DBusMethodWithReplyStubDispatcher<
+             out_(_outDepArgs),
+             currentCall_(0) {
+ 
+-        initialize(typename make_sequence_range<sizeof...(DeplIn_Args), 0>::type(), _inDepArgs);
++        initialize(typename make_sequence_range<(int)sizeof...(DeplIn_Args), 0>::type(), _inDepArgs);
+ 
+     }
+ 
+@@ -391,13 +391,13 @@ class DBusMethodWithReplyStubDispatcher<
+                         dbusMessage,
+                         stub,
+                         dbusStubAdapterHelper,
+-                        typename make_sequence_range<sizeof...(InArgs_), 0>::type(),
+-                        typename make_sequence_range<sizeof...(OutArgs_), 0>::type());
++                        typename make_sequence_range<(int)sizeof...(InArgs_), 0>::type(),
++                        typename make_sequence_range<(int)sizeof...(OutArgs_), 0>::type());
+     }
+ 
+     bool sendReply(CommonAPI::CallId_t _call, 
+                        std::tuple<CommonAPI::Deployable<OutArgs_, DeplOutArgs_>...> args = std::make_tuple()) {
+-        return sendReplyInternal(_call, typename make_sequence_range<sizeof...(OutArgs_), 0>::type(), args);
++        return sendReplyInternal(_call, typename make_sequence_range<(int)sizeof...(OutArgs_), 0>::type(), args);
+     }
+ 
+ private:
+@@ -508,8 +508,8 @@ class DBusMethodWithReplyAdapterDispatcher<StubClass_, StubAdapterClass_, In_<In
+                         dbusMessage,
+                         stub,
+                         dbusStubAdapterHelper,
+-                        typename make_sequence_range<sizeof...(InArgs_), 0>::type(),
+-                        typename make_sequence_range<sizeof...(OutArgs_), sizeof...(InArgs_)>::type(),argTuple);
++                        typename make_sequence_range<(int)sizeof...(InArgs_), 0>::type(),
++                        typename make_sequence_range<(int)sizeof...(OutArgs_), (int)sizeof...(InArgs_)>::type(),argTuple);
+     }
+ 
+  private:
+-- 
+1.8.3.1
+

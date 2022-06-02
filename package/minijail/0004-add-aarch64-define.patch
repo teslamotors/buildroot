@@ -1,4 +1,5 @@
 From ed8e0f66d4fe25e37ab5c78415fef44eb3ed82c3 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
 Date: Wed, 8 Nov 2017 15:47:46 -0800
 Subject: [PATCH] minijail: Add AArch64 macros
 

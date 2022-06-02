@@ -1,0 +1,23 @@
+From: Peter Hutterer <peter.hutterer@who-t.net>
+Subject: [PATCH evdev] Fix inverted horizontal scroll (#46205)
+
+REL_HWHEEL has a positive increment, not a negative one like REL_WHEEL.
+
+X.Org Bug 46205 <http://bugs.freedesktop.org/show_bug.cgi?id=46205>
+
+Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+Reviewed-by: Chase Douglas <chase.douglas@canonical.com>
+
+diff --git a/src/evdev.c b/src/evdev.c
+index d540b87..8cf630c 100644
+--- a/src/evdev.c
++++ b/src/evdev.c
+@@ -1600,7 +1600,7 @@ EvdevAddRelValuatorClass(DeviceIntPtr device)
+         else if (axis == REL_DIAL)
+             SetScrollValuator(device, axnum, SCROLL_TYPE_VERTICAL, -1.0, SCROLL_FLAG_NONE);
+         else if (axis == REL_HWHEEL)
+-            SetScrollValuator(device, axnum, SCROLL_TYPE_HORIZONTAL, -1.0, SCROLL_FLAG_NONE);
++            SetScrollValuator(device, axnum, SCROLL_TYPE_HORIZONTAL, 1.0, SCROLL_FLAG_NONE);
+ #endif
+     }
+ 

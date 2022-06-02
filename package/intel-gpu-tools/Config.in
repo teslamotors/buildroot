@@ -1,0 +1,13 @@
+config BR2_PACKAGE_INTEL_GPU_TOOLS
+	bool "intel-gpu-tools"
+	select BR2_PACKAGE_LIBDRM
+	select BR2_PACKAGE_LIBDRM_INTEL
+	select BR2_PACKAGE_CAIRO
+	select BR2_PACKAGE_CAIRO_PNG
+	select BR2_PACKAGE_LIBGLIB2
+	select BR2_PACKAGE_LIBPCIACCESS
+
+	help
+	  This is a collection of tools for development and testing of the Intel DRM driver.
+
+	  https://01.org/linuxgraphics/

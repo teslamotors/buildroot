@@ -1,6 +1,5 @@
 config BR2_PACKAGE_TPM2_TSS_ENGINE
 	bool "tpm2-tss-engine"
-	depends on BR2_PACKAGE_OPENSSL
 	select BR2_PACKAGE_TPM2_TSS
 	help
 	The tpm2-tss-engine project implements an OpenSSL engine for the 

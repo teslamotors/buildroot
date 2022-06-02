@@ -8,6 +8,9 @@ GCC_FINAL_VERSION = $(GCC_VERSION)
 GCC_FINAL_SITE = $(GCC_SITE)
 GCC_FINAL_SOURCE = $(GCC_SOURCE)
 
+# ./libtool: line 1158: /firmware/os/output/teg-v2/build/host-gcc-final-5.5.0/build/./gcc/xgcc: Permission denied
+HOST_GCC_FINAL_INSTALL_OPTS += -j1 install
+
 HOST_GCC_FINAL_DL_SUBDIR = gcc
 
 HOST_GCC_FINAL_DEPENDENCIES = \

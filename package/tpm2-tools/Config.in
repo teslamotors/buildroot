@@ -22,3 +22,13 @@ config BR2_PACKAGE_TPM2_TOOLS
 comment "tpm2-tools needs a toolchain w/ dynamic library"
 	depends on BR2_PACKAGE_LIBOPENSSL_ARCH_SUPPORTS
 	depends on BR2_STATIC_LIBS
+
+if BR2_PACKAGE_TPM2_TOOLS
+
+config BR2_PACKAGE_TPM2_TOOLS_BINS
+	string "list of tpm2-tools to install"
+	help
+	  You may specify a space-separated list of tpm2-tools binaries
+	  that should be installed on the target.
+
+endif

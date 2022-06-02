@@ -1,2 +1,22 @@
+# Do not apply the `target.*.linker` settings to targets build for the local
+# host, eg. unit test binaries or build scripts
+target-applies-to-host = false
+
+# All entries in the `unstable` table are equivalent to passing equivalently
+# named -Z flags to Cargo.
+[unstable]
+# As we build with unstable features on, restrict the amount of available unstable
+# features so they aren't accidentally turned on.
+allow-features = ["target-applies-to-host"]
+# Enable the `target-applies-to-host` unstable feature.
+target-applies-to-host = true
+
 [target.@RUSTC_TARGET_NAME@]
 linker = "@CROSS_PREFIX@gcc"
+
+[source.crates-io]
+registry = 'https://github.com/rust-lang/crates.io-index'
+replace-with = 'local-registry'
+
+[source.local-registry]
+local-registry = '/mnt/firmware_tools/component_build_tools/rust/registry/2020-12-02'

@@ -1,0 +1,383 @@
+From 2393cc7f00ee1b94c07e29fb82fc14add89e1238 Mon Sep 17 00:00:00 2001
+From: Mark Janes <mark.a.janes@intel.com>
+Date: Fri, 5 Apr 2019 15:39:51 -0700
+Subject: [PATCH] intel/common: move gen_debug to intel/dev
+
+libintel_common depends on libintel_compiler, but it contains debug
+functionality that is needed by libintel_compiler.  Break the circular
+dependency by moving gen_debug files to libintel_dev.
+
+Suggested-by: Kenneth Graunke <kenneth@whitecape.org>
+Reviewed-by: Kenneth Graunke <kenneth@whitecape.org>
+---
+ src/intel/Makefile.sources                 | 4 ++--
+ src/intel/common/meson.build               | 2 --
+ src/intel/compiler/brw_compile_clip.c      | 2 +-
+ src/intel/compiler/brw_compile_sf.c        | 2 +-
+ src/intel/compiler/brw_compiler.c          | 2 +-
+ src/intel/compiler/brw_disasm_info.c       | 2 +-
+ src/intel/compiler/brw_eu.c                | 2 +-
+ src/intel/compiler/brw_eu_compact.c        | 2 +-
+ src/intel/compiler/brw_fs.cpp              | 2 +-
+ src/intel/compiler/brw_nir.c               | 2 +-
+ src/intel/compiler/brw_shader.cpp          | 2 +-
+ src/intel/compiler/brw_vec4.cpp            | 2 +-
+ src/intel/compiler/brw_vec4_generator.cpp  | 2 +-
+ src/intel/compiler/brw_vec4_gs_visitor.cpp | 2 +-
+ src/intel/compiler/brw_vec4_tcs.cpp        | 2 +-
+ src/intel/compiler/brw_vec4_tes.cpp        | 2 +-
+ src/intel/compiler/brw_vec4_vs_visitor.cpp | 2 +-
+ src/intel/compiler/brw_vue_map.c           | 2 +-
+ src/intel/{common => dev}/gen_debug.c      | 2 +-
+ src/intel/{common => dev}/gen_debug.h      | 0
+ src/intel/dev/meson.build                  | 2 ++
+ src/intel/vulkan/anv_private.h             | 2 +-
+ src/mesa/drivers/dri/i965/brw_blorp.c      | 2 +-
+ src/mesa/drivers/dri/i965/brw_bufmgr.c     | 2 +-
+ src/mesa/drivers/dri/i965/brw_context.h    | 2 +-
+ src/mesa/drivers/dri/i965/brw_disk_cache.c | 2 +-
+ 29 files changed, 29 insertions(+), 29 deletions(-)
+ rename src/intel/{common => dev}/gen_debug.c (99%)
+ rename src/intel/{common => dev}/gen_debug.h (100%)
+
+diff --git a/src/intel/Makefile.sources b/src/intel/Makefile.sources
+index a5c8828a6b6..c283058db11 100644
+--- a/src/intel/Makefile.sources
++++ b/src/intel/Makefile.sources
+@@ -10,8 +10,6 @@ BLORP_FILES = \
+ COMMON_FILES = \
+ 	common/gen_clflush.h \
+ 	common/gen_batch_decoder.c \
+-	common/gen_debug.c \
+-	common/gen_debug.h \
+ 	common/gen_decoder.c \
+ 	common/gen_decoder.h \
+ 	common/gen_disasm.c \
+@@ -127,6 +125,8 @@ COMPILER_GENERATED_FILES = \
+ 	compiler/brw_nir_trig_workarounds.c
+ 
+ DEV_FILES = \
++	dev/gen_debug.c \
++	dev/gen_debug.h \
+ 	dev/gen_device_info.c \
+ 	dev/gen_device_info.h
+ 
+diff --git a/src/intel/common/meson.build b/src/intel/common/meson.build
+index ec45962502e..19ee2f64875 100644
+--- a/src/intel/common/meson.build
++++ b/src/intel/common/meson.build
+@@ -23,8 +23,6 @@
+ files_libintel_common = files(
+   'gen_clflush.h',
+   'gen_batch_decoder.c',
+-  'gen_debug.c',
+-  'gen_debug.h',
+   'gen_decoder.c',
+   'gen_decoder.h',
+   'gen_disasm.c',
+diff --git a/src/intel/compiler/brw_compile_clip.c b/src/intel/compiler/brw_compile_clip.c
+index c04d1a82777..68261122317 100644
+--- a/src/intel/compiler/brw_compile_clip.c
++++ b/src/intel/compiler/brw_compile_clip.c
+@@ -23,7 +23,7 @@
+ 
+ #include "brw_clip.h"
+ 
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ 
+ const unsigned *
+ brw_compile_clip(const struct brw_compiler *compiler,
+diff --git a/src/intel/compiler/brw_compile_sf.c b/src/intel/compiler/brw_compile_sf.c
+index 91e8a6da6cf..51eb9b0dbf9 100644
+--- a/src/intel/compiler/brw_compile_sf.c
++++ b/src/intel/compiler/brw_compile_sf.c
+@@ -24,7 +24,7 @@
+ #include "brw_compiler.h"
+ #include "brw_eu.h"
+ 
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ 
+ struct brw_sf_compile {
+    struct brw_codegen func;
+diff --git a/src/intel/compiler/brw_compiler.c b/src/intel/compiler/brw_compiler.c
+index d3f8c7ef1e0..5d88a66f1fa 100644
+--- a/src/intel/compiler/brw_compiler.c
++++ b/src/intel/compiler/brw_compiler.c
+@@ -24,7 +24,7 @@
+ #include "brw_compiler.h"
+ #include "brw_shader.h"
+ #include "brw_eu.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ #include "compiler/nir/nir.h"
+ #include "main/errors.h"
+ #include "util/debug.h"
+diff --git a/src/intel/compiler/brw_disasm_info.c b/src/intel/compiler/brw_disasm_info.c
+index 7a9a55d83ef..bec83e8a65d 100644
+--- a/src/intel/compiler/brw_disasm_info.c
++++ b/src/intel/compiler/brw_disasm_info.c
+@@ -24,7 +24,7 @@
+ #include "brw_cfg.h"
+ #include "brw_eu.h"
+ #include "brw_disasm_info.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ #include "compiler/nir/nir.h"
+ 
+ __attribute__((weak)) void nir_print_instr(UNUSED const nir_instr *instr,
+diff --git a/src/intel/compiler/brw_eu.c b/src/intel/compiler/brw_eu.c
+index 3fb4e405072..87a6145ac29 100644
+--- a/src/intel/compiler/brw_eu.c
++++ b/src/intel/compiler/brw_eu.c
+@@ -33,7 +33,7 @@
+ #include "brw_eu_defines.h"
+ #include "brw_eu.h"
+ #include "brw_shader.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ 
+ #include "util/ralloc.h"
+ 
+diff --git a/src/intel/compiler/brw_eu_compact.c b/src/intel/compiler/brw_eu_compact.c
+index 25ad2f2c8cd..51dce9efbdd 100644
+--- a/src/intel/compiler/brw_eu_compact.c
++++ b/src/intel/compiler/brw_eu_compact.c
+@@ -75,7 +75,7 @@
+ #include "brw_eu.h"
+ #include "brw_shader.h"
+ #include "brw_disasm_info.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ 
+ static const uint32_t g45_control_index_table[32] = {
+    0b00000000000000000,
+diff --git a/src/intel/compiler/brw_fs.cpp b/src/intel/compiler/brw_fs.cpp
+index baf5df2c3d1..29a80d36d87 100644
+--- a/src/intel/compiler/brw_fs.cpp
++++ b/src/intel/compiler/brw_fs.cpp
+@@ -35,7 +35,7 @@
+ #include "brw_vec4_gs_visitor.h"
+ #include "brw_cfg.h"
+ #include "brw_dead_control_flow.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ #include "compiler/glsl_types.h"
+ #include "compiler/nir/nir_builder.h"
+ #include "program/prog_parameter.h"
+diff --git a/src/intel/compiler/brw_nir.c b/src/intel/compiler/brw_nir.c
+index 2e63efdc427..899d871a4e5 100644
+--- a/src/intel/compiler/brw_nir.c
++++ b/src/intel/compiler/brw_nir.c
+@@ -23,7 +23,7 @@
+ 
+ #include "brw_nir.h"
+ #include "brw_shader.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ #include "compiler/glsl_types.h"
+ #include "compiler/nir/nir_builder.h"
+ #include "util/u_math.h"
+diff --git a/src/intel/compiler/brw_shader.cpp b/src/intel/compiler/brw_shader.cpp
+index f9e88d43539..1b0eeed8415 100644
+--- a/src/intel/compiler/brw_shader.cpp
++++ b/src/intel/compiler/brw_shader.cpp
+@@ -26,7 +26,7 @@
+ #include "brw_fs.h"
+ #include "brw_nir.h"
+ #include "brw_vec4_tes.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ #include "main/uniforms.h"
+ #include "util/macros.h"
+ 
+diff --git a/src/intel/compiler/brw_vec4.cpp b/src/intel/compiler/brw_vec4.cpp
+index 2e9de29b4f2..bb8b554c852 100644
+--- a/src/intel/compiler/brw_vec4.cpp
++++ b/src/intel/compiler/brw_vec4.cpp
+@@ -29,7 +29,7 @@
+ #include "brw_vec4_live_variables.h"
+ #include "brw_vec4_vs.h"
+ #include "brw_dead_control_flow.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ #include "program/prog_parameter.h"
+ #include "util/u_math.h"
+ 
+diff --git a/src/intel/compiler/brw_vec4_generator.cpp b/src/intel/compiler/brw_vec4_generator.cpp
+index 8e3dc34ddb3..05e6f50ebb6 100644
+--- a/src/intel/compiler/brw_vec4_generator.cpp
++++ b/src/intel/compiler/brw_vec4_generator.cpp
+@@ -23,7 +23,7 @@
+ #include "brw_vec4.h"
+ #include "brw_cfg.h"
+ #include "brw_eu.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ 
+ using namespace brw;
+ 
+diff --git a/src/intel/compiler/brw_vec4_gs_visitor.cpp b/src/intel/compiler/brw_vec4_gs_visitor.cpp
+index a6e38b0f379..09be70d36d5 100644
+--- a/src/intel/compiler/brw_vec4_gs_visitor.cpp
++++ b/src/intel/compiler/brw_vec4_gs_visitor.cpp
+@@ -32,7 +32,7 @@
+ #include "brw_cfg.h"
+ #include "brw_fs.h"
+ #include "brw_nir.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ 
+ namespace brw {
+ 
+diff --git a/src/intel/compiler/brw_vec4_tcs.cpp b/src/intel/compiler/brw_vec4_tcs.cpp
+index be0969dda12..f0ef8c0dd96 100644
+--- a/src/intel/compiler/brw_vec4_tcs.cpp
++++ b/src/intel/compiler/brw_vec4_tcs.cpp
+@@ -30,7 +30,7 @@
+ #include "brw_nir.h"
+ #include "brw_vec4_tcs.h"
+ #include "brw_fs.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ 
+ namespace brw {
+ 
+diff --git a/src/intel/compiler/brw_vec4_tes.cpp b/src/intel/compiler/brw_vec4_tes.cpp
+index cf1bff42aa9..2ad5d06b539 100644
+--- a/src/intel/compiler/brw_vec4_tes.cpp
++++ b/src/intel/compiler/brw_vec4_tes.cpp
+@@ -29,7 +29,7 @@
+ 
+ #include "brw_vec4_tes.h"
+ #include "brw_cfg.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ 
+ namespace brw {
+ 
+diff --git a/src/intel/compiler/brw_vec4_vs_visitor.cpp b/src/intel/compiler/brw_vec4_vs_visitor.cpp
+index 8f15bc30a7c..6ee3cb4ac24 100644
+--- a/src/intel/compiler/brw_vec4_vs_visitor.cpp
++++ b/src/intel/compiler/brw_vec4_vs_visitor.cpp
+@@ -23,7 +23,7 @@
+ 
+ 
+ #include "brw_vec4_vs.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ 
+ namespace brw {
+ 
+diff --git a/src/intel/compiler/brw_vue_map.c b/src/intel/compiler/brw_vue_map.c
+index e14cba8f67d..76ca4004230 100644
+--- a/src/intel/compiler/brw_vue_map.c
++++ b/src/intel/compiler/brw_vue_map.c
+@@ -41,7 +41,7 @@
+ 
+ 
+ #include "brw_compiler.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ 
+ static inline void
+ assign_vue_slot(struct brw_vue_map *vue_map, int varying, int slot)
+diff --git a/src/intel/common/gen_debug.c b/src/intel/dev/gen_debug.c
+similarity index 99%
+rename from src/intel/common/gen_debug.c
+rename to src/intel/dev/gen_debug.c
+index 49af1163314..b0d0d1a574a 100644
+--- a/src/intel/common/gen_debug.c
++++ b/src/intel/dev/gen_debug.c
+@@ -31,7 +31,7 @@
+ 
+ #include <stdlib.h>
+ 
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ #include "util/macros.h"
+ #include "util/debug.h"
+ #include "c11/threads.h"
+diff --git a/src/intel/common/gen_debug.h b/src/intel/dev/gen_debug.h
+similarity index 100%
+rename from src/intel/common/gen_debug.h
+rename to src/intel/dev/gen_debug.h
+diff --git a/src/intel/dev/meson.build b/src/intel/dev/meson.build
+index a46a4d79226..9027a3ef2b3 100644
+--- a/src/intel/dev/meson.build
++++ b/src/intel/dev/meson.build
+@@ -21,6 +21,8 @@
+ # TODO: android?
+ 
+ files_libintel_dev = files(
++  'gen_debug.c',
++  'gen_debug.h',
+   'gen_device_info.c',
+   'gen_device_info.h',
+ )
+diff --git a/src/intel/vulkan/anv_private.h b/src/intel/vulkan/anv_private.h
+index 1316077ae09..1664918af8c 100644
+--- a/src/intel/vulkan/anv_private.h
++++ b/src/intel/vulkan/anv_private.h
+@@ -83,7 +83,7 @@ struct gen_l3_config;
+ #include "anv_extensions.h"
+ #include "isl/isl.h"
+ 
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ #include "common/intel_log.h"
+ #include "wsi_common.h"
+ 
+diff --git a/src/mesa/drivers/dri/i965/brw_blorp.c b/src/mesa/drivers/dri/i965/brw_blorp.c
+index e09a8cef762..3c2445d335d 100644
+--- a/src/mesa/drivers/dri/i965/brw_blorp.c
++++ b/src/mesa/drivers/dri/i965/brw_blorp.c
+@@ -38,7 +38,7 @@
+ #include "brw_state.h"
+ #include "intel_buffer_objects.h"
+ #include "intel_fbo.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ 
+ #define FILE_DEBUG_FLAG DEBUG_BLORP
+ 
+diff --git a/src/mesa/drivers/dri/i965/brw_bufmgr.c b/src/mesa/drivers/dri/i965/brw_bufmgr.c
+index b33a30930db..7b0ddfb64dd 100644
+--- a/src/mesa/drivers/dri/i965/brw_bufmgr.c
++++ b/src/mesa/drivers/dri/i965/brw_bufmgr.c
+@@ -53,7 +53,7 @@
+ #define ETIME ETIMEDOUT
+ #endif
+ #include "common/gen_clflush.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ #include "common/gen_gem.h"
+ #include "dev/gen_device_info.h"
+ #include "libdrm_macros.h"
+diff --git a/src/mesa/drivers/dri/i965/brw_context.h b/src/mesa/drivers/dri/i965/brw_context.h
+index 55264075325..4d6cd58d3ce 100644
+--- a/src/mesa/drivers/dri/i965/brw_context.h
++++ b/src/mesa/drivers/dri/i965/brw_context.h
+@@ -46,7 +46,7 @@
+ 
+ #include <brw_bufmgr.h>
+ 
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ #include "common/gen_decoder.h"
+ #include "intel_screen.h"
+ #include "intel_tex_obj.h"
+diff --git a/src/mesa/drivers/dri/i965/brw_disk_cache.c b/src/mesa/drivers/dri/i965/brw_disk_cache.c
+index 65fcab24b7f..e3a6d6f62e0 100644
+--- a/src/mesa/drivers/dri/i965/brw_disk_cache.c
++++ b/src/mesa/drivers/dri/i965/brw_disk_cache.c
+@@ -32,7 +32,7 @@
+ #include "util/mesa-sha1.h"
+ 
+ #include "compiler/brw_eu.h"
+-#include "common/gen_debug.h"
++#include "dev/gen_debug.h"
+ 
+ #include "brw_context.h"
+ #include "brw_program.h"

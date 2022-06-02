@@ -29,4 +29,20 @@ else
 LIBMICROHTTPD_CONF_OPTS += --with-threads=none
 endif
 
+ifeq ($(BR2_PACKAGE_LIBMICROHTTPD_EPOLL),n)
+LIBMICROHTTPD_CONF_OPTS += --disable-epoll
+endif
+
+ifeq ($(BR2_PACKAGE_LIBMICROHTTPD_HTTP_BASIC_AUTH),n)
+LIBMICROHTTPD_CONF_OPTS += --disable-bauth
+endif
+
+ifeq ($(BR2_PACKAGE_LIBMICROHTTPD_HTTP_DIGEST_AUTH),n)
+LIBMICROHTTPD_CONF_OPTS += --disable-dauth
+endif
+
+ifeq ($(BR2_PACKAGE_LIBMICROHTTPD_HTTP_UPGRADE),n)
+LIBMICROHTTPD_CONF_OPTS += --disable-httpupgrade
+endif
+
 $(eval $(autotools-package))

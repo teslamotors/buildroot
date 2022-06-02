@@ -1,4 +1,5 @@
 From 4abdf6633574863038e8c98ca940d153ed61602b Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
 Date: Tue, 6 Feb 2018 19:05:27 -0800
 Subject: [PATCH] minijail: Forward signal in PID namespace
 

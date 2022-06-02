@@ -244,7 +244,6 @@ config BR2_TOOLCHAIN_GLIBC_GCONV_LIBS_LIST
 
 config BR2_TOOLCHAIN_EXTRA_LIBS
 	string "Extra toolchain libraries to be copied to target"
-	default BR2_TOOLCHAIN_EXTRA_EXTERNAL_LIBS if BR2_TOOLCHAIN_EXTRA_EXTERNAL_LIBS != "" # legacy
 	depends on !BR2_STATIC_LIBS
 	help
 	  If your toolchain provides extra libraries that need to be
@@ -620,10 +619,15 @@ config BR2_TOOLCHAIN_GCC_AT_LEAST_10
 	bool
 	select BR2_TOOLCHAIN_GCC_AT_LEAST_9
 
+config BR2_TOOLCHAIN_GCC_AT_LEAST_11
+	bool
+	select BR2_TOOLCHAIN_GCC_AT_LEAST_10
+
 # This order guarantees that the highest version is set, as kconfig
 # stops affecting a value on the first matching default.
 config BR2_TOOLCHAIN_GCC_AT_LEAST
 	string
+	default "11"	if BR2_TOOLCHAIN_GCC_AT_LEAST_11
 	default "10"	if BR2_TOOLCHAIN_GCC_AT_LEAST_10
 	default "9"	if BR2_TOOLCHAIN_GCC_AT_LEAST_9
 	default "8"	if BR2_TOOLCHAIN_GCC_AT_LEAST_8

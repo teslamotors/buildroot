@@ -17,7 +17,7 @@ NCURSES_IGNORE_CVES += CVE-2018-19211
 NCURSES_IGNORE_CVES += CVE-2018-19217
 NCURSES_IGNORE_CVES += CVE-2019-17594
 NCURSES_IGNORE_CVES += CVE-2019-17595
-NCURSES_CONFIG_SCRIPTS = ncurses$(NCURSES_LIB_SUFFIX)6-config
+NCURSES_CONFIG_SCRIPTS = ncurses$(NCURSES_LIB_SUFFIX)$(NCURSES_ABI_VERSION)-config
 NCURSES_PATCH = \
 	$(addprefix https://invisible-mirror.net/archives/ncurses/$(NCURSES_VERSION)/, \
 		ncurses-6.1-20190609-patch.sh.bz2 \
@@ -76,7 +76,8 @@ NCURSES_CONF_OPTS = \
 	--disable-stripping \
 	--with-pkg-config-libdir="/usr/lib/pkgconfig" \
 	$(if $(BR2_PACKAGE_NCURSES_TARGET_PROGS),,--without-progs) \
-	--without-manpages
+	--without-manpages \
+	--with-abi-version=$(NCURSES_ABI_VERSION)
 
 ifeq ($(BR2_STATIC_LIBS),y)
 NCURSES_CONF_OPTS += --without-shared --with-normal
@@ -153,7 +154,9 @@ NCURSES_CONF_OPTS += --enable-ext-colors
 
 NCURSES_POST_INSTALL_STAGING_HOOKS += NCURSES_LINK_STAGING_LIBS
 NCURSES_POST_INSTALL_STAGING_HOOKS += NCURSES_LINK_STAGING_PC
-
+NCURSES_ABI_VERSION = 6
+else # BR2_PACKAGE_NCURSES_WCHAR
+NCURSES_ABI_VERSION = 5
 endif # BR2_PACKAGE_NCURSES_WCHAR
 
 ifneq ($(BR2_ENABLE_DEBUG),y)
@@ -174,6 +177,14 @@ define NCURSES_TARGET_SYMLINK_RESET
 endef
 NCURSES_POST_INSTALL_TARGET_HOOKS += NCURSES_TARGET_SYMLINK_RESET
 endif
+
+define NCURSES_TARGET_SYMLINK_TINFO
+    cd $(TARGET_DIR)/usr/lib && \
+    ln -sf libncurses.so libtinfo.so &&\
+    ln -sf libtinfo.so libtinfo.so.5 && \
+    ln -sf libtinfo.so.5 libtinfo.so.5.9
+endef
+NCURSES_POST_INSTALL_TARGET_HOOKS += NCURSES_TARGET_SYMLINK_TINFO
 
 define NCURSES_TARGET_CLEANUP_TERMINFO
 	$(RM) -rf $(TARGET_DIR)/usr/share/terminfo $(TARGET_DIR)/usr/share/tabset

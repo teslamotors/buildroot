@@ -32,7 +32,7 @@ GVFS_CONF_OPTS = \
 	-Dsftp=false \
 	-Dudisks2=false
 
-ifeq ($(BR2_PACKAGE_AVAHI),y)
+ifeq ($(BR2_PACKAGE_GVFS_DNSSD),y)
 GVFS_DEPENDENCIES += avahi
 GVFS_CONF_OPTS += -Ddnssd=true
 else
@@ -57,7 +57,7 @@ else
 GVFS_CONF_OPTS += -Dgudev=false
 endif
 
-ifeq ($(BR2_PACKAGE_LIBARCHIVE),y)
+ifeq ($(BR2_PACKAGE_GVFS_ARCHIVE),y)
 GVFS_DEPENDENCIES += libarchive
 GVFS_CONF_OPTS += -Darchive=true
 else
@@ -71,14 +71,14 @@ else
 GVFS_CONF_OPTS += -Dbluray=false
 endif
 
-ifeq ($(BR2_PACKAGE_LIBCAP)$(BR2_PACKAGE_POLKIT),yy)
+ifeq ($(BR2_PACKAGE_GVFS_ADMIN),y)
 GVFS_DEPENDENCIES += libcap polkit
 GVFS_CONF_OPTS += -Dadmin=true
 else
 GVFS_CONF_OPTS += -Dadmin=false
 endif
 
-ifeq ($(BR2_PACKAGE_LIBCDIO_PARANOIA)$(BR2_PACKAGE_LIBGUDEV),yy)
+ifeq ($(BR2_PACKAGE_GVFS_CDDA),y)
 GVFS_DEPENDENCIES += libcdio-paranoia libgudev
 GVFS_CONF_OPTS += -Dcdda=true
 else
@@ -104,14 +104,14 @@ GVFS_CONF_OPTS += \
 	-Dgcrypt=false
 endif
 
-ifeq ($(BR2_PACKAGE_LIBGPHOTO2)$(BR2_PACKAGE_LIBGUDEV),yy)
+ifeq ($(BR2_PACKAGE_GVFS_GPHOTO2),y)
 GVFS_DEPENDENCIES += libgphoto2 libgudev
 GVFS_CONF_OPTS += -Dgphoto2=true
 else
 GVFS_CONF_OPTS += -Dgphoto2=false
 endif
 
-ifeq ($(BR2_PACKAGE_LIBNFS),y)
+ifeq ($(BR2_PACKAGE_GVFS_NFS),y)
 GVFS_CONF_OPTS += -Dnfs=true
 GVFS_DEPENDENCIES += libnfs
 else
@@ -125,7 +125,7 @@ else
 GVFS_CONF_OPTS += -Dkeyring=false
 endif
 
-ifeq ($(BR2_PACKAGE_LIBSOUP)$(BR2_PACKAGE_LIBXML2),yy)
+ifeq ($(BR2_PACKAGE_GVFS_HTTP),y)
 GVFS_DEPENDENCIES += libsoup libxml2
 GVFS_CONF_OPTS += -Dhttp=true
 else
@@ -139,7 +139,7 @@ else
 GVFS_CONF_OPTS += -Dlibusb=false
 endif
 
-ifeq ($(BR2_PACKAGE_SAMBA4),y)
+ifeq ($(BR2_PACKAGE_GVFS_SMB),y)
 GVFS_DEPENDENCIES += samba4
 GVFS_CONF_OPTS += -Dsmb=true
 else

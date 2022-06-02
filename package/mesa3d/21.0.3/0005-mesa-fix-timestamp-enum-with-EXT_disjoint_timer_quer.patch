@@ -1,0 +1,72 @@
+From cc8292b1880f36c0855119b8cc4fd9e7feb1b997 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Tapani=20P=C3=A4lli?= <tapani.palli@intel.com>
+Date: Thu, 16 Sep 2021 08:48:52 +0300
+Subject: [PATCH] mesa: fix timestamp enum with EXT_disjoint_timer_query
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Extension implementation missed GL_TIMESTAMP_EXT for Get* functions,
+commit 5d58fea660c added GetInteger64vEXT support but obviously we need
+to support the enum as well ...
+
+Cc: mesa-stable
+Closes: https://gitlab.freedesktop.org/mesa/mesa/-/issues/5361
+Signed-off-by: Tapani Pälli <tapani.palli@intel.com>
+---
+ src/mesa/main/get.c              | 7 ++++++-
+ src/mesa/main/get_hash_params.py | 6 +++---
+ 2 files changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/src/mesa/main/get.c b/src/mesa/main/get.c
+index f1c0d042baf..2d8c0fcf02c 100644
+--- a/src/mesa/main/get.c
++++ b/src/mesa/main/get.c
+@@ -506,6 +506,12 @@ static const int extra_INTEL_conservative_rasterization[] = {
+    EXTRA_END
+ };
+ 
++static const int extra_ARB_timer_query_or_EXT_disjoint_timer_query[] = {
++   EXT(ARB_timer_query),
++   EXT(EXT_disjoint_timer_query),
++   EXTRA_END
++};
++
+ EXTRA_EXT(ARB_texture_cube_map);
+ EXTRA_EXT(EXT_texture_array);
+ EXTRA_EXT(NV_fog_distance);
+@@ -534,7 +540,6 @@ EXTRA_EXT(EXT_framebuffer_sRGB);
+ EXTRA_EXT(OES_EGL_image_external);
+ EXTRA_EXT(ARB_blend_func_extended);
+ EXTRA_EXT(ARB_uniform_buffer_object);
+-EXTRA_EXT(ARB_timer_query);
+ EXTRA_EXT2(ARB_texture_cube_map_array, OES_texture_cube_map_array);
+ EXTRA_EXT(ARB_texture_buffer_range);
+ EXTRA_EXT(ARB_texture_multisample);
+diff --git a/src/mesa/main/get_hash_params.py b/src/mesa/main/get_hash_params.py
+index 318b639014d..bab7ddff2f0 100644
+--- a/src/mesa/main/get_hash_params.py
++++ b/src/mesa/main/get_hash_params.py
+@@ -393,6 +393,9 @@ descriptor=[
+ { "apis": ["GL", "GLES", "GLES3", "GL_CORE"], "params": [
+ # GL_EXT_texture_lod_bias
+   [ "MAX_TEXTURE_LOD_BIAS_EXT", "CONTEXT_FLOAT(Const.MaxTextureLodBias), NO_EXTRA" ],
++
++# GL_ARB_timer_query, GL_EXT_disjoint_timer_query
++  [ "TIMESTAMP", "LOC_CUSTOM, TYPE_INT64, 0, extra_ARB_timer_query_or_EXT_disjoint_timer_query" ],
+ ]},
+ 
+ 
+@@ -966,9 +969,6 @@ descriptor=[
+ # GL 3.2
+   [ "CONTEXT_PROFILE_MASK", "CONTEXT_INT(Const.ProfileMask), extra_version_32" ],
+ 
+-# GL_ARB_timer_query
+-  [ "TIMESTAMP", "LOC_CUSTOM, TYPE_INT64, 0, extra_ARB_timer_query" ],
+-
+ # GL_ARB_map_buffer_alignment
+   [ "MIN_MAP_BUFFER_ALIGNMENT", "CONTEXT_INT(Const.MinMapBufferAlignment), NO_EXTRA" ],
+ 
+-- 
+2.17.1
+

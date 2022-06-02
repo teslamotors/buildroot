@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-GLIB_NETWORKING_VERSION_MAJOR = 2.66
+GLIB_NETWORKING_VERSION_MAJOR = 2.68
 GLIB_NETWORKING_VERSION = $(GLIB_NETWORKING_VERSION_MAJOR).0
 GLIB_NETWORKING_SITE = http://ftp.gnome.org/pub/gnome/sources/glib-networking/$(GLIB_NETWORKING_VERSION_MAJOR)
 GLIB_NETWORKING_SOURCE = glib-networking-$(GLIB_NETWORKING_VERSION).tar.xz
@@ -27,6 +27,10 @@ GLIB_NETWORKING_INSTALL_TARGET_OPTS = DESTDIR=$(TARGET_DIR) \
 ifeq ($(BR2_PACKAGE_GNUTLS),y)
 GLIB_NETWORKING_DEPENDENCIES += gnutls
 GLIB_NETWORKING_CONF_OPTS += -Dgnutls=enabled
+# TLS tests with gnutls require p11-kit
+ifeq ($(BR2_PACKAGE_P11_KIT),)
+GLIB_NETWORKING_CONF_OPTS += -Dtests=false
+endif
 else
 GLIB_NETWORKING_CONF_OPTS += -Dgnutls=disabled
 endif

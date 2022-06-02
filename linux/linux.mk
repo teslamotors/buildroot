@@ -53,7 +53,7 @@ LINUX_SITE = $(BR2_KERNEL_MIRROR)/linux/kernel/v$(firstword $(subst ., ,$(LINUX_
 endif
 endif
 
-ifeq ($(BR2_LINUX_KERNEL)$(BR2_LINUX_KERNEL_LATEST_VERSION),y)
+ifeq ($(BR2_LINUX_KERNEL_SOURCE)$(BR2_LINUX_KERNEL_LATEST_VERSION),y)
 BR_NO_CHECK_HASH_FOR += $(LINUX_SOURCE)
 endif
 
@@ -76,9 +76,11 @@ LINUX_MAKE_ENV = \
 	$(HOST_MAKE_ENV) \
 	BR_BINARIES_DIR=$(BINARIES_DIR)
 
+ifeq ($(BR2_LINUX_KERNEL),y)
 LINUX_INSTALL_IMAGES = YES
 LINUX_DEPENDENCIES = host-kmod \
 	$(if $(BR2_PACKAGE_INTEL_MICROCODE),intel-microcode)
+endif
 
 # Starting with 4.16, the generated kconfig paser code is no longer
 # shipped with the kernel sources, so we need flex and bison, but
@@ -353,6 +355,10 @@ define LINUX_KCONFIG_FIXUP_CMDS
 		$(call KCONFIG_ENABLE_OPT,CONFIG_ARC_PAGE_SIZE_16K))
 	$(if $(BR2_TARGET_ROOTFS_CPIO),
 		$(call KCONFIG_ENABLE_OPT,CONFIG_BLK_DEV_INITRD))
+	$(if $(BR2_LINUX_KERNEL_EXT_INITRAMFS),
+		$(call KCONFIG_SET_OPT,CONFIG_INITRAMFS_SOURCE,"$${BR_BINARIES_DIR}/$(call qstrip,$(BR2_LINUX_KERNEL_EXT_INITRAMFS_LOCATION))")
+		$(call KCONFIG_SET_OPT,CONFIG_INITRAMFS_ROOT_UID,0)
+		$(call KCONFIG_SET_OPT,CONFIG_INITRAMFS_ROOT_GID,0))
 	# As the kernel gets compiled before root filesystems are
 	# built, we create a fake cpio file. It'll be
 	# replaced later by the real cpio archive, and the kernel will be
@@ -445,6 +451,8 @@ define LINUX_BUILD_CMDS
 	$(foreach dts,$(call qstrip,$(BR2_LINUX_KERNEL_CUSTOM_DTS_PATH)), \
 		cp -f $(dts) $(LINUX_ARCH_PATH)/boot/dts/
 	)
+	$(if $(BR2_LINUX_KERNEL_SHOW_EXTRA_KERNEL_VERSION),
+		echo -g$(shell echo $(BR2_LINUX_KERNEL_VERSION) | cut -c 1-10) > $(@D)/localversion-tesla)
 	$(LINUX_MAKE_ENV) $(MAKE) $(LINUX_MAKE_FLAGS) -C $(@D) all
 	$(LINUX_MAKE_ENV) $(MAKE) $(LINUX_MAKE_FLAGS) -C $(@D) $(LINUX_TARGET_NAME)
 	$(LINUX_BUILD_DTB)
@@ -490,6 +498,8 @@ ifeq ($(BR2_STRIP_strip),y)
 LINUX_MAKE_FLAGS += INSTALL_MOD_STRIP=1
 endif
 
+ifeq ($(BR2_LINUX_KERNEL),y)
+
 define LINUX_INSTALL_TARGET_CMDS
 	$(LINUX_INSTALL_KERNEL_IMAGE_TO_TARGET)
 	# Install modules and remove symbolic links pointing to build
@@ -501,6 +511,8 @@ define LINUX_INSTALL_TARGET_CMDS
 	fi
 	$(LINUX_INSTALL_HOST_TOOLS)
 endef
+endif # BR2_LINUX_KERNEL=y
+
 
 # Run depmod in a target-finalize hook, to encompass modules installed by
 # packages.
@@ -594,3 +606,18 @@ linux-rebuild-with-initramfs:
 	$(call LINUX_INSTALL_IMAGE,$(BINARIES_DIR))
 	# If there is a .ub file copy it to the final destination
 	test ! -f $(LINUX_IMAGE_PATH).ub || cp $(LINUX_IMAGE_PATH).ub $(BINARIES_DIR)
+
+
+ifeq ($(BR2_LINUX_KERNEL),)
+
+# define LINUX_CONFIGURE_CMDS
+# 	echo "BR2_LINUX_KERNEL not set, so not configuring linux."
+# endef
+define LINUX_BUILD_CMDS
+	# BR2_LINUX_KERNEL not set, so not building linux.
+endef
+define LINUX_INSTALL_CMDS
+	# BR2_LINUX_KERNEL not set, so not installing linux.
+endef
+
+endif # BR2_LINUX_KERNEL not set

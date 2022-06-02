@@ -21,7 +21,7 @@ HOST_GO_TARGET_CACHE = $(HOST_DIR)/usr/share/go-cache
 # We pass an empty GOBIN, otherwise "go install: cannot install
 # cross-compiled binaries when GOBIN is set"
 HOST_GO_COMMON_ENV = \
-	GO111MODULE=on \
+	GO111MODULE=off \
 	GOFLAGS=-mod=vendor \
 	GOROOT="$(HOST_GO_ROOT)" \
 	GOPATH="$(HOST_GO_GOPATH)" \

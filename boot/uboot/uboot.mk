@@ -20,6 +20,10 @@ UBOOT_INSTALL_IMAGES = YES
 UBOOT_DEPENDENCIES = $(BR2_MAKE_HOST_DEPENDENCY)
 UBOOT_MAKE = $(BR2_MAKE)
 
+ifeq ($(BR2_PACKAGE_UPDATER_HEC),y)
+UBOOT_DEPENDENCIES += updater
+endif
+
 ifeq ($(UBOOT_VERSION),custom)
 # Handle custom U-Boot tarballs as specified by the configuration
 UBOOT_TARBALL = $(call qstrip,$(BR2_TARGET_UBOOT_CUSTOM_TARBALL_LOCATION))

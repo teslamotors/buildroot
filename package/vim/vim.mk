@@ -63,6 +63,10 @@ define VIM_REMOVE_DOCS
 	$(RM) -rf $(TARGET_DIR)/usr/share/vim/vim*/doc/
 endef
 
+define VIM_REMOVE_TOOLS
+	$(RM) -rf $(TARGET_DIR)/usr/share/vim/vim*/tools/
+endef
+
 # Avoid oopses with vipw/vigr, lack of $EDITOR and 'vi' command expectation
 ifeq ($(BR2_ROOTFS_MERGED_USR),y)
 define VIM_INSTALL_VI_SYMLINK
@@ -74,6 +78,7 @@ define VIM_INSTALL_VI_SYMLINK
 endef
 endif
 VIM_POST_INSTALL_TARGET_HOOKS += VIM_INSTALL_VI_SYMLINK
+VIM_POST_INSTALL_TARGET_HOOKS += VIM_REMOVE_TOOLS
 
 ifeq ($(BR2_PACKAGE_VIM_RUNTIME),y)
 VIM_POST_INSTALL_TARGET_HOOKS += VIM_INSTALL_RUNTIME_CMDS

@@ -789,7 +789,7 @@ comment "Stack Smashing Protection needs a toolchain w/ SSP"
 
 choice
 	bool "RELRO Protection"
-	depends on BR2_SHARED_LIBS
+	depends on BR2_SHARED_LIBS || BR2_SHARED_STATIC_LIBS
 	help
 	  Enable a link-time protection know as RELRO (RELocation Read
 	  Only) which helps to protect from certain type of exploitation

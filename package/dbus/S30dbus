@@ -7,11 +7,11 @@
 #               and other messages. See http://www.freedesktop.org/software/dbus/
 #
 # processname: dbus-daemon
-# pidfile: /run/messagebus.pid
+# pidfile: /var/run/messagebus.pid
 #
 
 # Create needed directories.
-[ -d /run/dbus ] || mkdir -p /run/dbus
+[ -d /var/run/dbus ] || mkdir -p /var/run/dbus
 [ -d /var/lock/subsys ] || mkdir -p /var/lock/subsys
 [ -d /tmp/dbus ] || mkdir -p /tmp/dbus
 
@@ -38,7 +38,7 @@ stop() {
     echo "done"
     if [ $RETVAL -eq 0 ]; then
         rm -f /var/lock/subsys/dbus-daemon
-        rm -f /run/messagebus.pid
+        rm -f /var/run/messagebus.pid
     fi
 }
 

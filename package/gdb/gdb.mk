@@ -8,19 +8,10 @@ GDB_VERSION = $(call qstrip,$(BR2_GDB_VERSION))
 GDB_SITE = $(BR2_GNU_MIRROR)/gdb
 GDB_SOURCE = gdb-$(GDB_VERSION).tar.xz
 
-# recent gdb versions (>= 10) have gdbserver moved at the top-level,
-# which requires a different build logic.
-ifeq ($(BR2_GDB_VERSION_10),y)
-GDB_GDBSERVER_TOPLEVEL = y
-endif
-
 ifeq ($(BR2_arc),y)
 GDB_SITE = $(call github,foss-for-synopsys-dwc-arc-processors,binutils-gdb,$(GDB_VERSION))
 GDB_SOURCE = gdb-$(GDB_VERSION).tar.gz
 GDB_FROM_GIT = y
-# recent gdb versions (>= 10) have gdbserver moved at the top-level,
-# which requires a different build logic.
-GDB_GDBSERVER_TOPLEVEL = y
 endif
 
 ifeq ($(BR2_csky),y)
@@ -35,7 +26,7 @@ GDB_CPE_ID_VENDOR = gnu
 
 # On gdb < 10, if you want to build only gdbserver, you need to
 # configure only gdb/gdbserver.
-ifeq ($(BR2_PACKAGE_GDB_DEBUGGER)$(GDB_GDBSERVER_TOPLEVEL),)
+ifeq ($(BR2_PACKAGE_GDB_DEBUGGER)$(BR2_PACKAGE_GDB_TOPLEVEL),)
 GDB_SUBDIR = gdb/gdbserver
 
 # When we want to build the full gdb, or for very recent versions of
@@ -78,6 +69,20 @@ endif
 ifeq ($(GDB_FROM_GIT),y)
 GDB_DEPENDENCIES += host-flex host-bison
 HOST_GDB_DEPENDENCIES += host-flex host-bison
+endif
+
+# When BR2_GDB_VERSION_11=y, we're going to build gdb 11.x for the
+# host (if enabled), so we add the necessary gmp dependency.
+ifeq ($(BR2_GDB_VERSION_11),y)
+HOST_GDB_DEPENDENCIES += host-gmp
+endif
+
+# When BR2_GDB_VERSION_11=y (because it's enabled for the host) and
+# we're building the full gdb for the target, we need gmp as a
+# dependency. For now the default gdb version in Buildroot doesn't
+# require gmp.
+ifeq ($(BR2_GDB_VERSION_11)$(BR2_PACKAGE_GDB_DEBUGGER),yy)
+GDB_DEPENDENCIES += gmp
 endif
 
 # When gdb sources are fetched from the binutils-gdb repository, they
@@ -156,7 +161,7 @@ ifeq ($(BR2_PACKAGE_GDB_DEBUGGER),y)
 GDB_CONF_OPTS += \
 	--enable-gdb \
 	--with-curses
-GDB_DEPENDENCIES = ncurses \
+GDB_DEPENDENCIES += ncurses \
 	$(if $(BR2_PACKAGE_LIBICONV),libiconv)
 else
 GDB_CONF_OPTS += \
@@ -166,6 +171,7 @@ endif
 
 ifeq ($(BR2_PACKAGE_GDB_SERVER),y)
 GDB_CONF_OPTS += --enable-gdbserver
+GDB_DEPENDENCIES += $(TARGET_NLS_DEPENDENCIES)
 else
 GDB_CONF_OPTS += --disable-gdbserver
 endif
@@ -195,17 +201,10 @@ GDB_CONF_OPTS += --disable-tui
 endif
 
 ifeq ($(BR2_PACKAGE_GDB_PYTHON),y)
-ifeq ($(BR2_PACKAGE_PYTHON3),y)
 # CONF_ENV: for top-level configure; MAKE_ENV: for sub-projects' configure.
 GDB_CONF_ENV += BR_PYTHON_VERSION=$(PYTHON3_VERSION_MAJOR)
 GDB_MAKE_ENV += BR_PYTHON_VERSION=$(PYTHON3_VERSION_MAJOR)
 GDB_DEPENDENCIES += python3
-else
-# CONF_ENV: for top-level configure; MAKE_ENV: for sub-projects' configure.
-GDB_CONF_ENV += BR_PYTHON_VERSION=$(PYTHON_VERSION_MAJOR)
-GDB_MAKE_ENV += BR_PYTHON_VERSION=$(PYTHON_VERSION_MAJOR)
-GDB_DEPENDENCIES += python
-endif
 GDB_CONF_OPTS += --with-python=$(TOPDIR)/package/gdb/gdb-python-config
 else
 GDB_CONF_OPTS += --without-python
@@ -281,10 +280,7 @@ else
 HOST_GDB_CONF_OPTS += --disable-tui
 endif
 
-ifeq ($(BR2_PACKAGE_HOST_GDB_PYTHON),y)
-HOST_GDB_CONF_OPTS += --with-python=$(HOST_DIR)/bin/python2
-HOST_GDB_DEPENDENCIES += host-python
-else ifeq ($(BR2_PACKAGE_HOST_GDB_PYTHON3),y)
+ifeq ($(BR2_PACKAGE_HOST_GDB_PYTHON3),y)
 HOST_GDB_CONF_OPTS += --with-python=$(HOST_DIR)/bin/python3
 HOST_GDB_DEPENDENCIES += host-python3
 else

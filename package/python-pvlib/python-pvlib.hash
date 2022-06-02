@@ -1,0 +1,5 @@
+# md5, sha256 from https://pypi.org/pypi/pvlib/json
+md5	0d491b5851b7d1bcfb03fcf8bc6f1e5a  pvlib-0.8.1.tar.gz
+sha256	3e735627c625e7e3777dec44ce5343600e0a96bce2077ad2563be5ac5f223352  pvlib-0.8.1.tar.gz
+# Locally computed sha256 checksums
+sha256	88bd02ef00e092986978d3ca7945ffe76208a2008835dc752f34e9e4a7f338b6  LICENSE

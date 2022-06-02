@@ -1,0 +1,31 @@
+commit feeb019d4271491e5e9292cf429b3c21f8c3e53b
+Author: Tesla OpenSource <opensource@tesla.com>
+Date:   Wed Dec 22 00:22:00 2021 -0700
+
+    Resolving compiler errors / warnings with the vsomeip package.
+    The std::string type is used without including string.
+
+diff --git a/interface/vsomeip/plugin.hpp b/interface/vsomeip/plugin.hpp
+index 4d608f1..0dceac3 100644
+--- a/interface/vsomeip/plugin.hpp
++++ b/interface/vsomeip/plugin.hpp
+@@ -7,6 +7,7 @@
+ #define VSOMEIP_PLUGIN_HPP
+ 
+ #include <memory>
++#include <string>
+ 
+ #if WIN32
+     #if VSOMEIP_DLL_COMPILATION_PLUGIN
+diff --git a/interface/vsomeip/primitive_types.hpp b/interface/vsomeip/primitive_types.hpp
+index 043fd9b..80310ce 100644
+--- a/interface/vsomeip/primitive_types.hpp
++++ b/interface/vsomeip/primitive_types.hpp
+@@ -8,6 +8,7 @@
+ 
+ #include <array>
+ #include <cstdint>
++#include <string>
+ 
+ namespace vsomeip {
+ 

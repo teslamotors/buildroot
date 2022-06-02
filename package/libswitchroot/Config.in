@@ -1,0 +1,4 @@
+config BR2_PACKAGE_LIBSWITCHROOT
+       bool "Switch root library"
+       help
+         Library for switch root

@@ -417,6 +417,51 @@ effects:
   be empty and it's only at the very end of the build that they will
   be populated.
 
+=== Package cache for CI & CD
+
+Shared cache feature allows to save contents of +$(PKG)_DIR+ except
++.stamp_*_installed+ files using +$(2)_FINAL_RECURSIVE_DEPENDENCIES+ to
+generate cache key on shared storage and load during CI builds. In order
+to use cache explicit targets should be called for loading or saving.
+
+There are some limitations:
+
+* Do not install from +$(PKG)_DL_DIR+.
+
+* Do not install during build or earlier stages.
+
+* Cache for kernel modules is not supported.
+
+* Cache will be automatically disabled if any of dependencies
+  have +$(PKG)_SHARED_CACHE_DISABLED = YES+
+
+There is number of global and package specific configurations available:
+
+* +SHARED_CACHE_DEBUG_DIR+, Location to store md5 of files used to generate cache key.
+* +SHARED_CACHE_DIR+, Directory used to save and load cache from.
+* +SHARED_CACHE_HELPER+, Executable to alter cache key generation.
+* +BUILDROOT_CACHE_VERSION+, Set to `2` to enable new package cache implementation.
+* +FOO_SHARED_CACHE_DISABLED+, Set to `YES` to disable cache package.
+* +BAR_SHARED_CACHE_DEPENDENCIES_CUSTOM_PATHS+, List of additional paths to be included in key generation.
+
+To load cache from storage before build, run:
+
+----------------
+make cache-load
+----------------
+
+To save cache to storage after build, run:
+
+----------------
+make cache-save
+----------------
+
+To show cache stats after save or load, run:
+
+----------------
+make cache-stats
+----------------
+
 include::eclipse-integration.txt[]
 
 include::advanced.txt[]

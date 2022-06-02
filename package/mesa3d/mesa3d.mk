@@ -4,12 +4,23 @@
 #
 ################################################################################
 
+ifeq ($(BR2_PACKAGE_MESA3D_VERSION_V_19_0_6),y)
+# Including 19.0.6 .mk file
+include package/mesa3d/19.0.6/mesa3d/mesa3d.mk
+else
+ifeq ($(BR2_PACKAGE_MESA3D_VERSION_V_19_1_7),y)
+# Including 19.1.7 .mk file
+include package/mesa3d/19.1.7/mesa3d/mesa3d.mk
+else
+
 # When updating the version, please also update mesa3d-headers
-MESA3D_VERSION = 20.3.5
+MESA3D_VERSION = 21.0.3
 MESA3D_SOURCE = mesa-$(MESA3D_VERSION).tar.xz
 MESA3D_SITE = https://mesa.freedesktop.org/archive
 MESA3D_LICENSE = MIT, SGI, Khronos
 MESA3D_LICENSE_FILES = docs/license.rst
+MESA3D_CPE_ID_VENDOR = mesa3d
+MESA3D_CPE_ID_PRODUCT = mesa
 
 MESA3D_INSTALL_STAGING = YES
 
@@ -101,12 +112,12 @@ MESA3D_GALLIUM_DRIVERS-$(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_V3D)      += v3d
 MESA3D_GALLIUM_DRIVERS-$(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_VC4)      += vc4
 MESA3D_GALLIUM_DRIVERS-$(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_VIRGL)    += virgl
 # DRI Drivers
-MESA3D_DRI_DRIVERS-$(BR2_PACKAGE_MESA3D_DRI_DRIVER_SWRAST) += swrast
 MESA3D_DRI_DRIVERS-$(BR2_PACKAGE_MESA3D_DRI_DRIVER_I915)   += i915
 MESA3D_DRI_DRIVERS-$(BR2_PACKAGE_MESA3D_DRI_DRIVER_I965)   += i965
 MESA3D_DRI_DRIVERS-$(BR2_PACKAGE_MESA3D_DRI_DRIVER_NOUVEAU) += nouveau
 MESA3D_DRI_DRIVERS-$(BR2_PACKAGE_MESA3D_DRI_DRIVER_RADEON) += r100
 # Vulkan Drivers
+MESA3D_VULKAN_DRIVERS-$(BR2_PACKAGE_MESA3D_VULKAN_DRIVER_RADEON)  += amd
 MESA3D_VULKAN_DRIVERS-$(BR2_PACKAGE_MESA3D_VULKAN_DRIVER_INTEL)   += intel
 
 ifeq ($(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER),)
@@ -148,19 +159,29 @@ endif
 
 # APIs
 
-ifeq ($(BR2_PACKAGE_MESA3D_OSMESA_CLASSIC),y)
-MESA3D_CONF_OPTS += -Dosmesa=classic
+ifeq ($(BR2_PACKAGE_MESA3D_OSMESA_GALLIUM),y)
+MESA3D_CONF_OPTS += -Dosmesa=true
 else
-MESA3D_CONF_OPTS += -Dosmesa=none
+MESA3D_CONF_OPTS += -Dosmesa=false
 endif
 
 # Always enable OpenGL:
 #   - Building OpenGL ES without OpenGL is not supported, so always keep opengl enabled.
 MESA3D_CONF_OPTS += -Dopengl=true
 
-# libva and mesa3d have a circular dependency
-# we do not need libva support in mesa3d, therefore disable this option
+# libva and mesa3d have a circular dependency:
+# * libva links against various mesa3d libraries (e.g. egl, glx, etc)
+# * mesa3d requires libva headers to compile the radeon video driver
+#   that is part of the gallium stack (with --enable-va option)
+# To get around this, we install the libva headers (see package/misc-graphics-headers/) to staging 
+# and install a temporary pkg-config file for libva such that mesa3d is able to 
+# compile with --enable-va option
+ifeq ($(BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_RADEONSI),y)
+MESA3D_DEPENDENCIES += misc-graphics-headers
+MESA3D_CONF_OPTS += -Dgallium-va=enabled
+else
 MESA3D_CONF_OPTS += -Dgallium-va=disabled
+endif
 
 # libGL is only provided for a full xorg stack
 ifeq ($(BR2_PACKAGE_MESA3D_OPENGL_GLX),y)
@@ -260,3 +281,6 @@ MESA3D_CONF_OPTS += -Dzstd=disabled
 endif
 
 $(eval $(meson-package))
+
+endif # BR2_PACKAGE_MESA3D_VERSION_V_19_1_7
+endif # BR2_PACKAGE_MESA3D_VERSION_V_19_0_6

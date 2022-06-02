@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-GST1_PLUGINS_BAD_VERSION = 1.18.4
+GST1_PLUGINS_BAD_VERSION = 1.18.5
 GST1_PLUGINS_BAD_SOURCE = gst-plugins-bad-$(GST1_PLUGINS_BAD_VERSION).tar.xz
 GST1_PLUGINS_BAD_SITE = https://gstreamer.freedesktop.org/src/gst-plugins-bad
 GST1_PLUGINS_BAD_INSTALL_STAGING = YES
@@ -12,6 +12,7 @@ GST1_PLUGINS_BAD_INSTALL_STAGING = YES
 # GST1_PLUGINS_BAD_LICENSE_FILES if enabled.
 GST1_PLUGINS_BAD_LICENSE_FILES = COPYING
 GST1_PLUGINS_BAD_LICENSE = LGPL-2.0+
+GST1_PLUGINS_BAD_AUTORECONF = YES
 
 GST1_PLUGINS_BAD_CFLAGS = $(TARGET_CFLAGS) -std=c99 -D_GNU_SOURCE
 GST1_PLUGINS_BAD_LDFLAGS = $(TARGET_LDFLAGS) $(TARGET_NLS_LIBS)
@@ -60,7 +61,6 @@ GST1_PLUGINS_BAD_CONF_OPTS += \
 	-Dteletextdec=disabled \
 	-Dwildmidi=disabled \
 	-Dsmoothstreaming=disabled \
-	-Dsoundtouch=disabled \
 	-Dgme=disabled \
 	-Dvdpau=disabled \
 	-Dspandsp=disabled \
@@ -72,7 +72,18 @@ GST1_PLUGINS_BAD_CONF_OPTS += \
 	-Diqa=disabled \
 	-Dopencv=disabled
 
+# Disable vulkan support. The GST1 build will auto-detect Vulkan support based
+# on the presence of headers. Vulkan support in GST is experimental, and
+# causes build breakages when used with our version of the khronos-vulkan
+# package.
+GST1_PLUGINS_BAD_CONF_OPTS += \
+	-Dvulkan=disabled
+
 GST1_PLUGINS_BAD_DEPENDENCIES = gst1-plugins-base gstreamer1
+
+ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_SOUNDTOUCH),y)
+GST1_PLUGINS_BAD_DEPENDENCIES += libsoundtouch
+endif
 
 ifeq ($(BR2_PACKAGE_GOBJECT_INTROSPECTION),y)
 GST1_PLUGINS_BAD_CONF_OPTS += -Dintrospection=enabled
@@ -433,6 +444,18 @@ ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_SMOOTH),y)
 GST1_PLUGINS_BAD_CONF_OPTS += -Dsmooth=enabled
 else
 GST1_PLUGINS_BAD_CONF_OPTS += -Dsmooth=disabled
+endif
+
+ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_SOUNDTOUCH),y)
+GST1_PLUGINS_BAD_CONF_OPTS += -Dsoundtouch=enabled
+else
+GST1_PLUGINS_BAD_CONF_OPTS += -Dsoundtouch=disabled
+endif
+
+ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_PITCH),y)
+GST1_PLUGINS_BAD_CONF_OPTS += -Dpitch=enabled
+else
+GST1_PLUGINS_BAD_CONF_OPTS += -Dpitch=disabled
 endif
 
 ifeq ($(BR2_PACKAGE_GST1_PLUGINS_BAD_PLUGIN_SPEED),y)

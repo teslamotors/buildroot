@@ -17,8 +17,8 @@ ifeq ($(BR2_PACKAGE_GTEST_GMOCK),y)
 GTEST_DEPENDENCIES += host-gtest
 endif
 
-HOST_GTEST_LICENSE = Apache-2.0
-HOST_GTEST_LICENSE_FILES = googlemock/scripts/generator/LICENSE
+HOST_GTEST_LICENSE = Apache-2.0, BSD-3-Clause
+HOST_GTEST_LICENSE_FILES = googlemock/scripts/generator/LICENSE googletest/LICENSE
 ifeq ($(BR2_PACKAGE_PYTHON3),y)
 HOST_GTEST_PYTHON_VERSION = $(PYTHON3_VERSION_MAJOR)
 HOST_GTEST_DEPENDENCIES += host-python3
@@ -90,14 +90,15 @@ else
 GTEST_CONF_OPTS += -DBUILD_GMOCK=OFF
 endif
 
-define HOST_GTEST_INSTALL_CMDS
+# The host package needs to install gmock_gen stuff
+define GTEST_INSTALL_GMOCK_GEN_STUFF
 	$(INSTALL) -D -m 0755 $(@D)/googlemock/scripts/generator/gmock_gen.py \
 		$(HOST_DIR)/bin/gmock_gen
 	cp -rp $(@D)/googlemock/scripts/generator/cpp \
 		$(HOST_GTEST_GMOCK_PYTHONPATH)
 endef
 
+HOST_GTEST_POST_INSTALL_HOOKS += GTEST_INSTALL_GMOCK_GEN_STUFF
+
 $(eval $(cmake-package))
-# The host package does not build anything, just installs gmock_gen stuff, so
-# it does not need to be a host-cmake-package.
-$(eval $(host-generic-package))
+$(eval $(host-cmake-package))

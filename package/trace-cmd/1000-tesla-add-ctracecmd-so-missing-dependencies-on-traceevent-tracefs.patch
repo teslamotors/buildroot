@@ -1,0 +1,19 @@
+commit 949579b37ca793bdee3dd6250ca8a9ec4e4e0760
+Author: Tesla OpenSource <opensource@tesla.com>
+Date:   Fri Jul 30 23:52:57 2021 +0000
+
+    Add ctracecmd.so missing dependencies on -ltraceevent and -ltracefs
+
+diff --git a/Makefile b/Makefile
+index 6ef6936..d158386 100644
+--- a/Makefile
++++ b/Makefile
+@@ -481,7 +481,7 @@ export PYTHON_INCLUDES
+ export PYTHON_LDFLAGS
+ export PYGTK_CFLAGS
+ 
+-ctracecmd.so: force $(LIBTRACECMD_STATIC)
++ctracecmd.so: force $(LIBTRACEEVENT_STATIC) $(LIBTRACECMD_STATIC) $(LIBTRACEFS_STATIC)
+ 	$(Q)$(MAKE) -C $(src)/python $@
+ 
+ PHONY += python

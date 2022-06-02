@@ -1,0 +1,24 @@
+From 79ea30950a9e2625f0d770ff8f22ca7af096c31f Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Sat, 18 Apr 2020 17:08:46 -0700
+Subject: [PATCH] Disable documentation
+
+---
+ Makefile.am | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile.am b/Makefile.am
+index 8851f5d..c411b7c 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -2,5 +2,5 @@
+ 
+ EXTRA_DIST = NEWS README TODO shadow.spec.in
+ 
+-SUBDIRS = po man libmisc lib src \
+-	contrib doc etc
++SUBDIRS = libmisc lib src \
++	contrib etc
+-- 
+2.19.2
+

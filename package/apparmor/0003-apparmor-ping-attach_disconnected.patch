@@ -1,0 +1,25 @@
+From 7092293663299fbbc2ca527fb04a0cba4cc3ff28 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Wed, 9 Feb 2022 14:10:51 -0800
+Subject: [PATCH] apparmor: ping: attach_disconnected
+
+---
+ profiles/apparmor.d/bin.ping | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/profiles/apparmor.d/bin.ping b/profiles/apparmor.d/bin.ping
+index 149b802..a5fba46 100644
+--- a/profiles/apparmor.d/bin.ping
++++ b/profiles/apparmor.d/bin.ping
+@@ -12,7 +12,7 @@
+ abi <abi/3.0>,
+ 
+ include <tunables/global>
+-profile ping /{usr/,}bin/{,iputils-}ping {
++profile ping /{usr/,}bin/{,iputils-}ping flags=(attach_disconnected) {
+   include <abstractions/base>
+   include <abstractions/consoles>
+   include <abstractions/nameservice>
+-- 
+2.17.1
+

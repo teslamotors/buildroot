@@ -166,6 +166,10 @@ define PERF_INSTALL_TARGET_CMDS
 		-C $(LINUX_DIR)/tools/perf O=$(LINUX_DIR)/tools/perf/ install
 	$(RM) -rf $(TARGET_DIR)/usr/libexec/perf-core/scripts/
 	$(RM) -rf $(TARGET_DIR)/usr/libexec/perf-core/tests/
+
+	# Remove C source code deployed by perf
+	$(RM) -rf $(TARGET_DIR)/usr/lib/perf/examples
+	$(RM) -rf $(TARGET_DIR)/usr/lib/perf/include
 endef
 
 define PERF_LINUX_CONFIG_FIXUPS

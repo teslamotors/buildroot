@@ -1,0 +1,16 @@
+config BR2_PACKAGE_HOST_CLANG
+	bool "host clang"
+	depends on BR2_PACKAGE_LLVM_ARCH_SUPPORTS
+	depends on BR2_HOST_GCC_AT_LEAST_4_8
+	select BR2_PACKAGE_HOST_LLVM
+	select BR2_PACKAGE_HOST_LLD
+	help
+	  Clang is a C/C++, Objective C/C++ and OpenCL C front-end
+	  cross-compiler with multiple architecture support built
+	  from the LLVM libraries.
+
+	  http://clang.llvm.org
+
+comment "clang needs host gcc >= 4.8"
+	depends on BR2_PACKAGE_LLVM_ARCH_SUPPORTS
+	depends on !BR2_HOST_GCC_AT_LEAST_4_8

@@ -12,3 +12,4 @@ PYTHON_IDNA_LICENSE_FILES = LICENSE.rst
 PYTHON_IDNA_SETUP_TYPE = setuptools
 
 $(eval $(python-package))
+$(eval $(host-python-package))

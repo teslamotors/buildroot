@@ -1,0 +1,220 @@
+From bcf345518db07a1fb79cc79fbe0c47b8f748868b Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Thu, 13 Feb 2020 11:23:01 -0800
+Subject: [PATCH] xorg-xserver: Port to more-modern compiler
+
+There are several places in which this very old version of the xserver
+fails to compile with a newer toolchain.  The most prominent was in
+the sdksyms.sh shell script that implements an almost-compiler to
+generate a file containing references to all X functions exported.
+For this, the version of the awk script within the file from mainline
+xserver was brought in, while retaining the rest.  The other
+compilation errors were fairly minor.
+---
+ Xext/xvmc.c                  |  9 +++++
+ hw/xfree86/fbdevhw/fbdevhw.c |  3 ++
+ hw/xfree86/loader/sdksyms.sh | 73 +++++++++++++++++++++++++++++++-----
+ 3 files changed, 76 insertions(+), 9 deletions(-)
+
+diff --git a/Xext/xvmc.c b/Xext/xvmc.c
+index 8fbdfae..8997b00 100644
+--- a/Xext/xvmc.c
++++ b/Xext/xvmc.c
+@@ -487,8 +487,11 @@ ProcXvMCListSubpictureTypes(ClientPtr client)
+ 
+     pScreen = pPort->pAdaptor->pScreen;
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Waddress"
+     if(XvMCScreenKey == NULL) /* No XvMC adaptors */
+         return BadMatch;
++#pragma GCC diagnostic pop
+ 
+     if(!(pScreenPriv = XVMC_GET_PRIVATE(pScreen)))
+         return BadMatch;   /* None this screen */
+@@ -668,8 +671,11 @@ XvMCExtensionInit(void)
+ {
+    ExtensionEntry *extEntry;
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Waddress"
+    if(XvMCScreenKey == NULL) /* nobody supports it */
+ 	return; 
++#pragma GCC diagnostic pop
+ 
+    if(!(XvMCRTContext = CreateNewResourceType(XvMCDestroyContextRes,
+ 					      "XvMCRTContext")))
+@@ -746,7 +752,10 @@ XvImagePtr XvMCFindXvImage(XvPortPtr pPort, CARD32 id)
+     XvMCAdaptorPtr adaptor = NULL;
+     int i;
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Waddress"
+     if(XvMCScreenKey == NULL) return NULL;
++#pragma GCC diagnostic pop
+ 
+     if(!(pScreenPriv = XVMC_GET_PRIVATE(pScreen))) 
+         return NULL;
+diff --git a/hw/xfree86/fbdevhw/fbdevhw.c b/hw/xfree86/fbdevhw/fbdevhw.c
+index f160908..6491e75 100644
+--- a/hw/xfree86/fbdevhw/fbdevhw.c
++++ b/hw/xfree86/fbdevhw/fbdevhw.c
+@@ -356,6 +356,8 @@ fbdev_open_pci(struct pci_device * pPci, char **namep)
+ 	    const pciaddr_t res_start = pPci->regions[j].base_addr;
+ 	    const pciaddr_t res_end = res_start + pPci->regions[j].size;
+ 
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Wpointer-to-int-cast"
+ 	    if ((0 != fix.smem_len &&
+ 		 (pciaddr_t) fix.smem_start >= res_start &&
+ 		 (pciaddr_t) fix.smem_start < res_end) ||
+@@ -363,6 +365,7 @@ fbdev_open_pci(struct pci_device * pPci, char **namep)
+ 		 (pciaddr_t) fix.mmio_start >= res_start &&
+ 		 (pciaddr_t) fix.mmio_start < res_end))
+ 	      break;
++#pragma GCC diagnostic push
+ 	}
+ 	if (j == 6) {
+ 	    close(fd);
+diff --git a/hw/xfree86/loader/sdksyms.sh b/hw/xfree86/loader/sdksyms.sh
+index 13c5ae5..837729c 100755
+--- a/hw/xfree86/loader/sdksyms.sh
++++ b/hw/xfree86/loader/sdksyms.sh
+@@ -323,52 +323,99 @@ topdir=$1
+ shift
+ LC_ALL=C
+ export LC_ALL
++${CPP:-cpp} "$@" -DXorgLoader sdksyms.c > /dev/null || exit $?
+ ${CPP:-cpp} "$@" -DXorgLoader sdksyms.c | ${AWK:-awk} -v topdir=$topdir '
++function basename(file) {
++    sub(".*/", "", file)
++    return file
++}
+ BEGIN {
+     sdk = 0;
+     print("/*");
+     print(" * These symbols are referenced to ensure they");
+     print(" * will be available in the X Server binary.");
+     print(" */");
+-    printf("/* topdir=%s */\n", topdir);
+     print("_X_HIDDEN void *xorg_symbols[] = {");
+ 
+     printf("sdksyms.c:") > "sdksyms.dep";
+ }
+ /^# [0-9]+ "/ {
+-    #   Process text after a include in a relative path or when the
+-    # processed file has a basename matching $top_srcdir.
+-    #   Note that indexing starts at 1; 0 means no match, and there
+-    # is a starting ".
+-    sdk = $3 !~ /^"\// || index($3, topdir) == 2;
++    # Match preprocessor linemarkers which have the form:
++    # # linenum "filename" flags
++    #
++    # Only process text for sdk exports where the linemarker filename has a
++    # relative path, or an absolute path matching $top_srcdir.
++    #
++
++    # canonicalize filename
++    if ($3 in canonicalized) {
++	c = canonicalized[$3]
++    } else {
++	cmd = "readlink -f " $3
++	cmd | getline c
++	close(cmd)
++        canonicalized[$3] = c
++    }
++    # note that index() starts at 1; 0 means no match.
++    sdk = $3 !~ /^"\// || index(c, topdir) == 1;
+ 
+     if (sdk && $3 ~ /\.h"$/) {
+ 	# remove quotes
+ 	gsub(/"/, "", $3);
++	line = $2;
++	header = basename($3);
+ 	if (! headers[$3]) {
+ 	    printf(" \\\n  %s", $3) >> "sdksyms.dep";
+ 	    headers[$3] = 1;
+ 	}
+     }
++    next;
+ }
+ 
+ /^extern[ 	]/  {
+     if (sdk) {
+ 	n = 3;
+ 
++        # skip line numbers GCC 5 adds before __attribute__
++        while ($n == "" || $0 ~ /^# [0-9]+ "/) {
++           getline;
++           n = 1;
++        }
++
+ 	# skip attribute, if any
+ 	while ($n ~ /^(__attribute__|__global)/ ||
+ 	    # skip modifiers, if any
+-	    $n ~ /^\*?(unsigned|const|volatile|struct)$/ ||
++	    $n ~ /^\*?(unsigned|const|volatile|struct|_X_EXPORT)$/ ||
+ 	    # skip pointer
+-	    $n ~ /\*$/)
++	    $n ~ /^[a-zA-Z0-9_]*\*$/) {
+ 	    n++;
++            # skip line numbers GCC 5 adds after __attribute__
++            while ($n == "" || $0 ~ /^# [0-9]+ "/) {
++               getline;
++               n = 1;
++            }
++        }
++	# hack: pid_t becomes __pid_t on NetBSD, same for uint32_t -> __uint32_t.
++	# GCC 5 inserts additional lines around this.
++        if (($1 == "__pid_t" || $1 == "__uint32_t") && NF == 1) {
++            getline;
++            n++;
++            # skip line numbers GCC 5 adds (after typedef return type?)
++            while ($n == "" || $0 ~ /^# [0-9]+ "/) {
++               getline;
++               n = 1;
++            }
++	}
+ 
+ 	# type specifier may not be set, as in
+ 	#   extern _X_EXPORT unsigned name(...)
+ 	if ($n !~ /[^a-zA-Z0-9_]/)
+ 	    n++;
+ 
++	# go back if we are at the parameter list already
++	if ($n ~ /^[(]([^*].*)?$/)
++	    n--;
++
+ 	# match
+ 	#    extern _X_EXPORT type (* name[])(...)
+ 	if ($n ~ /^[^a-zA-Z0-9_]+$/)
+@@ -386,6 +433,9 @@ BEGIN {
+ 	if ($n == "" || $n ~ /^\*+$/) {
+ 	    getline;
+ 	    n = 1;
++	    # indent may have inserted a blank link
++	    if ($0 == "")
++		getline;
+ 	}
+ 
+ 	# dont modify $0 or $n
+@@ -398,10 +448,15 @@ BEGIN {
+ 	sub(/[^a-zA-Z0-9_].*/, "", symbol);
+ 
+ 	#print;
+-	printf("    (void *) &%s,\n", symbol);
++	if (symbol != "")
++	    printf("    (void *) &%-50s /* %s:%s */\n", symbol ",", header, line);
+     }
+ }
+ 
++{
++    line++;
++}
++
+ END {
+     print("};");
+ 
+-- 
+2.19.2
+

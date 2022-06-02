@@ -1,0 +1,26 @@
+From d3d876857b832e22cfa17befcb7b28977b370ed5 Mon Sep 17 00:00:00 2001
+From: "Daksh Jotwani [I]" <opensource@tesla.com>
+Date: Tue, 15 Sep 2020 19:25:19 -0700
+Subject: [PATCH] numpy/distutils: Fix fortran detection magick regex
+
+---
+ numpy/distutils/fcompiler/gnu.py | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/numpy/distutils/fcompiler/gnu.py b/numpy/distutils/fcompiler/gnu.py
+index 965c67041..c34d6bdb0 100644
+--- a/numpy/distutils/fcompiler/gnu.py
++++ b/numpy/distutils/fcompiler/gnu.py
+@@ -66,8 +66,7 @@ class GnuFCompiler(FCompiler):
+             m = re.search(r'GNU Fortran\s+95.*?([0-9-.]+)', version_string)
+             if m:
+                 return ('gfortran', m.group(1))
+-            m = re.search(
+-                r'GNU Fortran.*?\-?([0-9-.]+\.[0-9-.]+)', version_string)
++            m = re.search(r'GNU Fortran.*?(?:\(.*?\))?\s+([0-9-.]+)', version_string)
+             if m:
+                 v = m.group(1)
+                 if v.startswith('0') or v.startswith('2') or v.startswith('3'):
+-- 
+2.19.2
+

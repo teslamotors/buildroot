@@ -46,6 +46,7 @@ ifneq ($(BR2_PACKAGE_NODEJS_NPM),y)
 NODEJS_CONF_OPTS += --without-npm
 endif
 
+
 # nodejs build system is based on python, but only support python-2.6 or
 # python-2.7. So, we have to enforce PYTHON interpreter to be python2.
 define HOST_NODEJS_CONFIGURE_CMDS
@@ -63,6 +64,9 @@ define HOST_NODEJS_CONFIGURE_CMDS
 		--without-snapshot \
 		--without-dtrace \
 		--without-etw \
+		--shared-cares \
+		--shared-cares-includes=$(HOST_DIR)/include \
+		--shared-cares-libpath=$(HOST_DIR)/lib \
 		--shared-openssl \
 		--shared-openssl-includes=$(HOST_DIR)/include/openssl \
 		--shared-openssl-libpath=$(HOST_DIR)/lib \

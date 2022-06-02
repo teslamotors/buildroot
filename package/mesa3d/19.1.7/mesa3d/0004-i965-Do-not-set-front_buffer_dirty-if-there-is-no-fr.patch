@@ -1,0 +1,44 @@
+From 36126b6211f1ac2da0aa94411608b2320553dbb6 Mon Sep 17 00:00:00 2001
+From: Danylo Piliaiev <danylo.piliaiev@globallogic.com>
+Date: Wed, 29 Jan 2020 14:34:50 +0200
+Subject: [PATCH] i965: Do not set front_buffer_dirty if there is no front
+ buffer
+
+Otherwise there will be a warning:
+ "libEGL warning: FIXME: egl/x11 doesn't support front buffer rendering."
+
+Happens with EGL_KHR_surfaceless_context:
+
+ eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, egl_context)
+ eglMakeCurrent(egl_display, egl_surface, egl_surface, egl_context)
+ glFlush() // Here will be a warning
+
+Cc: <mesa-stable@lists.freedesktop.org>
+Closes: https://gitlab.freedesktop.org/mesa/mesa/issues/1525
+Signed-off-by: Danylo Piliaiev <danylo.piliaiev@globallogic.com>
+Reviewed-by: Lionel Landwerlin <lionel.g.landwerlin@intel.com>
+Tested-by: Marge Bot <https://gitlab.freedesktop.org/mesa/mesa/merge_requests/3628>
+Part-of: <https://gitlab.freedesktop.org/mesa/mesa/merge_requests/3628>
+---
+ src/mesa/drivers/dri/i965/brw_context.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/mesa/drivers/dri/i965/brw_context.c b/src/mesa/drivers/dri/i965/brw_context.c
+index 2676382b489..16f987812fc 100644
+--- a/src/mesa/drivers/dri/i965/brw_context.c
++++ b/src/mesa/drivers/dri/i965/brw_context.c
+@@ -1523,8 +1523,10 @@ intel_prepare_render(struct brw_context *brw)
+     * that will happen next will probably dirty the front buffer.  So
+     * mark it as dirty here.
+     */
+-   if (_mesa_is_front_buffer_drawing(ctx->DrawBuffer))
++   if (_mesa_is_front_buffer_drawing(ctx->DrawBuffer) &&
++       ctx->DrawBuffer != _mesa_get_incomplete_framebuffer()) {
+       brw->front_buffer_dirty = true;
++   }
+ 
+    if (brw->is_shared_buffer_bound) {
+       /* Subsequent rendering will probably dirty the shared buffer. */
+-- 
+2.17.1
+

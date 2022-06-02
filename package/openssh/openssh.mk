@@ -35,7 +35,7 @@ ifeq ($(BR2_TOOLCHAIN_SUPPORTS_PIE),)
 OPENSSH_CONF_OPTS += --without-pie
 endif
 
-OPENSSH_DEPENDENCIES = host-pkgconf zlib openssl
+OPENSSH_DEPENDENCIES = host-pkgconf zlib openssl $(if $(BR2_PACKAGE_LIBCAP),libcap)
 
 ifeq ($(BR2_PACKAGE_CRYPTODEV_LINUX),y)
 OPENSSH_DEPENDENCIES += cryptodev-linux

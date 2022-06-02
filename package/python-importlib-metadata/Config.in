@@ -1,0 +1,5 @@
+config BR2_PACKAGE_PYTHON_IMPORTLIB_METADATA
+	bool "python-importlib-metadata"
+	help
+        importlib_metadata is a library to access the metadata for a Python package.
+        It is intended to be ported to Python 3.8.

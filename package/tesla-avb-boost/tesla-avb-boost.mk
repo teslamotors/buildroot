@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-TESLA_AVB_BOOST_VERSION = 1.65.0
+TESLA_AVB_BOOST_VERSION = 1.66.0
 TESLA_AVB_BOOST_SOURCE = boost_$(subst .,_,$(TESLA_AVB_BOOST_VERSION)).tar.bz2
 TESLA_AVB_BOOST_SITE = http://downloads.sourceforge.net/project/boost/boost/$(TESLA_AVB_BOOST_VERSION)
 TESLA_AVB_BOOST_INSTALL_STAGING = NO

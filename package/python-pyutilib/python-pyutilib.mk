@@ -4,7 +4,7 @@
 #
 ############################################
 
-PYTHON_PYUTILIB_VERSION = 5.6.3
+PYTHON_PYUTILIB_VERSION = 5.7.3
 PYTHON_PYUTILIB_SITE = $(call github,Pyutilib,pyutilib,$(PYTHON_PYUTILIB_VERSION))
 PYTHON_PYUTILIB_SETUP_TYPE = setuptools
 PYTHON_PYUTILIB_LICENSE = BSD

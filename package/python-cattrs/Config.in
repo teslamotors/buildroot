@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PYTHON_CATTRS
+	bool "python-cattrs"
+	select BR2_PACKAGE_PYTHON_ATTRS # runtime
+	help
+	  Composable complex class support for attrs and dataclasses.
+
+	  https://github.com/Tinche/cattrs

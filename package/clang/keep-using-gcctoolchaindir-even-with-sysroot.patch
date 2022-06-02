@@ -1,0 +1,27 @@
+Index: host-clang-11.0.1/lib/Driver/ToolChains/Gnu.cpp
+===================================================================
+--- host-clang-11.0.1.orig/lib/Driver/ToolChains/Gnu.cpp
++++ host-clang-11.0.1/lib/Driver/ToolChains/Gnu.cpp
+@@ -1857,12 +1857,6 @@ static llvm::StringRef getGCCToolchainDi
+   if (A)
+     return A->getValue();
+ 
+-  // If we have a SysRoot, ignore GCC_INSTALL_PREFIX.
+-  // GCC_INSTALL_PREFIX specifies the gcc installation for the default
+-  // sysroot and is likely not valid with a different sysroot.
+-  if (!SysRoot.empty())
+-    return "";
+-
+   return GCC_INSTALL_PREFIX;
+ }
+ 
+@@ -1900,7 +1894,8 @@ void Generic_GCC::GCCInstallationDetecto
+       GCCToolchainDir = GCCToolchainDir.drop_back(); // remove the /
+ 
+     Prefixes.push_back(std::string(GCCToolchainDir));
+-  } else {
++  }
++  {
+     // If we have a SysRoot, try that first.
+     if (!D.SysRoot.empty()) {
+       Prefixes.push_back(D.SysRoot);

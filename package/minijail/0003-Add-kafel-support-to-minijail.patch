@@ -1,4 +1,5 @@
 From 7cb2dcd5981950c758a2c41f837c51c09c667392 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
 Date: Mon, 27 Aug 2018 23:31:49 -0700
 Subject: [PATCH] Add kafel support to minijail
 
@@ -145,7 +146,7 @@ index 29f250e..545daa3 100644
  
  /* clang-format off */
  #define ONE_INSTR	1
-@@ -664,6 +666,75 @@ free_line:
+@@ -664,6 +666,82 @@ free_line:
  	return ret;
  }
  
@@ -157,6 +158,7 @@ index 29f250e..545daa3 100644
 +	struct stat s;
 +	size_t total, read;
 +	char *p;
++	kafel_ctxt_t ctxt = NULL;
 +
 +	memset(prog, 0, sizeof(*prog));
 +
@@ -196,15 +198,21 @@ index 29f250e..545daa3 100644
 +		total -= read;
 +	}
 +
-+	if (kafel_compile_string(seccomp_policy, prog))
-+	{
-+		warn("seccomp policy compilation failed!\n");
++	/* Build the policy into prog */
++	ctxt = kafel_ctxt_create();
++	kafel_set_input_string(ctxt, seccomp_policy);
++	if (kafel_compile(ctxt, prog)) {
++		warn("failed to build seccomp policy from kafel: %s",
++				kafel_error_msg(ctxt));
 +		goto done;
 +	}
 +
 +	ret = 0;
 +
 +done:
++	if (ctxt != NULL) {
++		kafel_ctxt_destroy(&ctxt);
++	}
 +	if (ret && prog->filter) {
 +		free(prog->filter);
 +		prog->filter = NULL;

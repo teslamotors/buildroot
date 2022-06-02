@@ -1,0 +1,49 @@
+From d91eb4d5a946a139a500aee36b3ee923c96fde4f Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Wed, 10 Nov 2021 15:27:50 -0800
+Subject: [PATCH] package/procps-ng: Top: Workaround for large-memory programs
+
+The way top displays memory scaling is that it will attempt to
+honor memory scaling up to the scale we specify in commandline.
+However, in cases that the formatted string does not fit, then
+it will attempt to scale down until the number does fit the fixed
+number of columns. The side effect is that it will not honor
+our mibibytes memory scaling specification for memory that takes
+up a large amount of memory.
+
+For example: We have a program that takes 1,024mibibytes in
+RES and request the scale to display in units of kb. Top
+formats the amount of memory as "1024000k". It realizes that
+the "RES" column is 5 chars and it cannot possibly fit the
+string above. It will attempt to scale down to "1024m", which
+still doesn't fit (with space). Then it will attempt to scale
+down to "1.0g" which now fits. It renders the figure.
+
+It doesn't seem trivial to break the render-by-column paradigm
+from top, so to display larger programs in mb, increase the
+column size for RES and VIRT.
+
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
+---
+ top/top.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/top/top.c b/top/top.c
+index 2ec6357..30a4ade 100644
+--- a/top/top.c
++++ b/top/top.c
+@@ -1829,9 +1829,9 @@ static FLD_t Fieldstab[] = {
+    {     6,     -1,  A_right,  SF(TME),  L_stat    },
+    {     9,     -1,  A_right,  SF(TME),  L_stat    }, // EU_TM2 slot
+    {     5,     -1,  A_right,  SF(RES),  L_statm   }, // EU_MEM slot
+-   {     7,  SK_Kb,  A_right,  SF(VRT),  L_statm   },
++   {     8,  SK_Kb,  A_right,  SF(VRT),  L_statm   },
+    {     6,  SK_Kb,  A_right,  SF(SWP),  L_status  },
+-   {     6,  SK_Kb,  A_right,  SF(RES),  L_statm   },
++   {     8,  SK_Kb,  A_right,  SF(RES),  L_statm   },
+    {     6,  SK_Kb,  A_right,  SF(COD),  L_statm   },
+    {     7,  SK_Kb,  A_right,  SF(DAT),  L_statm   },
+    {     6,  SK_Kb,  A_right,  SF(SHR),  L_statm   },
+-- 
+2.31.0
+

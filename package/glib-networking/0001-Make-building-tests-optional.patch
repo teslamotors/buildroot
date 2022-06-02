@@ -1,0 +1,66 @@
+From ca6ee241fa1ef8d3d1c5c108fd2683a912977f73 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Tue, 6 Apr 2021 07:15:04 -0700
+Subject: [PATCH] Make building tests optional
+
+The tls certificate and connection tests require that gnutls is
+built with p11-kit, otherwise linking will fail due to missing
+gnutls_pkcs11 functions.
+
+	build/../tls/tests/certificate.c:597: undefined reference to `gnutls_pkcs11_init'
+	build/../tls/tests/certificate.c:598: undefined reference to `gnutls_pkcs11_add_provider'
+
+Add 'tests' option to skip building tests entirely.
+---
+ meson.build       | 9 +++++++--
+ meson_options.txt | 1 +
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index dc58838..fa68dd7 100644
+--- a/meson.build
++++ b/meson.build
+@@ -156,6 +156,7 @@ tls_inc = include_directories('tls')
+ subdir('po')
+ 
+ enable_installed_tests = get_option('installed_tests')
++build_tests = get_option('tests') and enable_installed_tests
+ test_template = files('template.test.in')
+ 
+ module_suffix = []
+@@ -176,7 +177,9 @@ if libproxy_dep.found() or gsettings_desktop_schemas_dep.found()
+     subdir('proxy/gnome')
+   endif
+ 
+-  subdir('proxy/tests')
++  if build_tests
++    subdir('proxy/tests')
++  endif
+ endif
+ 
+ subdir('tls/base')
+@@ -189,7 +192,9 @@ if backends.contains('openssl')
+   subdir('tls/openssl')
+ endif
+ 
+-subdir('tls/tests')
++if build_tests
++  subdir('tls/tests')
++endif
+ 
+ # Will automatically pick it up from the cross file if defined
+ gio_querymodules = find_program('gio-querymodules', required : false)
+diff --git a/meson_options.txt b/meson_options.txt
+index aaf6227..5b42115 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -5,5 +5,6 @@ option('gnutls', type: 'feature', value: 'auto', description: 'support for GnuTL
+ option('openssl', type: 'feature', value: 'disabled', description: 'support for OpenSSL networking configration')
+ option('libproxy', type: 'feature', value: 'auto', description: 'support for libproxy proxy configration')
+ option('gnome_proxy', type: 'feature', value: 'auto', description: 'support for GNOME desktop proxy configuration')
++option('tests', type: 'boolean', value: true, description: 'build tests')
+ option('installed_tests', type: 'boolean', value: false, description: 'enable installed tests')
+ option('static_modules', type: 'boolean', value: false, description: 'build static modules')
+-- 
+2.17.1
+

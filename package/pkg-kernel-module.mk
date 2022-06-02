@@ -82,13 +82,15 @@ $(2)_POST_BUILD_HOOKS += $(2)_KERNEL_MODULES_BUILD
 define $(2)_KERNEL_MODULES_INSTALL
 	@$$(call MESSAGE,"Installing kernel module(s)")
 	$$(foreach d,$$($(2)_MODULE_SUBDIRS), \
-		$$(LINUX_MAKE_ENV) $$($$(PKG)_MAKE) \
+		( \
+		flock -w 30 -e 9; \
+			$$(LINUX_MAKE_ENV) $$($$(PKG)_MAKE) \
 			-C $$(LINUX_DIR) \
 			$$(LINUX_MAKE_FLAGS) \
 			$$($(2)_MODULE_MAKE_OPTS) \
 			PWD=$$(@D)/$$(d) \
 			M=$$(@D)/$$(d) \
-			modules_install$$(sep))
+			modules_install ) 9>"$$(BUILD_DIR)/.br2_kernel_modules_install_lock"$$(sep))
 endef
 $(2)_POST_INSTALL_TARGET_HOOKS += $(2)_KERNEL_MODULES_INSTALL
 

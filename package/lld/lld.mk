@@ -5,7 +5,7 @@
 ################################################################################
 
 # LLVM, Clang and lld should be version bumped together
-LLD_VERSION = 9.0.1
+LLD_VERSION = 11.0.1
 LLD_SITE = https://github.com/llvm/llvm-project/releases/download/llvmorg-$(LLD_VERSION)
 LLD_SOURCE = lld-$(LLD_VERSION).src.tar.xz
 LLD_LICENSE = Apache-2.0 with exceptions
@@ -17,7 +17,9 @@ HOST_LLD_DEPENDENCIES = host-llvm
 # toolchain using gcc < 5.1 gives an error but actually still works. Setting
 # this option makes it still build with gcc >= 4.8.
 # https://reviews.llvm.org/D57264
-HOST_LLD_CONF_OPTS += -DLLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN=ON
+HOST_LLD_CONF_OPTS += \
+	-DLLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN=ON \
+	-DCMAKE_CXX_STANDARD=14 \
 
 # build as static libs as is done in llvm & clang
 HOST_LLD_CONF_OPTS += -DBUILD_SHARED_LIBS=OFF

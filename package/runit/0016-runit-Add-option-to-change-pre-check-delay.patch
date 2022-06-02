@@ -1,0 +1,86 @@
+From 0e18b8d9d9d2c62d5f616a28939ada1f9e8a39c2 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Fri, 8 Apr 2022 11:43:22 -0700
+Subject: [PATCH] runit: Add option to change pre-check delay
+
+Introduce the SVDELAY environment variable along with
+the '-d' command line switch for sv utility in order
+to change the hardcoded 420ms delays that sv waits for
+before checking the status of a service after commands
+such as start. This was done in order to speed up the
+starting of a few runit services, but can be extended
+to other services as and when necessary.
+
+SW-378932
+
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
+---
+ man/sv.8 | 6 ++++++
+ src/sv.c | 9 ++++++---
+ 2 files changed, 12 insertions(+), 3 deletions(-)
+
+diff --git a/man/sv.8 b/man/sv.8
+index 7ed9852..dafbfb9 100644
+--- a/man/sv.8
++++ b/man/sv.8
+@@ -238,6 +238,12 @@ The environment variable $SVDIR overrides the default services directory
+ The environment variable $SVWAIT overrides the default 7 seconds to wait
+ for a command to take effect.
+ It is overridden by the \-w option.
++.TP
++.B SVDELAY
++The environment variable $SVDELAY overrides the default 420 milliseconds
++delay elapsed before checking the status of a service after commands such as
++'start'.
++It is overridden by the \-d option.
+ .SH EXIT CODES
+ .B sv
+ exits 0, if the
+diff --git a/src/sv.c b/src/sv.c
+index 09de6c1..fd4c433 100644
+--- a/src/sv.c
++++ b/src/sv.c
+@@ -14,7 +14,7 @@
+ #include "taia.h"
+ #include "wait.h"
+ 
+-#define USAGE " [-v] [-w sec] command service ..."
++#define USAGE " [-v] [-w sec] [-d usec] command service ..."
+ #define USAGELSB " [-w sec] command"
+ 
+ #define VERSION "$Id: 900314260c6d52c986c5357673bea2f3bd3f4698 $"
+@@ -40,6 +40,7 @@ unsigned int rc =0;
+ unsigned int lsb;
+ unsigned int verbose =0;
+ unsigned long wait =7;
++unsigned long chkdelay =420000;
+ unsigned int kll =0;
+ unsigned int islog =0;
+ struct taia tstart, tnow, tdiff;
+@@ -281,11 +282,13 @@ int main(int argc, char **argv) {
+   lsb =(str_diff(progname, "sv"));
+   if ((x =env_get("SVDIR"))) varservice =x;
+   if ((x =env_get("SVWAIT"))) scan_ulong(x, &wait);
+-  while ((i =getopt(argc, (const char* const*)argv, "w:vV")) != opteof) {
++  if ((x =env_get("SVDELAY"))) scan_ulong(x, &chkdelay);
++  while ((i =getopt(argc, (const char* const*)argv, "w:vVd:")) != opteof) {
+     switch(i) {
+     case 'w': scan_ulong(optarg, &wait);
+     case 'v': verbose =1; break;
+     case 'V': strerr_warn1(VERSION, 0);
++    case 'd': scan_ulong(optarg, &chkdelay); break;
+     case '?': usage();
+     }
+   }
+@@ -417,7 +420,7 @@ int main(int argc, char **argv) {
+           fatal("unable to change to original directory");
+       }
+       if (done) break;
+-      usleep(420000);
++      usleep(chkdelay);
+       taia_now(&tnow);
+     }
+   return(rc > 99 ? 99 : rc);
+-- 
+2.7.4
+

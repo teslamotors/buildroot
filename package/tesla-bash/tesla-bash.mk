@@ -40,10 +40,12 @@ TESLA_BASH_CONF_ENV += bash_cv_getenv_redef=yes
 endif
 endif
 
-ifeq ($(BR2_TOOLCHAIN_USES_MUSL),y)
+ifneq ($(filter y,$(BR2_TOOLCHAIN_USES_MUSL) $(BR2_arm)),)
 # bash's internal malloc implementation invokes sbrk with a non-zero
 # argument.  musl's sbrk implementation returns NULL in this case, and
-# bash has no fallback so crashes immediately on startup.
+# bash has no fallback so crashes immediately on startup.  Also, arm
+# qemu has a bug with how it handles bash's non-zero sbrk, so we
+# disable it on arm platforms generally
 TESLA_BASH_CONF_OPTS += --without-bash-malloc
 endif
 
@@ -53,7 +55,7 @@ define TESLA_BASH_COPY_AFTER_INSTALL
 endef
 
 # Not changing the shell to bash, for now.
- 
+
 # Make /bin/sh -> bash (no other shell, better than busybox shells)
 #define BASH_INSTALL_TARGET_CMDS
 #	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) \

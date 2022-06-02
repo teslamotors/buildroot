@@ -1,5 +1,7 @@
 config BR2_PACKAGE_PYTHON_PANDAS
 	bool "python-pandas"
+	select BR2_PACKAGE_PYTHON3_BZIP2
+	select BR2_PACKAGE_PYTHON3_XZ
 	help
 	  Powerful data structures for data analysis, time series,and statistics
 	  https://pypi.python.org/pypi/pandas

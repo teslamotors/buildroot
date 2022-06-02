@@ -1,0 +1,20 @@
+Patch 0025-exfat-fix-shift-out-of-bounds-in-exfat_fill_super.patch
+depends on 0009-exfat-retain-VolumeFlags-properly.patch. This prepares
+the tree to accept 0025 without that dependency.
+
+diff --git a/super.c b/super.c
+index 804bc4e..1d1c5cf 100644
+--- a/super.c
++++ b/super.c
+@@ -553,9 +553,9 @@ static int exfat_read_boot_sector(struct super_block *sb)
+ 		exfat_err(sb, "bogus data start sector");
+ 		return -EINVAL;
+ 	}
+-	if (sbi->vol_flag & VOL_DIRTY)
++	if (sbi->vol_flags & VOLUME_DIRTY)
+ 		exfat_warn(sb, "Volume was not properly unmounted. Some data may be corrupt. Please run fsck.");
+-	if (sbi->vol_flag & ERR_MEDIUM)
++	if (sbi->vol_flags & MEDIA_FAILURE)
+ 		exfat_warn(sb, "Medium has reported failures. Some data may be lost.");
+ 
+ 	/* exFAT file size is limited by a disk volume size */

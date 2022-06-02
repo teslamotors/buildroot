@@ -1,0 +1,12 @@
+Reduce the retry delay to change the working directory when changing runlevels.
+--- runit-2.1.2/src/runsvdir.c
++++ runit-2.1.2/src/runsvdir.c
+@@ -244,7 +244,7 @@ int main(int argc, char **argv) {
+             runsvdir();
+             while (fchdir(curdir) == -1) {
+               warn("unable to change directory, pausing", 0);
+-              sleep(5);
++              usleep(100000);
+             }
+           }
+           else

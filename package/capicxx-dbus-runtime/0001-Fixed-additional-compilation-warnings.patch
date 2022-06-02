@@ -1,0 +1,35 @@
+From 7b7d44203ff1f340909febe662c69eb485fa4e0f Mon Sep 17 00:00:00 2001
+From: Alexandru Costache <alexandru.costache@intel.com>
+Author: Klaus Uhl <klaus.uhl@intel.com>
+Date: Thu, 5 Jul 2018 14:59:51 +0200
+Subject: [PATCH] Fixed additional compilation warnings
+
+---
+ src/pugixml/pugixml.cpp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/pugixml/pugixml.cpp b/src/pugixml/pugixml.cpp
+index a97e065..ee5c0e7 100644
+--- a/src/pugixml/pugixml.cpp
++++ b/src/pugixml/pugixml.cpp
+@@ -6232,7 +6232,7 @@ PUGI__NS_BEGIN
+ 	#if defined(PUGI__MSVC_CRT_VERSION) || defined(__BORLANDC__)
+ 		return !!_isnan(value);
+ 	#elif defined(fpclassify) && defined(FP_NAN)
+-		return std::fpclassify(value) == FP_NAN;
++		return std::fpclassify(float(value)) == FP_NAN;
+ 	#else
+ 		// fallback
+ 		const volatile double v = value;
+@@ -6247,7 +6247,7 @@ PUGI__NS_BEGIN
+ 		if (_isnan(value)) return PUGIXML_TEXT("NaN");
+ 		return value > 0 ? PUGIXML_TEXT("Infinity") : PUGIXML_TEXT("-Infinity");
+ 	#elif defined(fpclassify) && defined(FP_NAN) && defined(FP_INFINITE) && defined(FP_ZERO)
+-		switch (std::fpclassify(value))
++		switch (std::fpclassify(float(value)))
+ 		{
+ 		case FP_NAN:
+ 			return PUGIXML_TEXT("NaN");
+-- 
+2.1.0
+

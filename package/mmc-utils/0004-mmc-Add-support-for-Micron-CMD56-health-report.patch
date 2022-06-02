@@ -1,10 +1,12 @@
 From 3feccabb11fb312f0198551b31c3d38326c32d31 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
 Date: Wed, 12 Jun 2019 17:03:10 -0700
 Subject: [PATCH] mmc: Add support for Micron CMD56 health report
 
 Add new command "mmc micron health" that executes Micron's Secure
 Smart Report command and displays the data returned.
 
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
 ---
  mmc.c      |   6 +++
  mmc.h      |   7 +++

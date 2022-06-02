@@ -1,0 +1,33 @@
+From 43946b70494beefe40ec1b2ba4744c0f294d7736 Mon Sep 17 00:00:00 2001
+From: Namjae Jeon <namjae.jeon@samsung.com>
+Date: Fri, 3 Jul 2020 11:16:32 +0900
+Subject: [PATCH] exfat: fix overflow issue in exfat_cluster_to_sector()
+
+An overflow issue can occur while calculating sector in
+exfat_cluster_to_sector(). It needs to cast clus's type to sector_t
+before left shifting.
+
+Fixes: 1acf1a564b60 ("exfat: add in-memory and on-disk structures and headers")
+Cc: stable@vger.kernel.org # v5.7
+Reviewed-by: Sungjong Seo <sj1557.seo@samsung.com>
+Signed-off-by: Namjae Jeon <namjae.jeon@samsung.com>
+---
+ exfat_fs.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/exfat_fs.h b/exfat_fs.h
+index 7579cd3bbadb..75c7bdbeba6d 100644
+--- a/exfat_fs.h
++++ b/exfat_fs.h
+@@ -371,7 +371,7 @@ static inline bool exfat_is_last_sector_in_cluster(struct exfat_sb_info *sbi,
+ static inline sector_t exfat_cluster_to_sector(struct exfat_sb_info *sbi,
+ 		unsigned int clus)
+ {
+-	return ((clus - EXFAT_RESERVED_CLUSTERS) << sbi->sect_per_clus_bits) +
++	return ((sector_t)(clus - EXFAT_RESERVED_CLUSTERS) << sbi->sect_per_clus_bits) +
+ 		sbi->data_start_sector;
+ }
+ 
+-- 
+2.30.1
+

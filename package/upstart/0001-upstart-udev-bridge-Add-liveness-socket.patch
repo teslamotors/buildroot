@@ -1,0 +1,135 @@
+From db39b3ca2fdc6f254625239a1f18fff18d15cc7e Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Thu, 27 Feb 2020 14:35:56 -0800
+Subject: [PATCH] upstart-udev-bridge: Add liveness socket
+
+During system startup, coldplug needs to wait until after
+upstart-udev-bridge is up and running to invoke udevadm
+trigger. Otherwise, upstart jobs that rely on udev add events may not
+run. To this end, a unix domain socket is now created at
+/run/upstart-udev-bridge/alive. upstart-udev-bridge reads nothing from
+this socket, but will always write a string to it when a client
+connects. If this socket exists and bytes are output, then
+upstart-udev-bridge is running and able to process udev events.
+---
+ udev/upstart-udev-bridge.c | 60 +++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 59 insertions(+), 1 deletion(-)
+
+diff --git a/udev/upstart-udev-bridge.c b/udev/upstart-udev-bridge.c
+index 367149a..a9c7ce2 100644
+--- a/udev/upstart-udev-bridge.c
++++ b/udev/upstart-udev-bridge.c
+@@ -24,9 +24,14 @@
+ 
+ #include <libudev.h>
+ 
++#include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+ #include <syslog.h>
++#include <time.h>
++#include <sys/socket.h>
++#include <sys/un.h>
++#include <unistd.h>
+ 
+ #include <nih/macros.h>
+ #include <nih/alloc.h>
+@@ -43,8 +48,10 @@
+ #include "dbus/upstart.h"
+ #include "com.ubuntu.Upstart.h"
+ 
++#define SOCK_NAME "/run/upstart-udev-bridge/alive"
+ 
+ /* Prototypes for static functions */
++static void alive_sock_watcher (int *alive_sock, NihIoWatch *watch, NihIoEvents events);
+ static void udev_monitor_watcher (struct udev_monitor *udev_monitor,
+ 				  NihIoWatch *watch, NihIoEvents events);
+ static void upstart_disconnected (DBusConnection *connection);
+@@ -89,6 +96,7 @@ main (int   argc,
+ 	struct udev *        udev;
+ 	struct udev_monitor *udev_monitor;
+ 	int                  ret;
++	int                  alive_sock;
+ 
+ 	nih_main_init (argv[0]);
+ 
+@@ -140,6 +148,28 @@ main (int   argc,
+ 				    (NihIoWatcher)udev_monitor_watcher,
+ 				    udev_monitor));
+ 
++	/* Create liveness socket */
++	struct sockaddr_un u;
++	memset (&u, 0, sizeof (u));
++	u.sun_family = AF_UNIX;
++	strncpy (u.sun_path, SOCK_NAME, sizeof (u.sun_path) - 1);
++
++	unlink (SOCK_NAME);
++
++	alive_sock = socket (AF_UNIX, SOCK_STREAM, 0);
++	if (alive_sock < 0) {
++	   nih_fatal ("socket(%s): %m", u.sun_path);
++	   exit (1);
++	}
++
++	nih_assert (bind (alive_sock, (struct sockaddr *)&u, sizeof (u)) == 0);
++	nih_assert (listen (alive_sock, 2) == 0);
++
++	NIH_MUST (nih_io_add_watch (NULL, alive_sock,
++				    NIH_IO_READ,
++				    (NihIoWatcher)alive_sock_watcher,
++				    &alive_sock));
++
+ 	/* Become daemon */
+ 	if (daemonise) {
+ 		if (nih_main_daemonise () < 0) {
+@@ -169,10 +199,38 @@ main (int   argc,
+ 
+ 	ret = nih_main_loop ();
+ 
++	unlink (SOCK_NAME);
++
+ 	return ret;
+ }
+ 
+ 
++static void
++alive_sock_watcher (int	       *alive_sock,
++		    NihIoWatch *watch,
++		    NihIoEvents events)
++{
++#define BUFSIZE 32
++	char buf[BUFSIZE];
++	time_t t;
++	struct tm *tp;
++
++	int c = accept (*alive_sock, NULL, NULL);
++	if (c < 0) {
++		return;
++		fprintf (stderr, "error: accept(%p:%d): %m\n", alive_sock, alive_sock == NULL ? 0 : *alive_sock);
++		return;
++	}
++
++	t = time (NULL);
++	tp = localtime (&t);
++	strftime (buf, BUFSIZE, "%F %T\n", tp);
++
++	write (c, buf, strlen (buf));
++
++	close (c);
++}
++
+ static void
+ udev_monitor_watcher (struct udev_monitor *udev_monitor,
+ 		      NihIoWatch *         watch,
+@@ -271,7 +329,7 @@ udev_monitor_watcher (struct udev_monitor *udev_monitor,
+ 		NIH_MUST (nih_str_array_addp (&env, NULL, &env_len, var));
+ 	}
+ 
+-	nih_debug ("%s %s", name, devname);
++	printf ("%s %s\n", name, devname);
+ 
+ 	pending_call = NIH_SHOULD (upstart_emit_event (upstart,
+ 						       name, env, FALSE,
+-- 
+2.19.2
+

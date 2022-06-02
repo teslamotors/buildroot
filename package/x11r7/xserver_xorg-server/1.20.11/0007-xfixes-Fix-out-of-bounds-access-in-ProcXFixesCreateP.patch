@@ -1,0 +1,43 @@
+From 0d9561f9e791f60e6e43a0770feeac683dceadad Mon Sep 17 00:00:00 2001
+From: Povilas Kanapickas <povilas@radix.lt>
+Date: Tue, 14 Dec 2021 15:00:01 +0200
+Subject: [PATCH 2/4] xfixes: Fix out of bounds access in
+ *ProcXFixesCreatePointerBarrier()
+
+ZDI-CAN-14950, CVE-2021-4009
+
+This vulnerability was discovered and the fix was suggested by:
+Jan-Niklas Sohn working with Trend Micro Zero Day Initiative
+
+Signed-off-by: Povilas Kanapickas <povilas@radix.lt>
+---
+ xfixes/cursor.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/xfixes/cursor.c b/xfixes/cursor.c
+index d4b68f3af..5f531a89a 100644
+--- a/xfixes/cursor.c
++++ b/xfixes/cursor.c
+@@ -1010,7 +1010,8 @@ ProcXFixesCreatePointerBarrier(ClientPtr client)
+ {
+     REQUEST(xXFixesCreatePointerBarrierReq);
+ 
+-    REQUEST_FIXED_SIZE(xXFixesCreatePointerBarrierReq, pad_to_int32(stuff->num_devices));
++    REQUEST_FIXED_SIZE(xXFixesCreatePointerBarrierReq,
++                       pad_to_int32(stuff->num_devices * sizeof(CARD16)));
+     LEGAL_NEW_RESOURCE(stuff->barrier, client);
+ 
+     return XICreatePointerBarrier(client, stuff);
+@@ -1027,7 +1028,8 @@ SProcXFixesCreatePointerBarrier(ClientPtr client)
+ 
+     swaps(&stuff->length);
+     swaps(&stuff->num_devices);
+-    REQUEST_FIXED_SIZE(xXFixesCreatePointerBarrierReq, pad_to_int32(stuff->num_devices));
++    REQUEST_FIXED_SIZE(xXFixesCreatePointerBarrierReq,
++                       pad_to_int32(stuff->num_devices * sizeof(CARD16)));
+ 
+     swapl(&stuff->barrier);
+     swapl(&stuff->window);
+-- 
+2.17.1
+

@@ -87,6 +87,20 @@ else
 NETWORK_MANAGER_CONF_OPTS += --disable-ovs
 endif
 
+# uClibc by default doesn't have backtrace support, so don't use it
+ifeq ($(BR2_TOOLCHAIN_USES_UCLIBC),y)
+NETWORK_MANAGER_CONF_OPTS += --disable-crashtrace
+endif
+
+ifeq ($(BR2_TOOLCHAIN_USES_MUSL),y)
+# patch is a modified version of
+# https://github.com/gentoo/musl/blob/master/net-misc/networkmanager/files/0001-Support-musl-libc.patch
+define NETWORK_MANAGER_MUSL_PRE_PATCH_HOOKS
+	$(APPLY_PATCHES) $(@D) package/network-manager/musl \*.patch || exit 1
+endef
+NETWORK_MANAGER_PRE_PATCH_HOOKS += NETWORK_MANAGER_MUSL_PRE_PATCH_HOOKS
+endif
+
 define NETWORK_MANAGER_INSTALL_INIT_SYSV
 	$(INSTALL) -m 0755 -D package/network-manager/S45network-manager $(TARGET_DIR)/etc/init.d/S45network-manager
 endef

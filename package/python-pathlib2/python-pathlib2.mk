@@ -12,3 +12,4 @@ PYTHON_PATHLIB2_LICENSE_FILES = LICENSE.rst
 PYTHON_PATHLIB2_SETUP_TYPE = setuptools
 
 $(eval $(python-package))
+$(eval $(host-python-package))

@@ -11,6 +11,8 @@ MUTT_LICENSE_FILES = GPL
 MUTT_CPE_ID_VENDOR = mutt
 MUTT_DEPENDENCIES = ncurses
 MUTT_CONF_OPTS = --disable-doc --disable-smtp
+# We're patching configure.ac
+MUTT_AUTORECONF = YES
 
 # 0001-Ensure-IMAP-connection-is-closed-after-a-connection-error.patch
 MUTT_IGNORE_CVES += CVE-2020-28896

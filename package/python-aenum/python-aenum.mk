@@ -20,4 +20,10 @@ endef
 PYTHON_AENUM_POST_INSTALL_TARGET_HOOKS += PYTHON_AENUM_RM_PY3_FILE
 endif
 
+define PYTHON_AENUM_INSTALL_TARGET_FIXUP
+	rm -rf $(TARGET_DIR)/usr/lib/python*/site-packages/aenum/doc/*.pdf
+endef
+
+PYTHON_AENUM_POST_INSTALL_TARGET_HOOKS += PYTHON_AENUM_INSTALL_TARGET_FIXUP
+
 $(eval $(python-package))

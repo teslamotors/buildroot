@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-HOST_CAPICXX_SOMEIP_TOOLS_VERSION = 3.1.10
+HOST_CAPICXX_SOMEIP_TOOLS_VERSION = 3.1.12
 
 HOST_CAPICXX_SOMEIP_TOOLS_SITE = $(call github,GENIVI,capicxx-someip-tools,$(CAPICXX_SOMEIP_TOOLS_VERSION))
 HOST_CAPICXX_SOMEIP_TOOLS_INSTALL_STAGING = YES

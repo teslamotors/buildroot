@@ -1,0 +1,10 @@
+config BR2_PACKAGE_KHRONOS_VULKAN_LOADER
+	bool "khronos-vulkan-loader"
+	select BR2_PACKAGE_MESA3D
+	select BR2_PACKAGE_MESA3D_VULKAN_DRIVER
+	select BR2_PACKAGE_XLIB_LIBX11
+	select BR2_PACKAGE_XLIB_LIBXEXT
+	select BR2_PACKAGE_XLIB_LIBXRANDR
+	select BR2_PACKAGE_KHRONOS_VULKAN_HEADERS
+	help
+	  Khronos Vulkan loader library

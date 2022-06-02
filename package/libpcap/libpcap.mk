@@ -49,4 +49,8 @@ ifeq ($(BR2_microblaze)$(BR2_sparc)$(BR2_sparc64),y)
 LIBPCAP_CFLAGS += -fPIC
 endif
 
+ifeq ($(BR2_PACKAGE_LIBPCAP_DISABLE_PACKET_RING),y)
+LIBPCAP_CONF_OPTS += --disable-packet-ring
+endif
+
 $(eval $(autotools-package))

@@ -32,6 +32,12 @@ SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	 else if [ -x /bin/bash ]; then echo /bin/bash; \
 	 else echo sh; fi; fi)
 
+# Wrap shell to create separate log files for each make target.
+# See os/README.md in firmware-repo for more details.
+ifdef MAKE_SHELL_WRAPPER_LISTENERS
+include $(MAKE_SHELL_WRAPPER_LISTENERS)
+endif
+
 # Set O variable if not already done on the command line;
 # or avoid confusing packages that can use the O=<dir> syntax for out-of-tree
 # build by preventing it from being forwarded to sub-make calls.
@@ -137,6 +143,7 @@ noconfig_targets := menuconfig nconfig gconfig xconfig config oldconfig randconf
 # (default target is to build), or when MAKECMDGOALS contains
 # something else than one of the nobuild_targets.
 nobuild_targets := source %-source \
+	cache-load cache-save %-cache-load %-cache-save \
 	legal-info %-legal-info external-deps _external-deps \
 	clean distclean help show-targets graph-depends \
 	%-graph-depends %-show-depends %-show-version \
@@ -229,6 +236,8 @@ LEGAL_MANIFEST_CSV_HOST = $(LEGAL_INFO_DIR)/host-manifest.csv
 LEGAL_WARNINGS = $(LEGAL_INFO_DIR)/.warnings
 LEGAL_REPORT = $(LEGAL_INFO_DIR)/README
 
+SHARED_CACHE_DIR ?= $(BASE_DIR)/shared-cache
+
 BR2_CONFIG = $(CONFIG_DIR)/.config
 
 # Pull in the user's configuration file
@@ -236,12 +245,23 @@ ifeq ($(filter $(noconfig_targets),$(MAKECMDGOALS)),)
 -include $(BR2_CONFIG)
 endif
 
-ifeq ($(BR2_PER_PACKAGE_DIRECTORIES),)
-# Disable top-level parallel build if per-package directories is not
-# used. Indeed, per-package directories is necessary to guarantee
-# determinism and reproducibility with top-level parallel build.
-.NOTPARALLEL:
-endif
+# Parallel execution of this Makefile is disabled because it changes
+# the packages building order, that can be a problem for two reasons:
+# - If a package has an unspecified optional dependency and that
+#   dependency is present when the package is built, it is used,
+#   otherwise it isn't (but compilation happily proceeds) so the end
+#   result will differ if the order is swapped due to parallel
+#   building.
+# - Also changing the building order can be a problem if two packages
+#   manipulate the same file in the target directory.
+#
+# Taking into account the above considerations, if you still want to execute
+# this top-level Makefile in parallel comment the ".NOTPARALLEL" line and
+# use the -j<jobs> option when building, e.g:
+#      make -j$((`getconf _NPROCESSORS_ONLN`+1))
+#ifeq ($(BR2_PER_PACKAGE_DIRECTORIES),)
+#.NOTPARALLEL:
+#endif
 
 # timezone and locale may affect build output
 ifeq ($(BR2_REPRODUCIBLE),y)
@@ -837,6 +857,34 @@ target-post-image: $(TARGETS_ROOTFS) target-finalize staging-finalize
 		$(call MESSAGE,"Executing post-image script $(s)"); \
 		$(EXTRA_ENV) $(s) $(BINARIES_DIR) $(call qstrip,$(BR2_ROOTFS_POST_SCRIPT_ARGS))$(sep))
 
+.PHONY: cache-stats
+cache-stats:
+	@$(call MESSAGE, Cache hit: $(shell find $(BUILD_DIR) -maxdepth 2 -name '.stamp_cache_hit' | wc -l))
+	@for file in $$(find $(BUILD_DIR) -maxdepth 2 -name .stamp_cache_hit); do echo $$(basename $$(dirname $$file)); done | cat -n
+	@$(call MESSAGE, Cache miss: $(shell find $(BUILD_DIR) -maxdepth 2 -name '.stamp_cache_miss' | wc -l))
+	@for file in $$(find $(BUILD_DIR) -maxdepth 2 -name .stamp_cache_miss); do echo $$(basename $$(dirname $$file)); done | cat -n
+	@$(call MESSAGE, Cache saved: $(shell find $(BUILD_DIR) -maxdepth 2 -name '.stamp_cache_saved' | wc -l))
+	@for file in $$(find $(BUILD_DIR) -maxdepth 2 -name .stamp_cache_saved); do echo $$(basename $$(dirname $$file)); done | cat -n
+	@$(call MESSAGE, Cache disabled: $(shell find $(BUILD_DIR) -maxdepth 2 -name '.stamp_cache_disabled' | wc -l))
+	@for file in $$(find $(BUILD_DIR) -maxdepth 2 -name .stamp_cache_disabled); do echo $$(basename $$(dirname $$file)); done | cat -n
+	@$(call MESSAGE, Cache disabled (auto): $(shell find $(BUILD_DIR) -maxdepth 2 -name '.stamp_cache_disabled_auto' | wc -l))
+	@for file in $$(find $(BUILD_DIR) -maxdepth 2 -name .stamp_cache_disabled_auto); do echo "$$(basename $$(dirname $$file)) ($$(cat $$file))"; done | cat -n
+	@$(call MESSAGE, Cache errors: $(shell find $(BUILD_DIR) -maxdepth 2 -name '.stamp_cache_error' | wc -l))
+	@for file in $$(find $(BUILD_DIR) -maxdepth 2 -name .stamp_cache_error); do echo $$(basename $$(dirname $$file)); done | cat -n
+
+.PHONY: cache-bootstrap
+cache-bootstrap:
+	BR2_CONFIG=$(BR2_CONFIG) \
+	BUILDROOT_DIR=$(CANONICAL_CURDIR) \
+	SHARED_CACHE_DEPENDENCIES_PATHS=$(SHARED_CACHE_DEPENDENCIES_PATHS) \
+	$(TOPDIR)/support/scripts/cache-bootstrap
+
+.PHONY: cache-load
+cache-load: $(foreach p,$(PACKAGES),$(p)-all-cache-load)
+
+.PHONY: cache-save
+cache-save: $(foreach p,$(PACKAGES),$(p)-all-cache-save)
+
 .PHONY: source
 source: $(foreach p,$(PACKAGES),$(p)-all-source)
 
@@ -1122,6 +1170,10 @@ help:
 	@echo
 	@echo 'Package-specific:'
 	@echo '  <pkg>                  - Build and install <pkg> and all its dependencies'
+	@echo '  <pkg>-cache-load       - Load cache for <pkg>'
+	@echo '  <pkg>-cache-save       - Save cache for <pkg>'
+	@echo '  <pkg>-all-cache-load   - Load cache for <pkg> and dependencies'
+	@echo '  <pkg>-all-cache-save   - Save cache for <pkg> and dependencies'
 	@echo '  <pkg>-source           - Only download the source files for <pkg>'
 	@echo '  <pkg>-extract          - Extract <pkg> sources'
 	@echo '  <pkg>-patch            - Apply patches to <pkg>'
@@ -1158,6 +1210,9 @@ help:
 	@echo '  list-defconfigs        - list all defconfigs (pre-configured minimal systems)'
 	@echo
 	@echo 'Miscellaneous:'
+	@echo '  cache-stats            - show cache stats'
+	@echo '  cache-load             - load cache'
+	@echo '  cache-save             - save cache'
 	@echo '  source                 - download all sources needed for offline-build'
 	@echo '  external-deps          - list external packages used'
 	@echo '  legal-info             - generate info about license compliance'

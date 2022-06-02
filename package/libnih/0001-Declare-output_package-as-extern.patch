@@ -1,0 +1,25 @@
+From 289b82739168bb5f9876497d5a81c13a22653327 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Sat, 26 Mar 2022 10:33:52 -0700
+Subject: [PATCH] Declare output_package as extern
+
+---
+ nih-dbus-tool/output.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/nih-dbus-tool/output.h b/nih-dbus-tool/output.h
+index fd83441..56d5394 100644
+--- a/nih-dbus-tool/output.h
++++ b/nih-dbus-tool/output.h
+@@ -27,7 +27,7 @@
+ 
+ NIH_BEGIN_EXTERN
+ 
+-char *output_package;
++extern char *output_package;
+ 
+ int   output          (const char *source_path, int source_fd,
+ 		       const char *header_path, int header_fd,
+-- 
+2.17.1
+

@@ -1,0 +1,51 @@
+From 4e3297f7d4d87618bf896ac503e1f036a7b6befb Mon Sep 17 00:00:00 2001
+From: Kenneth Graunke <kenneth@whitecape.org>
+Date: Thu, 6 Jun 2019 22:17:06 -0700
+Subject: [PATCH] egl/x11: calloc dri2_surf so it's properly zeroed
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Commit 2282ec0a refactored drawable creation across various platforms
+into a new dri2_create_drawable helper function.
+
+The GBM code in platform_drm.c code passed in dri2_surf->gbm_surf as the
+loaderPrivate, while most other backends passed in dri2_surf directly.
+
+To try and handle this, the patch checked if dri2_surf->gbm_surf was
+non-NULL, and if so, presumed that the caller is the DRM platform and
+we should use the dri2_surf->gbm_surf pointer.
+
+This worked for most platforms, which calloc their dri2_surf structure,
+zeroing the data.  Unfortunately, platform_x11.c used malloc, leaving
+most of the dri2_surf as garbage.  In particular, dri2_surf->gbm_surf
+was often non-NULL, causing dri2_create_drawable to try and use it,
+passing a garbage pointer to the createNewDrawable hook, usually leading
+to a SIGBUS or SIGSEGV when trying to dereference that bad pointer.
+
+Since most callers calloc the data, make platform_x11.c follow suit.
+
+Fixes crashes with i915_dri.so when running dEQP-GLES2.
+
+Reviewed-by: Mathias Fröhlich <Mathias.Froehlich@web.de>
+Reviewed-by: Tapani Pälli <tapani.palli@intel.com>
+---
+ src/egl/drivers/dri2/platform_x11.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/egl/drivers/dri2/platform_x11.c b/src/egl/drivers/dri2/platform_x11.c
+index be9eb513243..a66d68ef60e 100644
+--- a/src/egl/drivers/dri2/platform_x11.c
++++ b/src/egl/drivers/dri2/platform_x11.c
+@@ -261,7 +261,7 @@ dri2_x11_create_surface(_EGLDriver *drv, _EGLDisplay *disp, EGLint type,
+ 
+    (void) drv;
+ 
+-   dri2_surf = malloc(sizeof *dri2_surf);
++   dri2_surf = calloc(1, sizeof *dri2_surf);
+    if (!dri2_surf) {
+       _eglError(EGL_BAD_ALLOC, "dri2_create_surface");
+       return NULL;
+-- 
+2.17.1
+

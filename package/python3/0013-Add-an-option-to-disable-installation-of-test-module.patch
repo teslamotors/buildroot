@@ -75,14 +75,11 @@ index 7c3dde8dd4..204f293d53 100644
 -		ctypes ctypes/test ctypes/macholib \
 -		idlelib idlelib/Icons idlelib/idle_test \
 -		distutils distutils/command distutils/tests $(XMLLIBSUBDIRS) \
--		importlib test/test_importlib test/test_importlib/builtin \
 +		ctypes/test \
 +		idlelib/idle_test \
 +		distutils/tests \
  		test/test_peg_generator \
 +		test/test_importlib test/test_importlib/builtin \
- 		test/test_importlib/extension test/test_importlib/frozen \
- 		test/test_importlib/import_ test/test_importlib/source \
  		test/test_tools test/test_warnings test/test_warnings/data \
 -		turtledemo \
 -		multiprocessing multiprocessing/dummy \

@@ -1,0 +1,84 @@
+When extracting the underlying struct sna object from the drm_vblank_event,
+we need to look at the event type. If the event is actually from a DRI3/present
+call 2nd bit of the event->user_data will be set high. In that case
+we need to first extract the sna_present_event, and then we can get the
+struct sna pointer from the event.
+
+This fixes a crash introduced by the original patch
+0001-Use-correct-SNA-struct-in-Vblank-handler.patch, which would only work
+when running DRI2 commands.
+
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
+
+diff -rup ./output/ice-mrb/build/xdriver_xf86-video-intel-f66d39544bb8339130c96d282a80f87ca1606caf/src/sna/sna_display.c b/src/sna/sna_display.c
+--- a/src/sna/sna_display.c	2020-12-09 15:11:41.588899591 -0800
++++ b/src/sna/sna_display.c	2020-12-09 15:05:08.917005003 -0800
+@@ -9750,7 +9750,9 @@ again:
+ 		 */
+ 		struct drm_event_vblank *vbl = (struct drm_event_vblank *)e;
+ 		struct sna_crtc *crtc = (void *)(uintptr_t)vbl->user_data;
+-		struct sna *sna_event = to_sna(crtc->base->scrn);
++		struct sna_present_event *info = to_present_event(((struct drm_event_vblank*)e)->user_data);
++		/* Extract the underlying sna depending on whether the event is dri2 vs sna_present */
++                struct sna *sna_event = ((uintptr_t)crtc & 2) ? info->sna : to_sna(crtc->base->scrn);
+ 
+ 		switch (e->type) {
+ 		case DRM_EVENT_VBLANK:
+diff -rup a/src/sna/sna.h b/src/sna/sna.h
+--- a/src/sna/sna.h	2019-12-09 14:26:46.000000000 -0800
++++ b/src/sna/sna.h	2020-12-09 15:00:51.087697604 -0800
+@@ -626,6 +626,23 @@ void sna_present_update(struct sna *sna)
+ void sna_present_close(struct sna *sna, ScreenPtr pScreen);
+ void sna_present_vblank_handler(struct drm_event_vblank *event);
+ void sna_present_cancel_flip(struct sna *sna);
++
++struct sna_present_event {
++        xf86CrtcPtr crtc;
++        struct sna *sna;
++        struct list link;
++        uint64_t *event_id;
++        uint64_t target_msc;
++        int n_event_id;
++        bool queued:1;
++        bool active:1;
++};
++
++static inline struct sna_present_event *
++to_present_event(uintptr_t  data)
++{
++        return (struct sna_present_event *)(data & ~3);
++}
+ #else
+ static inline bool sna_present_open(struct sna *sna, ScreenPtr pScreen) { return false; }
+ static inline void sna_present_update(struct sna *sna) { }
+diff -rup a/src/sna/sna_present.c b/src/sna/sna_present.c
+--- a/src/sna/sna_present.c	2019-12-09 14:26:46.000000000 -0800
++++ b/src/sna/sna_present.c	2020-12-09 15:04:06.197660080 -0800
+@@ -38,27 +38,10 @@
+ 
+ static present_screen_info_rec present_info;
+ 
+-struct sna_present_event {
+-	xf86CrtcPtr crtc;
+-	struct sna *sna;
+-	struct list link;
+-	uint64_t *event_id;
+-	uint64_t target_msc;
+-	int n_event_id;
+-	bool queued:1;
+-	bool active:1;
+-};
+-
+ static void sna_present_unflip(ScreenPtr screen, uint64_t event_id);
+ static bool sna_present_queue(struct sna_present_event *info,
+ 			      uint64_t last_msc);
+ 
+-static inline struct sna_present_event *
+-to_present_event(uintptr_t  data)
+-{
+-	return (struct sna_present_event *)(data & ~3);
+-}
+-
+ static struct sna_present_event *info_alloc(struct sna *sna)
+ {
+ 	struct sna_present_event *info;

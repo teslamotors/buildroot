@@ -6,9 +6,6 @@
 
 FFMPEG_VERSION = 4.3.2
 FFMPEG_SOURCE = ffmpeg-$(FFMPEG_VERSION).tar.xz
-endif
-
-
 FFMPEG_SITE = http://ffmpeg.org/releases
 FFMPEG_INSTALL_STAGING = YES
 
@@ -45,6 +42,7 @@ FFMPEG_CONF_OPTS = \
 	--disable-hardcoded-tables \
 	--disable-mipsdsp \
 	--disable-mipsdspr2 \
+	--disable-msa \
 	--enable-hwaccels \
 	--disable-cuda \
 	--disable-cuvid \
@@ -58,18 +56,9 @@ FFMPEG_CONF_OPTS = \
 	--disable-libilbc \
 	--disable-libvo-amrwbenc \
 	--disable-symver \
-	--disable-doc \
-	--disable-vaapi
-
-ifeq ($(BR2_PACKAGE_FFMPEG_1_2_12),n)
-FFMPEG_CONF_OPTS += --disable-msa
-endif
+	--disable-doc
 
 FFMPEG_DEPENDENCIES += host-pkgconf
-
-ifeq ($(BR2_PACKAGE_XORG7),y)
-FFMPEG_DEPENDENCIES += xlib_libX11 xlib_libXext xlib_libXfixes xlib_libXv
-endif
 
 ifeq ($(BR2_PACKAGE_FFMPEG_GPL),y)
 FFMPEG_CONF_OPTS += --enable-gpl
@@ -94,7 +83,7 @@ FFMPEG_DEPENDENCIES += sdl2
 FFMPEG_CONF_OPTS += --enable-ffplay
 FFMPEG_CONF_ENV += SDL_CONFIG=$(STAGING_DIR)/usr/bin/sdl2-config
 else
-FFMPEG_CONF_OPTS += --disable-ffplay --disable-sdl2
+FFMPEG_CONF_OPTS += --disable-ffplay
 endif
 
 ifeq ($(BR2_PACKAGE_LIBV4L),y)
@@ -278,6 +267,12 @@ FFMPEG_CONF_OPTS += \
 	--enable-encoder=libvorbis
 endif
 
+ifeq ($(BR2_PACKAGE_LIBVA),y)
+FFMPEG_CONF_OPTS += --enable-vaapi
+FFMPEG_DEPENDENCIES += libva
+else
+FFMPEG_CONF_OPTS += --disable-vaapi
+endif
 
 ifeq ($(BR2_PACKAGE_LIBVDPAU),y)
 FFMPEG_CONF_OPTS += --enable-vdpau
@@ -373,13 +368,11 @@ else
 FFMPEG_CONF_OPTS += --disable-libtheora
 endif
 
-ifeq ($(BR2_PACKAGE_FFMPEG_1_2_12),n)
 ifeq ($(BR2_PACKAGE_WAVPACK),y)
 FFMPEG_CONF_OPTS += --enable-libwavpack
 FFMPEG_DEPENDENCIES += wavpack
 else
 FFMPEG_CONF_OPTS += --disable-libwavpack
-endif
 endif
 
 ifeq ($(BR2_PACKAGE_LIBICONV),y)
@@ -420,13 +413,18 @@ else
 FFMPEG_CONF_OPTS += --disable-libx264
 endif
 
-ifeq ($(BR2_PACKAGE_FFMPEG_1_2_12),n)
 ifeq ($(BR2_PACKAGE_X265)$(BR2_PACKAGE_FFMPEG_GPL),yy)
 FFMPEG_CONF_OPTS += --enable-libx265
 FFMPEG_DEPENDENCIES += x265
 else
 FFMPEG_CONF_OPTS += --disable-libx265
 endif
+
+ifeq ($(BR2_PACKAGE_DAV1D),y)
+FFMPEG_CONF_OPTS += --enable-libdav1d
+FFMPEG_DEPENDENCIES += dav1d
+else
+FFMPEG_CONF_OPTS += --disable-libdav1d
 endif
 
 ifeq ($(BR2_PACKAGE_DAV1D),y)
@@ -486,12 +484,10 @@ else
 FFMPEG_CONF_OPTS += --disable-avx
 endif
 
-ifeq ($(BR2_PACKAGE_FFMPEG_1_2_12),n)
 ifeq ($(BR2_X86_CPU_HAS_AVX2),y)
 FFMPEG_CONF_OPTS += --enable-avx2
 else
 FFMPEG_CONF_OPTS += --disable-avx2
-endif
 endif
 
 # Explicitly disable everything that doesn't match for ARM

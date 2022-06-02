@@ -1,10 +1,12 @@
 From 69e546e344300213a9996304c8a4ddc927fd00fb Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
 Date: Wed, 15 May 2019 23:13:40 -0700
 Subject: [PATCH] mmc-utils: Include ioctl interface kernel headers
 
 Pull in the kernel MMC ioctl uapi header file to support
 building with older toolchains.
 
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
 ---
  ioctl.h | 75 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  mmc.h   |  2 +-

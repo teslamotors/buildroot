@@ -1,0 +1,152 @@
+From cf2e6c78c3e433dabb8ca855ffb8038886ae8d2e Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Wed, 13 May 2020 13:38:04 -0700
+Subject: [PATCH 4/4] sb600spi: Support alternate chip select
+
+Add new sb600 internal programmer parameter "cs" that allows you to
+specify either cs=0 or cs=1 to flash a device on an alternate chip
+select.  The originally active chip select is restored on shutdown.
+
+Change-Id: I2de213863165eb96a1927d4ca72136712e287f11
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
+---
+ sb600spi.c | 87 ++++++++++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 85 insertions(+), 2 deletions(-)
+
+diff --git a/sb600spi.c b/sb600spi.c
+index 90983cd..9142fa5 100644
+--- a/sb600spi.c
++++ b/sb600spi.c
+@@ -60,6 +60,7 @@ static enum amd_chipset amd_gen = CHIPSET_AMD_UNKNOWN;
+ /* FCH::ITF::SPI registers */
+ #define SB600_REG_SPI_CNTRL0		0x0
+ #define SB600_REG_SPI_CNTRL1		0xc
++#define SB600_REG_ALT_SPI_CS		0x1d
+ #define SB600_REG_SPI100_EN		0x20
+ #define SB600_REG_SPI100_CFG		0x22
+ #define SB600_REG_SPI_TXBYTECNT		0x48
+@@ -91,6 +92,15 @@ static struct spi_master spi_master_yangtze = {
+ 	.write_aai = default_spi_write_aai,
+ };
+ 
++/* State information to save on init and restore on shutdown */
++struct sb600_state {
++	int cs;		/* active CS (0-based) */
++};
++
++static struct sb600_state sb600_initial_state = {
++	.cs	= -1,
++};
++
+ static int find_smbus_dev_rev(uint16_t vendor, uint16_t device)
+ {
+ 	struct pci_dev *smbus_dev = pci_dev_find(vendor, device);
+@@ -230,6 +240,32 @@ static void execute_command(void)
+ 	msg_pspew("done\n");
+ }
+ 
++static int sb600_spi_shutdown(void *data)
++{
++	uint32_t tmp;
++	struct pci_dev *dev = (struct pci_dev *) data;
++
++	if (dev == NULL || sb600_spibar == NULL)
++		return 0;
++
++	/* Restore original chip select */
++	if (sb600_initial_state.cs >= 0) {
++		if (amd_gen >= CHIPSET_SB89XX) {
++			tmp = mmio_readb(sb600_spibar + SB600_REG_ALT_SPI_CS);
++			tmp &= ~0x3;
++			tmp |= sb600_initial_state.cs;
++			mmio_writeb(tmp, sb600_spibar + SB600_REG_ALT_SPI_CS);
++			msg_pinfo("Restored active SPI chip select to CS%d\n",
++				  sb600_initial_state.cs);
++		} else {
++			msg_perr("Don't know how to restore original chip "
++				 "select for gen %d\n", amd_gen);
++		}
++	}
++
++	return 0;
++}
++
+ static int sb600_spi_send_command(struct flashctx *flash, unsigned int writecnt,
+ 				  unsigned int readcnt,
+ 				  const unsigned char *writearr,
+@@ -589,6 +625,48 @@ static int handle_imc(struct pci_dev *dev)
+ 	return amd_imc_shutdown(dev);
+ }
+ 
++static int handle_cs(struct pci_dev *dev)
++{
++	uint32_t tmp;
++	char *cs;
++	int wanted_cs;
++
++	cs = extract_programmer_param("cs");
++	if (cs != NULL) {
++		/*
++		 * Note: HW docs use 1-based numbering (CS1, CS2), but
++		 * we use 0-based numbering in flashrom
++		 */
++		if (cs[0] == '0')
++			wanted_cs = 0;
++		else if (cs[0] == '1')
++			wanted_cs = 1;
++		else {
++			msg_perr("Warning: Invalid cs specified, leaving unchanged\n");
++			free(cs);
++			return 1;
++		}
++
++		if (amd_gen >= CHIPSET_SB89XX) {
++			tmp = mmio_readb(sb600_spibar + SB600_REG_ALT_SPI_CS);
++			sb600_initial_state.cs = tmp & 0x3;
++			msg_pdbg("Original active SPI CS is %d\n", sb600_initial_state.cs);
++			tmp &= ~0x3;
++			tmp |= wanted_cs;
++			mmio_writeb(tmp, sb600_spibar + SB600_REG_ALT_SPI_CS);
++			msg_pinfo("Switching to SPI CS%d\n", wanted_cs);
++		} else {
++			msg_perr("Warning: No chipset support for setting chip select for amd_gen=0x%x\n", amd_gen);
++			free(cs);
++			return 1;
++		}
++
++		free(cs);
++	}
++
++	return 0;
++}
++
+ int sb600_probe_spi(struct pci_dev *dev)
+ {
+ 	struct pci_dev *smbus_dev;
+@@ -617,6 +695,11 @@ int sb600_probe_spi(struct pci_dev *dev)
+ 	if (determine_generation(dev) < 0)
+ 		return ERROR_NONFATAL;
+ 
++	if (register_shutdown(sb600_spi_shutdown, (void *) dev))
++		return ERROR_FATAL;
++
++	handle_cs(dev);
++
+ 	/* How to read the following table and similar ones in this file:
+ 	 * "?" means we have no datasheet for this chipset generation or it doesn't have any relevant info.
+ 	 * "<-" means the bit/register meaning is identical to the next non-"?" chipset to the left. "<-" thus
+@@ -636,9 +719,9 @@ int sb600_probe_spi(struct pci_dev *dev)
+ 	if (amd_gen >= CHIPSET_SB7XX) {
+ 		tmp = pci_read_long(dev, 0xa0);
+ 		msg_pdbg("SpiRomEnable=%i", (tmp >> 1) & 0x1);
+-		if (amd_gen == CHIPSET_SB7XX)
++		if (amd_gen == CHIPSET_SB7XX || amd_gen == CHIPSET_PICASSO)
+ 			msg_pdbg(", AltSpiCSEnable=%i, AbortEnable=%i", tmp & 0x1, (tmp >> 2) & 0x1);
+-		else if (amd_gen >= CHIPSET_YANGTZE)
++		if (amd_gen >= CHIPSET_YANGTZE)
+ 			msg_pdbg(", RouteTpm2Sp=%i", (tmp >> 3) & 0x1);
+ 
+ 		tmp = pci_read_byte(dev, 0xba);
+-- 
+2.17.2
+

@@ -1,0 +1,199 @@
+From 139b381a8d2c6ea84e336421c82d4adf0119ae32 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Wed, 13 May 2020 13:05:04 -0700
+Subject: [PATCH 3/4] sb600spi: Get rid of magic register offsets
+
+Clean up FCH::ITF::SPI register accesses to use #defines rather than
+hardcoded BAR offsets.
+
+Change-Id: I5f42e3b5d8b68dd03c0ae381dd99a5e03f44bb95
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
+---
+ sb600spi.c | 63 +++++++++++++++++++++++++++++++++---------------------
+ 1 file changed, 39 insertions(+), 24 deletions(-)
+
+diff --git a/sb600spi.c b/sb600spi.c
+index 94d01de..90983cd 100644
+--- a/sb600spi.c
++++ b/sb600spi.c
+@@ -57,6 +57,15 @@ static enum amd_chipset amd_gen = CHIPSET_AMD_UNKNOWN;
+ #define FIFO_SIZE_OLD		8
+ #define FIFO_SIZE_YANGTZE	71
+ 
++/* FCH::ITF::SPI registers */
++#define SB600_REG_SPI_CNTRL0		0x0
++#define SB600_REG_SPI_CNTRL1		0xc
++#define SB600_REG_SPI100_EN		0x20
++#define SB600_REG_SPI100_CFG		0x22
++#define SB600_REG_SPI_TXBYTECNT		0x48
++#define SB600_REG_SPI_RXBYTECNT		0x4b
++#define SB600_REG_SPI_FIFO		0x80
++
+ static int sb600_spi_send_command(struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
+ 				  const unsigned char *writearr, unsigned char *readarr);
+ static int spi100_spi_send_command(struct flashctx *flash, unsigned int writecnt, unsigned int readcnt,
+@@ -230,7 +239,7 @@ static int sb600_spi_send_command(struct flashctx *flash, unsigned int writecnt,
+ 	unsigned char cmd = *writearr++;
+ 	writecnt--;
+ 	msg_pspew("%s, cmd=0x%02x, writecnt=%d, readcnt=%d\n", __func__, cmd, writecnt, readcnt);
+-	mmio_writeb(cmd, sb600_spibar + 0);
++	mmio_writeb(cmd, sb600_spibar + SB600_REG_SPI_CNTRL0);
+ 
+ 	int ret = check_readwritecnt(flash, writecnt, readcnt);
+ 	if (ret != 0)
+@@ -251,7 +260,8 @@ static int sb600_spi_send_command(struct flashctx *flash, unsigned int writecnt,
+ 	unsigned int count;
+ 	for (count = 0; count < writecnt; count++) {
+ 		msg_pspew("[%02x]", writearr[count]);
+-		mmio_writeb(writearr[count], sb600_spibar + 0xC);
++		mmio_writeb(writearr[count], sb600_spibar +
++			    SB600_REG_SPI_CNTRL1);
+ 	}
+ 	msg_pspew("\n");
+ 	if (compare_internal_fifo_pointer(writecnt))
+@@ -282,7 +292,8 @@ static int sb600_spi_send_command(struct flashctx *flash, unsigned int writecnt,
+ 	/* Skip the bytes we sent. */
+ 	msg_pspew("Skipping: ");
+ 	for (count = 0; count < writecnt; count++) {
+-		msg_pspew("[%02x]", mmio_readb(sb600_spibar + 0xC));
++		msg_pspew("[%02x]", mmio_readb(sb600_spibar +
++			  SB600_REG_SPI_CNTRL1));
+ 	}
+ 	msg_pspew("\n");
+ 	if (compare_internal_fifo_pointer(writecnt))
+@@ -290,7 +301,8 @@ static int sb600_spi_send_command(struct flashctx *flash, unsigned int writecnt,
+ 
+ 	msg_pspew("Reading FIFO: ");
+ 	for (count = 0; count < readcnt; count++) {
+-		readarr[count] = mmio_readb(sb600_spibar + 0xC);
++		readarr[count] = mmio_readb(sb600_spibar +
++					    SB600_REG_SPI_CNTRL1);
+ 		msg_pspew("[%02x]", readarr[count]);
+ 	}
+ 	msg_pspew("\n");
+@@ -316,21 +328,21 @@ static int spi100_spi_send_command(struct flashctx *flash, unsigned int writecnt
+ 	unsigned char cmd = *writearr++;
+ 	writecnt--;
+ 	msg_pspew("%s, cmd=0x%02x, writecnt=%d, readcnt=%d\n", __func__, cmd, writecnt, readcnt);
+-	mmio_writeb(cmd, sb600_spibar + 0);
++	mmio_writeb(cmd, sb600_spibar + SB600_REG_SPI_CNTRL0);
+ 
+ 	int ret = check_readwritecnt(flash, writecnt, readcnt);
+ 	if (ret != 0)
+ 		return ret;
+ 
+-	/* Use the extended TxByteCount and RxByteCount registers. */
+-	mmio_writeb(writecnt, sb600_spibar + 0x48);
+-	mmio_writeb(readcnt, sb600_spibar + 0x4b);
++	mmio_writeb(writecnt, sb600_spibar + SB600_REG_SPI_TXBYTECNT);
++	mmio_writeb(readcnt, sb600_spibar + SB600_REG_SPI_RXBYTECNT);
+ 
+ 	msg_pspew("Filling buffer: ");
+ 	unsigned int count;
+ 	for (count = 0; count < writecnt; count++) {
+ 		msg_pspew("[%02x]", writearr[count]);
+-		mmio_writeb(writearr[count], sb600_spibar + 0x80 + count);
++		mmio_writeb(writearr[count], sb600_spibar +
++			    SB600_REG_SPI_FIFO + count);
+ 	}
+ 	msg_pspew("\n");
+ 
+@@ -338,7 +350,8 @@ static int spi100_spi_send_command(struct flashctx *flash, unsigned int writecnt
+ 
+ 	msg_pspew("Reading buffer: ");
+ 	for (count = 0; count < readcnt; count++) {
+-		readarr[count] = mmio_readb(sb600_spibar + 0x80 + (writecnt + count) % FIFO_SIZE_YANGTZE);
++		readarr[count] = mmio_readb(sb600_spibar + SB600_REG_SPI_FIFO +
++			(writecnt + count) % FIFO_SIZE_YANGTZE);
+ 		msg_pspew("[%02x]", readarr[count]);
+ 	}
+ 	msg_pspew("\n");
+@@ -379,8 +392,8 @@ static int set_speed(struct pci_dev *dev, uint8_t speed)
+ 
+ 	msg_pdbg("Setting SPI clock to %s (%i)... ", spispeeds[speed], speed);
+ 	if (amd_gen >= CHIPSET_YANGTZE) {
+-		rmmio_writew((speed << 12) | (speed << 8) | (speed << 4) | speed, sb600_spibar + 0x22);
+-		uint16_t tmp = mmio_readw(sb600_spibar + 0x22);
++		rmmio_writew((speed << 12) | (speed << 8) | (speed << 4) | speed, sb600_spibar + SB600_REG_SPI100_CFG);
++		uint16_t tmp = mmio_readw(sb600_spibar + SB600_REG_SPI100_CFG);
+ 		success = (((tmp >> 12) & 0xf) == speed && ((tmp >> 8) & 0xf) == speed &&
+ 			   ((tmp >> 4) & 0xf) == speed && ((tmp >> 0) & 0xf) == speed);
+ 	} else {
+@@ -399,11 +412,11 @@ static int set_speed(struct pci_dev *dev, uint8_t speed)
+ static int set_mode(struct pci_dev *dev, uint8_t mode)
+ {
+ 	msg_pdbg("Setting SPI read mode to %s (%i)... ", spireadmodes[mode], mode);
+-	uint32_t tmp = mmio_readl(sb600_spibar + 0x00);
++	uint32_t tmp = mmio_readl(sb600_spibar + SB600_REG_SPI_CNTRL0);
+ 	tmp &= ~(0x6 << 28 | 0x1 << 18); /* Clear mode bits */
+ 	tmp |= ((mode & 0x6) << 28) | ((mode & 0x1) << 18);
+-	rmmio_writel(tmp, sb600_spibar + 0x00);
+-	if (tmp != mmio_readl(sb600_spibar + 0x00)) {
++	rmmio_writel(tmp, sb600_spibar + SB600_REG_SPI_CNTRL0);
++	if (tmp != mmio_readl(sb600_spibar + SB600_REG_SPI_CNTRL0)) {
+ 		msg_perr("FAILED!\n");
+ 		return 1;
+ 	}
+@@ -471,7 +484,7 @@ static int handle_speed(struct pci_dev *dev)
+ 	 */
+ 	if (amd_gen >= CHIPSET_BOLTON) {
+ 
+-		tmp = mmio_readl(sb600_spibar + 0x00);
++		tmp = mmio_readl(sb600_spibar + SB600_REG_SPI_CNTRL0);
+ 		uint8_t read_mode = ((tmp >> 28) & 0x6) | ((tmp >> 18) & 0x1);
+ 		msg_pdbg("SPI read mode is %s (%i)\n",
+ 			spireadmodes[read_mode], read_mode);
+@@ -484,11 +497,13 @@ static int handle_speed(struct pci_dev *dev)
+ 		}
+ 
+ 		if (amd_gen >= CHIPSET_YANGTZE) {
+-			tmp = mmio_readb(sb600_spibar + 0x20);
++			tmp = mmio_readb(sb600_spibar + SB600_REG_SPI100_EN);
+ 			msg_pdbg("UseSpi100 is %sabled\n", (tmp & 0x1) ? "en" : "dis");
+ 			if ((tmp & 0x1) == 0) {
+-				rmmio_writeb(tmp | 0x1, sb600_spibar + 0x20);
+-				tmp = mmio_readb(sb600_spibar + 0x20) & 0x1;
++				rmmio_writeb(tmp | 0x1, sb600_spibar +
++					     SB600_REG_SPI100_EN);
++				tmp = mmio_readb(sb600_spibar +
++						 SB600_REG_SPI100_EN) & 0x1;
+ 				if (tmp == 0) {
+ 					msg_perr("Enabling Spi100 failed.\n");
+ 					return 1;
+@@ -496,7 +511,7 @@ static int handle_speed(struct pci_dev *dev)
+ 				msg_pdbg("Enabling Spi100 succeeded.\n");
+ 			}
+ 
+-			tmp = mmio_readw(sb600_spibar + 0x22); /* SPI 100 Speed Config */
++			tmp = mmio_readw(sb600_spibar + SB600_REG_SPI100_CFG); /* SPI 100 Speed Config */
+ 			msg_pdbg("NormSpeedNew is %s\n", spispeeds[(tmp >> 12) & 0xf]);
+ 			msg_pdbg("FastSpeedNew is %s\n", spispeeds[(tmp >> 8) & 0xf]);
+ 			msg_pdbg("AltSpeedNew is %s\n", spispeeds[(tmp >> 4) & 0xf]);
+@@ -504,12 +519,12 @@ static int handle_speed(struct pci_dev *dev)
+ 		}
+ 	} else {
+ 		if (amd_gen >= CHIPSET_SB89XX && amd_gen <= CHIPSET_HUDSON234) {
+-			bool fast_read = (mmio_readl(sb600_spibar + 0x00) >> 18) & 0x1;
++			bool fast_read = (mmio_readl(sb600_spibar + SB600_REG_SPI_CNTRL0) >> 18) & 0x1;
+ 			msg_pdbg("Fast Reads are %sabled\n", fast_read ? "en" : "dis");
+ 			if (fast_read) {
+ 				msg_pdbg("Disabling them temporarily.\n");
+-				rmmio_writel(mmio_readl(sb600_spibar + 0x00) & ~(0x1 << 18),
+-					     sb600_spibar + 0x00);
++				rmmio_writel(mmio_readl(sb600_spibar + SB600_REG_SPI_CNTRL0) & ~(0x1 << 18),
++					     sb600_spibar + SB600_REG_SPI_CNTRL0);
+ 			}
+ 		}
+ 		tmp = (mmio_readb(sb600_spibar + 0xd) >> 4) & 0x3;
+@@ -657,7 +672,7 @@ int sb600_probe_spi(struct pci_dev *dev)
+ 	 *
+ 	 *  <1> see handle_speed
+ 	 */
+-	tmp = mmio_readl(sb600_spibar + 0x00);
++	tmp = mmio_readl(sb600_spibar + SB600_REG_SPI_CNTRL0);
+ 	msg_pdbg("(0x%08" PRIx32 ") SpiArbEnable=%i", tmp, (tmp >> 19) & 0x1);
+ 	if (amd_gen >= CHIPSET_YANGTZE)
+ 		msg_pdbg(", IllegalAccess=%i", (tmp >> 21) & 0x1);
+-- 
+2.17.2
+

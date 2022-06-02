@@ -1,0 +1,274 @@
+From 1f0e79462d45fb6c4797bcd95c1f97ecb8e6cd33 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Mon, 29 Jun 2020 23:05:59 -0700
+Subject: [PATCH 4/4] micron: Support creation of SLC namespaces
+
+Add new "micron ns-create" command that performs the same operation
+as the built-in ns-create command, but includes an additional processing
+step on the vendor-specific region before submitting the command.
+The only processing currently supported is the "--slc" or "-l"
+option to mark a namespace as being tied to SLC flash.
+
+Example:
+    nvme micron create-ns /dev/nvme0 --slc -s 25026016 -c 25026016 -f 0
+
+Implement this in a way that the Micron-specific code remains within
+the plugin.
+
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
+---
+ nvme-ioctl.c                 | 17 ++--------
+ nvme-ioctl.h                 |  5 ++-
+ nvme.c                       | 56 ++++++++++++++++++++++++++++++---
+ nvme.h                       |  4 +++
+ plugins/micron/micron-nvme.c | 60 ++++++++++++++++++++++++++++++++++++
+ plugins/micron/micron-nvme.h |  1 +
+ 6 files changed, 121 insertions(+), 22 deletions(-)
+
+diff --git a/nvme-ioctl.c b/nvme-ioctl.c
+index 4da1d11..aa43a33 100644
+--- a/nvme-ioctl.c
++++ b/nvme-ioctl.c
+@@ -684,23 +684,12 @@ int nvme_format(int fd, __u32 nsid, __u8 lbaf, __u8 ses, __u8 pi,
+ 	return nvme_submit_admin_passthru(fd, &cmd);
+ }
+ 
+-int nvme_ns_create(int fd, __u64 nsze, __u64 ncap, __u8 flbas, __u8 dps,
+-		__u8 nmic, __u32 anagrpid, __u16 nvmsetid, __u8 csi,
+-		__u32 timeout, __u32 *result)
++int nvme_ns_create(int fd, struct nvme_id_ns *ns, __u8 csi, __u32 timeout,
++		   __u32 *result)
+ {
+-	struct nvme_id_ns ns = {
+-		.nsze		= cpu_to_le64(nsze),
+-		.ncap		= cpu_to_le64(ncap),
+-		.flbas		= flbas,
+-		.dps		= dps,
+-		.nmic		= nmic,
+-		.anagrpid	= anagrpid,
+-		.nvmsetid	= nvmsetid,
+-	};
+-
+ 	struct nvme_admin_cmd cmd = {
+ 		.opcode		= nvme_admin_ns_mgmt,
+-		.addr		= (__u64)(uintptr_t) ((void *)&ns),
++		.addr		= (__u64)(uintptr_t) ((void *)ns),
+ 		.cdw10		= 0,
+ 		.cdw11		= csi << 24,
+ 		.data_len	= 0x1000,
+diff --git a/nvme-ioctl.h b/nvme-ioctl.h
+index 6be1254..d8d51d7 100644
+--- a/nvme-ioctl.h
++++ b/nvme-ioctl.h
+@@ -122,9 +122,8 @@ int nvme_get_feature(int fd, __u32 nsid, __u8 fid, __u8 sel,
+ int nvme_format(int fd, __u32 nsid, __u8 lbaf, __u8 ses, __u8 pi,
+ 		__u8 pil, __u8 ms, __u32 timeout);
+ 
+-int nvme_ns_create(int fd, __u64 nsze, __u64 ncap, __u8 flbas, __u8 dps,
+-		__u8 nmic, __u32 anagrpid, __u16 nvmsetid, __u8 csi,
+-		__u32 timeout, __u32 *result);
++int nvme_ns_create(int fd, struct nvme_id_ns *ns, __u8 csi, __u32 timeout,
++		__u32 *result);
+ int nvme_ns_delete(int fd, __u32 nsid, __u32 timeout);
+ 
+ int nvme_ns_attachment(int fd, __u32 nsid, __u16 num_ctrls,
+diff --git a/nvme.c b/nvme.c
+index 98c6c87..a00e5b4 100644
+--- a/nvme.c
++++ b/nvme.c
+@@ -199,6 +199,23 @@ int parse_and_open(int argc, char **argv, const char *desc,
+ 	return ret;
+ }
+ 
++int parse_and_open_with_plugin(int argc, char **argv, const char *desc,
++	const struct argconfig_commandline_options *builtin_opts,
++	const struct argconfig_commandline_options *plugin_opts)
++{
++	int ret;
++	struct argconfig_commandline_options *opts_concat;
++
++	opts_concat = argconfig_opts_join(builtin_opts, plugin_opts);
++	if (opts_concat == NULL)
++		return -1;
++
++	ret = parse_and_open(argc, argv, desc, opts_concat);
++	free(opts_concat);
++
++	return ret;
++}
++
+ enum nvme_print_flags validate_output_format(char *format)
+ {
+ 	if (!format)
+@@ -1140,7 +1157,10 @@ static int detach_ns(int argc, char **argv, struct command *cmd, struct plugin *
+ 	return nvme_attach_ns(argc, argv, 0, desc, cmd);
+ }
+ 
+-static int create_ns(int argc, char **argv, struct command *cmd, struct plugin *plugin)
++int __create_ns(int argc, char **argv, struct command *cmd,
++	struct plugin *plugin,
++	int (*vs)(__u8 *vs, void *pdata),
++	const struct argconfig_commandline_options *plugin_opts, void *pdata)
+ {
+ 	const char *desc = "Send a namespace management command "\
+ 		"to the specified device to create a namespace with the given "\
+@@ -1197,7 +1217,13 @@ static int create_ns(int argc, char **argv, struct command *cmd, struct plugin *
+ 		OPT_END()
+ 	};
+ 
+-	err = fd = parse_and_open(argc, argv, desc, opts);
++	if (plugin_opts != NULL)
++		fd = parse_and_open_with_plugin(argc, argv, desc, opts,
++			plugin_opts);
++	else
++		fd = parse_and_open(argc, argv, desc, opts);
++	err = fd;
++
+ 	if (fd < 0)
+ 		goto ret;
+ 
+@@ -1244,9 +1270,23 @@ static int create_ns(int argc, char **argv, struct command *cmd, struct plugin *
+ 		goto close_fd;
+ 	}
+ 
+-	err = nvme_ns_create(fd, cfg.nsze, cfg.ncap, cfg.flbas, cfg.dps, cfg.nmic,
+-			    cfg.anagrpid, cfg.nvmsetid, cfg.csi, cfg.timeout,
+-			    &nsid);
++	memset(&ns, 0, sizeof(struct nvme_id_ns));
++	ns.nsze	= cpu_to_le64(cfg.nsze);
++	ns.ncap	= cpu_to_le64(cfg.ncap);
++	ns.flbas = cfg.flbas;
++	ns.dps = cfg.dps;
++	ns.nmic	= cfg.nmic;
++	ns.anagrpid = cfg.anagrpid;
++	ns.nvmsetid = cfg.nvmsetid;
++	if (vs != NULL) {
++		err = vs((__u8 *) (&ns.vs), pdata);
++		if (err) {
++			fprintf(stderr, "Error in vendor-specific plugin\n");
++			goto close_fd;
++		}
++	}
++
++	err = nvme_ns_create(fd, &ns, cfg.csi, cfg.timeout, &nsid);
+ 	if (!err)
+ 		printf("%s: Success, created nsid:%d\n", cmd->name, nsid);
+ 	else if (err > 0)
+@@ -1260,6 +1300,12 @@ ret:
+ 	return nvme_status_to_errno(err, false);
+ }
+ 
++/* Built-in create-ns command (no vendor-specific functionality) */
++static int create_ns(int argc, char **argv, struct command *cmd, struct plugin *plugin)
++{
++	return __create_ns(argc, argv, cmd, plugin, NULL, NULL, NULL);
++}
++
+ static int list_subsys(int argc, char **argv, struct command *cmd,
+ 		struct plugin *plugin)
+ {
+diff --git a/nvme.h b/nvme.h
+index ffc3fbd..6bb8cc6 100644
+--- a/nvme.h
++++ b/nvme.h
+@@ -93,6 +93,10 @@ extern const char *output_format;
+ enum nvme_print_flags validate_output_format(char *format);
+ int __id_ctrl(int argc, char **argv, struct command *cmd,
+ 	struct plugin *plugin, void (*vs)(__u8 *vs, struct json_object *root));
++int __create_ns(int argc, char **argv, struct command *cmd,
++	struct plugin *plugin,
++	int (*vs)(__u8 *vs, void *pdata),
++	const struct argconfig_commandline_options *plugin_opts, void *pdata);
+ char *nvme_char_from_block(char *block);
+ void *mmap_registers(const char *dev);
+ 
+diff --git a/plugins/micron/micron-nvme.c b/plugins/micron/micron-nvme.c
+index a7bd442..2ef1d39 100644
+--- a/plugins/micron/micron-nvme.c
++++ b/plugins/micron/micron-nvme.c
+@@ -43,6 +43,24 @@ struct micron_vs_id_ctrl {
+ 	uint8_t		rsvd781[781];
+ };
+ 
++/*
++ * Micron's vendor-specific fields within the Namespace Management data
++ * structure (struct nvme_id_ns).
++ *
++ * NOTE: Data structure includes both the "Reserved" region from bytes 384:1023
++ * and the "Vendor specific" region from 1024:4095 so that it aligns with
++ * Linux's nvme_id_ns.vs[3712] field that includes both.
++ */
++struct micron_vs_id_ns {
++	uint8_t		rsvd640[640];
++	uint8_t		slc;			/* 0: TLC NS, 1: SLC NS */
++	uint8_t		rsvd3071[3071];
++};
++
++struct micron_create_ns_priv_data {
++	int slc;
++};
++
+ #define MICRON_ID_CTRL_PCM_STATUS_SUPPORTED	(1 << 0)
+ #define MICRON_ID_CTRL_PCM_STATUS_LOCKED	(1 << 1)
+ #define MICRON_ID_CTRL_PCM_STATUS_FACTORY	(1 << 2)
+@@ -1507,3 +1525,45 @@ close_fd:
+ 
+ 	return err;
+ }
++
++/*
++ * Callback function to modify vendor-specific data @vs before namespace
++ * creation, using @pdata for any input that influences how @vs is
++ * modified.
++ */
++static int micron_create_ns_vs_cb(uint8_t *vs, void *pdata)
++{
++	struct micron_create_ns_priv_data *micron_pdata =
++		(struct micron_create_ns_priv_data *) pdata;
++	struct micron_vs_id_ns *vs_micron = (struct micron_vs_id_ns *) vs;
++
++	if (micron_pdata->slc) {
++		printf("Setting namespace to use SLC physical region\n");
++		vs_micron->slc = 1;
++	}
++
++	return 0;
++}
++
++/*
++ * Micron "create-ns" command handler.  This calls the built-in handler
++ * but passes in a pointer to our callback function that modifies the
++ * vendor-specific data region.
++ */
++static int micron_create_ns(int argc, char **argv, struct command *cmd, struct plugin *plugin)
++{
++	const char *slc_msg = "(Micron) Use SLC physical region for namespace";
++	struct micron_create_ns_priv_data pdata = {
++		.slc	= 0,
++	};
++
++	/* Micron-specific options to the micron create-ns command */
++	OPT_ARGS(opts) = {
++		OPT_FLAG("slc", 'l', &pdata.slc, slc_msg),
++		OPT_END()
++	};
++
++	/* call common create-ns function */
++	return __create_ns(argc, argv, cmd, plugin, micron_create_ns_vs_cb,
++			   opts, &pdata);
++}
+diff --git a/plugins/micron/micron-nvme.h b/plugins/micron/micron-nvme.h
+index 3a77cd5..d18b793 100644
+--- a/plugins/micron/micron-nvme.h
++++ b/plugins/micron/micron-nvme.h
+@@ -17,6 +17,7 @@ PLUGIN(NAME("micron", "Micron vendor specific extensions"),
+ 		ENTRY("pcm-get", "Get Physical Capacity configuration", micron_pcm_get)
+ 		ENTRY("pcm-set", "Set Physical Capacity configuration", micron_pcm_set)
+ 		ENTRY("pcm-lock", "Lock Physical Capacity configuration", micron_pcm_lock)
++		ENTRY("create-ns", "Creates a namespace with the provided parameters", micron_create_ns)
+ 	)
+ );
+ 
+-- 
+2.17.2
+

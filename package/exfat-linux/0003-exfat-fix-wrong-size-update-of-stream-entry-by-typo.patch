@@ -1,0 +1,31 @@
+From 41e3928f8c58184fcf0bb22e822af39a436370c7 Mon Sep 17 00:00:00 2001
+From: Hyeongseok Kim <hyeongseok@gmail.com>
+Date: Wed, 8 Jul 2020 18:52:33 +0900
+Subject: [PATCH] exfat: fix wrong size update of stream entry by typo
+
+The stream.size field is updated to the value of create timestamp
+of the file entry. Fix this to use correct stream entry pointer.
+
+Fixes: 29bbb14bfc80 ("exfat: fix incorrect update of stream entry in __exfat_truncate()")
+Signed-off-by: Hyeongseok Kim <hyeongseok@gmail.com>
+Signed-off-by: Namjae Jeon <namjae.jeon@samsung.com>
+---
+ file.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/file.c b/file.c
+index 3b7fea465fd4..a6a063830edc 100644
+--- a/file.c
++++ b/file.c
+@@ -176,7 +176,7 @@ int __exfat_truncate(struct inode *inode, loff_t new_size)
+ 			ep2->dentry.stream.size = 0;
+ 		} else {
+ 			ep2->dentry.stream.valid_size = cpu_to_le64(new_size);
+-			ep2->dentry.stream.size = ep->dentry.stream.valid_size;
++			ep2->dentry.stream.size = ep2->dentry.stream.valid_size;
+ 		}
+ 
+ 		if (new_size == 0) {
+-- 
+2.30.1
+

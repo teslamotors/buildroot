@@ -1,9 +1,11 @@
 From 5ed96091cf5e97de6d08cc2c819da2b40d6075b1 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
 Date: Fri, 10 May 2019 11:44:14 -0700
 Subject: [PATCH] mmc-utils: Add support for vendor-specific commands
 
 Support vendor-specific EXT CSD reads and multi-block reads
 
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
 ---
  mmc.c      |  13 +++-
  mmc.h      |   8 +++

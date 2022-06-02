@@ -1,0 +1,71 @@
+From a0695e35307a48f84af780f241f87c783c6faf77 Mon Sep 17 00:00:00 2001
+From: Tesla OpenSource <opensource@tesla.com>
+Date: Wed, 17 Feb 2021 10:01:21 -0800
+Subject: [PATCH] Enable cross-compilation of libnvme
+
+Ensure that the host toolchain is used for building the
+configurator tool for generating the hosts's config.h.
+Get rid of the unsafe '-L/usr/lib64' for cross compilation.
+Add individual make targets for src, test and examples.
+
+Signed-off-by: Tesla OpenSource <opensource@tesla.com>
+---
+ Makefile     | 9 ++++++---
+ src/Makefile | 5 ++++-
+ 2 files changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index ef470be..4c5223d 100644
+--- a/Makefile
++++ b/Makefile
+@@ -6,14 +6,17 @@ RPMBUILD=$(shell `which rpmbuild >&/dev/null` && echo "rpmbuild" || echo "rpm")
+ 
+ INSTALL=install
+ 
+-default: all
++.PHONY: src test examples
++default: src test examples
+ 
+-all:
++src:
+ 	@$(MAKE) -C src
++test:
+ 	@$(MAKE) -C test
++examples:
+ 	@$(MAKE) -C examples
+ 
+-runtests: all
++runtests: src test examples
+ 	@$(MAKE) -C test runtests
+ runtests-loop:
+ 	@$(MAKE) -C test runtests-loop
+diff --git a/src/Makefile b/src/Makefile
+index 129e624..a47cb0d 100644
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -12,11 +12,11 @@ libdir ?= $(prefix)/lib
+ 
+ CCANDIR=../ccan/
+ 
++HOSTCC ?= $(CC)
+ CFLAGS ?= -g -fomit-frame-pointer -O2 -I/usr/include -Invme/ -I$(CCANDIR) -include ../config-host.h -D_GNU_SOURCE
+ override CFLAGS += -Wall -fPIC
+ SO_CFLAGS=-shared $(CFLAGS)
+ L_CFLAGS=$(CFLAGS)
+-LINK_FLAGS= -L /usr/lib64
+ LINK_FLAGS+=$(LDFLAGS)
+ ENABLE_SHARED ?= 1
+ SED ?= sed
+@@ -39,6 +39,9 @@ all: $(all_targets)
+ $(CCANDIR)config.h: $(CCANDIR)tools/configurator/configurator
+ 	$< > $@
+ 
++$(CCANDIR)tools/configurator/configurator: $(CCANDIR)tools/configurator/configurator.c
++	$(HOSTCC) $< -o $@
++
+ libccan_headers := $(wildcard $(CCANDIR)ccan/*/*.h)
+ libccan_srcs := $(wildcard $(CCANDIR)ccan/*/*.c)
+ libccan_objs := $(patsubst %.c,%.ol,$(libccan_srcs))
+-- 
+2.25.1
+

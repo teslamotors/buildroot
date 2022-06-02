@@ -1,0 +1,23 @@
+CommonAPI: Allow use of deprecated copy func
+
+This operator is no longer supported and should either be defined fully
+or not at all, since the implicit copy operator is deprecated. For now,
+disabling the deprecation in the makefile.
+
+tesla-internal: SW-363525
+
+---
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0b24a4e..f982eea 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -160,7 +160,7 @@ else()
+   if ("${CMAKE_BUILD_TYPE}x" STREQUAL "Debugx")
+     set(OFLAG_IN_DEBUG "-O")
+   endif()
+-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x ${OFLAG_IN_DEBUG} -Wall -Wextra -Wformat -Wformat-security -fexceptions -fstrict-aliasing -fstack-protector -fasynchronous-unwind-tables -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -Werror -DCOMMONAPI_INTERNAL_COMPILATION -D_GLIBCXX_USE_NANOSLEEP")
++  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x ${OFLAG_IN_DEBUG} -Wall -Wextra -Wformat -Wformat-security -fexceptions -fstrict-aliasing -fstack-protector -fasynchronous-unwind-tables -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -Werror -Wno-error=deprecated-copy -Wno-deprecated-copy -DCOMMONAPI_INTERNAL_COMPILATION -D_GLIBCXX_USE_NANOSLEEP")
+ endif()
+ 
+ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCOMMONAPI_LOGLEVEL=COMMONAPI_LOGLEVEL_${MAX_LOG_LEVEL}")

@@ -44,6 +44,8 @@ restart() {
 	start
 }
 
+[ -r /etc/default/vmtoolsd ] && . /etc/default/vmtoolsd
+
 case "$1" in
 	start|stop|restart)
 		"$1";;

@@ -17,7 +17,7 @@ define DBUS_PERMISSIONS
 endef
 
 define DBUS_USERS
-	dbus -1 dbus -1 * /run/dbus - dbus DBus messagebus user
+	dbus -1 dbus -1 * /var/run/dbus - dbus DBus messagebus user
 endef
 
 DBUS_DEPENDENCIES = host-pkgconf expat host-python
@@ -30,8 +30,8 @@ DBUS_CONF_OPTS = \
 	--disable-asserts \
 	--disable-xml-docs \
 	--disable-doxygen-docs \
-	--with-system-socket=/run/dbus/system_bus_socket \
-	--with-system-pid-file=/run/messagebus.pid
+	--with-system-socket=/var/run/dbus/system_bus_socket \
+	--with-system-pid-file=/var/run/messagebus.pid
 
 ifeq ($(BR2_STATIC_LIBS),y)
 DBUS_CONF_OPTS += LIBS='-pthread'

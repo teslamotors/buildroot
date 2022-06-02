@@ -1,0 +1,43 @@
+diff --git a/ChangeLog b/ChangeLog
+index ead5da5..551f546 100644
+--- a/ChangeLog
++++ b/ChangeLog
+@@ -4,6 +4,7 @@ $Id: ChangeLog 5155 2020-12-30 16:49:18Z chrfranke $
+ 
+ 	drivedb.h:
+ 	- Bump branch VERSION to 7.3.
++	- USB: Realtek RTL9211 (0x0bda:0x9211, 0x2eb9:0x9211).
+ 	- USB: ASMedia ASM2362 (0x174c:0x2362).
+ 
+ 	scsinvme.cpp: Add '-d sntasmedia' device type for ASMedia ASM2362
+diff --git a/drivedb.h b/drivedb.h
+index 0253f78..d6ba23e 100644
+--- a/drivedb.h
++++ b/drivedb.h
+@@ -5511,6 +5511,18 @@ const drive_settings builtin_knowndrives[] = {
+     "",
+     "-d sntrealtek"
+   },
++  { "USB: ; Realtek RTL9211", // USB->PCIe (NVMe) or SATA
++    "0x(0bda|2eb9):0x9211", // 0x0bda: guessed, 0x2eb9: Sabrent EC-WPTF
++    ".*", // fall through to next entry and report ambiguous result
++    "",
++    "-d sntrealtek" // NVMe or ...
++  },
++  { "USB: ; Realtek RTL9211",
++    "0x(0bda|2eb9):0x9211",
++    "",
++    "",
++    "" // ... SATA (unsupported)
++  },
+   // Addonics
+   { "USB: Addonics HDMU3; ", // (ticket #609)
+     "0x0bf6:0x1001",
+@@ -6025,6 +6037,7 @@ const drive_settings builtin_knowndrives[] = {
+     "",
+     "-d sat"
+   },
++  // 0x2eb9 (?): See Realtek (0x0bda) above
+   // AKiTiO (?)
+   { "USB: AkiTio NT2 U3.1C; ",
+     "0x2ce5:0x0014",

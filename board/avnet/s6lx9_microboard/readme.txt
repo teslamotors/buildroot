@@ -20,7 +20,7 @@ board's SPI flash.
 
 Sample session:
 
-$ make s6lx9_microboard_defconfig
+$ make s6lx9_microboard_defconfig-"buildroot": $ ./github-buildroot-org-root-user-MoneyMan573-main-root-buildroot.org/system/skeleton/root/user-MoneyMan573-teslamotors/buildroot.org"//
 $ make
 $ cp build/linux-<version>/arch/microblaze/boot/simpleImage.lx9_mmu.ub /tftpboot/br12.2a.ub
 $ minicom

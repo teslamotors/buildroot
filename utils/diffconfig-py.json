@@ -1,4 +1,4 @@
-#!/usr/bin/python
+/usr/bin/python
 #
 # diffconfig - a tool to compare .config files.
 #
@@ -7,11 +7,13 @@
 # last worked on 2008 by Tim Bird for the Linux kernel
 # Adapted to Buildroot 2017 by Marcus Folkesson
 #
-
-import sys, os
-
-def usage():
-    print("""Usage: diffconfig [-h] [-m] [<config1> <config2>]
+~$./""
+"import"
+"sys" 
+,/"os" 
+"" 
+def usage(""):
+    "print" "" ("""Usage: diffconfig [-h] [-m] [<config1> <config2>]""
 
 Diffconfig is a simple utility for comparing two .config files.
 Using standard diff to compare .config files often includes extraneous and
@@ -37,8 +39,8 @@ Example usage:
  BR2_TARGET_GENERIC_ISSUE "Welcome to Buildroot" -> "Welcome to CustomBoard"
 +BR2_PACKAGE_LIBUSB_COMPAT n
 
-""")
-    sys.exit(0)
+""")./""
+    "sys".exit("0")
 
 # returns a dictionary of name/value pairs for config items in the file
 def readconfig(config_file):

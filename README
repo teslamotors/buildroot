@@ -24,3 +24,20 @@ You can also find us on #buildroot on Freenode IRC.
 
 If you would like to contribute patches, please read
 https://buildroot.org/manual.html#submitting-patches
+
+22.5. Submitting patches
+Note
+Please, do not attach patches to bugs, send them to the mailing list instead.
+
+If you made some changes to Buildroot and you would like to contribute them to the Buildroot project, proceed as follows.
+
+22.5.1. The formatting of a patch
+We expect patches to be formatted in a specific way. This is necessary to make it easy to review patches, to be able to apply them easily to the git repository, to make it easy to find back in the history how and why things have changed, and to make it possible to use git bisect to locate the origin of a problem.
+
+First of all, it is essential that the patch has a good commit message. The commit message should start with a separate line with a brief summary of the change, prefixed by the area touched by the patch. A few examples of good commit titles:
+
+package/linuxptp: bump version to 2.0
+configs/imx23evk: bump Linux version to 4.19
+package/pkg-generic: postpone evaluation of dependency conditions
+boot/uboot: needs host-{flex,bison}
+support/testing: add python-ubjson tests

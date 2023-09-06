@@ -4,7 +4,7 @@
 <BRANCH>
 git fetch origin
 git branch -u 
-```origin/<BRANCH> 
+origin/<BRANCH> 
 <BRANCH>
 git remote set-head origin -a
 ```
